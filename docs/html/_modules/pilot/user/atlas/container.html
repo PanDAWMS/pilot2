@@ -1,0 +1,1104 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.user.atlas.container &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.user.atlas.container</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020</span>
+<span class="c1"># - Alexander Bogdanchikov, Alexander.Bogdanchikov@cern.ch, 2019-2020</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pipes</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="c1"># for user container test: import urllib</span>
+
+<span class="kn">from</span> <span class="nn">pilot.common.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
+<span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">PilotException</span>
+<span class="kn">from</span> <span class="nn">pilot.user.atlas.setup</span> <span class="kn">import</span> <span class="n">get_asetup</span><span class="p">,</span> <span class="n">get_file_system_root_path</span>
+<span class="kn">from</span> <span class="nn">pilot.user.atlas.proxy</span> <span class="kn">import</span> <span class="n">verify_proxy</span>
+<span class="kn">from</span> <span class="nn">pilot.info</span> <span class="kn">import</span> <span class="n">InfoService</span><span class="p">,</span> <span class="n">infosys</span>
+<span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">is_python3</span>
+<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">write_file</span>
+
+<span class="c1"># imports for get_payload_proxy()</span>
+<span class="kn">from</span> <span class="nn">pilot.util</span> <span class="kn">import</span> <span class="n">https</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">errors</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="get_payload_proxy"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.get_payload_proxy">[docs]</a><span class="k">def</span> <span class="nf">get_payload_proxy</span><span class="p">(</span><span class="n">proxy_outfile_name</span><span class="p">,</span> <span class="n">voms_role</span><span class="o">=</span><span class="s1">&#39;atlas&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :param proxy_outfile_name: specify the file to store proxy</span>
+<span class="sd">    :param voms_role: what proxy (role) to request. It should exist on Panda node</span>
+<span class="sd">    :return: True on success</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># it assumes that https_setup() was done already</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">https</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{pandaserver}</span><span class="s1">/server/panda/getProxy&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pandaserver</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">pandaserver</span><span class="p">),</span>
+                            <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;role&#39;</span><span class="p">:</span> <span class="n">voms_role</span><span class="p">})</span>
+
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Unable to get proxy with role &#39;</span><span class="si">%s</span><span class="s2">&#39; from panda server&quot;</span> <span class="o">%</span> <span class="n">voms_role</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;StatusCode&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;When get proxy with role &#39;</span><span class="si">%s</span><span class="s2">&#39; panda server returned: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">voms_role</span><span class="p">,</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;errorDialog&#39;</span><span class="p">]))</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">proxy_contents</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;userProxy&#39;</span><span class="p">]</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Get proxy from panda server failed: </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()))</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># pre-create empty proxy file with secure permissions. Prepare it for write_file() which can not</span>
+        <span class="c1"># set file permission mode, it will writes to the existing file with correct permissions.</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">proxy_outfile_name</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">O_WRONLY</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">O_CREAT</span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">O_TRUNC</span><span class="p">,</span> <span class="mo">0o600</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">write_file</span><span class="p">(</span><span class="n">proxy_outfile_name</span><span class="p">,</span> <span class="n">proxy_contents</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># returns True on success</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Exception when try to save proxy to the file &#39;</span><span class="si">%s</span><span class="s2">&#39;: </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">proxy_outfile_name</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()))</span>
+
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="do_use_container"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.do_use_container">[docs]</a><span class="k">def</span> <span class="nf">do_use_container</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decide whether to use a container or not.</span>
+
+<span class="sd">    :param kwargs: dictionary of key-word arguments.</span>
+<span class="sd">    :return: True if function has decided that a container should be used, False otherwise (boolean).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># to force no container use: return False</span>
+    <span class="n">use_container</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">job</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;job&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">copytool</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;copytool&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">job</span><span class="p">:</span>
+        <span class="c1"># for user jobs, TRF option --containerImage must have been used, ie imagename must be set</span>
+        <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">imagename</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">imagename</span> <span class="o">!=</span> <span class="s1">&#39;NULL&#39;</span><span class="p">:</span>
+            <span class="n">use_container</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;job.imagename set -&gt; use_container = True&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">platform</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">alrbuserplatform</span><span class="p">):</span>
+            <span class="n">use_container</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;not (job.platform or job.alrbuserplatform) -&gt; use_container = False&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">queuedata</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span>
+            <span class="n">container_name</span> <span class="o">=</span> <span class="n">queuedata</span><span class="o">.</span><span class="n">container_type</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pilot&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">container_name</span><span class="p">:</span>
+                <span class="n">use_container</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;container_name == </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1"> -&gt; use_container = True&#39;</span> <span class="o">%</span> <span class="n">container_name</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;else -&gt; use_container = False&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">copytool</span><span class="p">:</span>
+        <span class="c1"># override for copytools - use a container for stage-in/out</span>
+        <span class="n">use_container</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;copytool -&gt; use_container = False&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;not job -&gt; use_container = False&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">use_container</span></div>
+
+
+<div class="viewcode-block" id="wrapper"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.wrapper">[docs]</a><span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="n">executable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper function for any container specific usage.</span>
+<span class="sd">    This function will be called by pilot.util.container.execute() and prepends the executable with a container command.</span>
+
+<span class="sd">    :param executable: command to be executed (string).</span>
+<span class="sd">    :param kwargs: dictionary of key-word arguments.</span>
+<span class="sd">    :return: executable wrapped with container command (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">workdir</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;workdir&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="n">pilot_home</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">job</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;job&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;container wrapper called&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">workdir</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span> <span class="ow">and</span> <span class="n">pilot_home</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+        <span class="n">workdir</span> <span class="o">=</span> <span class="n">pilot_home</span>
+
+    <span class="c1"># if job.imagename (from --containerimage &lt;image&gt;) is set, then always use raw singularity</span>
+    <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">Container</span><span class="o">.</span><span class="n">setup_type</span> <span class="o">==</span> <span class="s2">&quot;ALRB&quot;</span><span class="p">:</span>  <span class="c1"># and job and not job.imagename:</span>
+        <span class="n">fctn</span> <span class="o">=</span> <span class="n">alrb_wrapper</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fctn</span> <span class="o">=</span> <span class="n">singularity_wrapper</span>
+    <span class="k">return</span> <span class="n">fctn</span><span class="p">(</span><span class="n">executable</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="extract_platform_and_os"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.extract_platform_and_os">[docs]</a><span class="k">def</span> <span class="nf">extract_platform_and_os</span><span class="p">(</span><span class="n">platform</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract the platform and OS substring from platform</span>
+
+<span class="sd">    :param platform (string): E.g. &quot;x86_64-slc6-gcc48-opt&quot;</span>
+<span class="sd">    :return: extracted platform specifics (string). E.g. &quot;x86_64-slc6&quot;. In case of failure, return the full platform</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;([A-Za-z0-9_-]+)-.+-.+&quot;</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">),</span> <span class="n">platform</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;could not extract architecture and OS substring using pattern=</span><span class="si">%s</span><span class="s2"> from platform=</span><span class="si">%s</span><span class="s2">&quot;</span>
+                       <span class="s2">&quot;(will use </span><span class="si">%s</span><span class="s2"> for image name)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">platform</span><span class="p">,</span> <span class="n">platform</span><span class="p">))</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">platform</span>
+
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="get_grid_image_for_singularity"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.get_grid_image_for_singularity">[docs]</a><span class="k">def</span> <span class="nf">get_grid_image_for_singularity</span><span class="p">(</span><span class="n">platform</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the full path to the singularity grid image</span>
+
+<span class="sd">    :param platform: E.g. &quot;x86_64-slc6&quot; (string).</span>
+<span class="sd">    :return: full path to grid image (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">platform</span> <span class="ow">or</span> <span class="n">platform</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">platform</span> <span class="o">=</span> <span class="s2">&quot;x86_64-slc6&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;using default platform=</span><span class="si">%s</span><span class="s2"> (cmtconfig not set)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">platform</span><span class="p">))</span>
+
+    <span class="n">arch_and_os</span> <span class="o">=</span> <span class="n">extract_platform_and_os</span><span class="p">(</span><span class="n">platform</span><span class="p">)</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">arch_and_os</span> <span class="o">+</span> <span class="s2">&quot;.img&quot;</span>
+    <span class="n">_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">get_file_system_root_path</span><span class="p">(),</span> <span class="s2">&quot;atlas.cern.ch/repo/containers/images/singularity&quot;</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="s1">&#39;x86_64-centos7.img&#39;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;path does not exist: </span><span class="si">%s</span><span class="s1"> (trying with image </span><span class="si">%s</span><span class="s1"> instead)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">image</span><span class="p">))</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_path</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;path does not exist either: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">path</span></div>
+
+
+<div class="viewcode-block" id="get_middleware_type"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.get_middleware_type">[docs]</a><span class="k">def</span> <span class="nf">get_middleware_type</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the middleware type from the container type.</span>
+<span class="sd">    E.g. container_type = &#39;singularity:pilot;docker:wrapper;container:middleware&#39;</span>
+<span class="sd">    get_middleware_type() -&gt; &#39;container&#39;, meaning that middleware should be taken from the container. The default</span>
+<span class="sd">    is otherwise &#39;workernode&#39;, i.e. middleware is assumed to be present on the worker node.</span>
+
+<span class="sd">    :return: middleware_type (string)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">middleware_type</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">container_type</span> <span class="o">=</span> <span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">container_type</span>
+
+    <span class="n">mw</span> <span class="o">=</span> <span class="s1">&#39;middleware&#39;</span>
+    <span class="k">if</span> <span class="n">container_type</span> <span class="ow">and</span> <span class="n">container_type</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">mw</span> <span class="ow">in</span> <span class="n">container_type</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">container_names</span> <span class="o">=</span> <span class="n">container_type</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">container_names</span><span class="p">:</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">mw</span> <span class="o">==</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="n">middleware_type</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;failed to parse the container name: </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">container_type</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># logger.warning(&quot;container middleware type not specified in queuedata&quot;)</span>
+        <span class="c1"># no middleware type was specified, assume that middleware is present on worker node</span>
+        <span class="n">middleware_type</span> <span class="o">=</span> <span class="s2">&quot;workernode&quot;</span>
+
+    <span class="k">return</span> <span class="n">middleware_type</span></div>
+
+
+<div class="viewcode-block" id="extract_atlas_setup"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.extract_atlas_setup">[docs]</a><span class="k">def</span> <span class="nf">extract_atlas_setup</span><span class="p">(</span><span class="n">asetup</span><span class="p">,</span> <span class="n">swrelease</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract the asetup command from the full setup command for jobs that have a defined release.</span>
+<span class="sd">    export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;</span>
+<span class="sd">      source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;source $AtlasSetup/scripts/asetup.sh</span>
+<span class="sd">    -&gt; $AtlasSetup/scripts/asetup.sh, export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase; source</span>
+<span class="sd">         ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;</span>
+
+<span class="sd">    :param asetup: full asetup command (string).</span>
+<span class="sd">    :param swrelease: ATLAS release (string).</span>
+<span class="sd">    :return: extracted asetup command, cleaned up full asetup command without asetup.sh (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">swrelease</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># source $AtlasSetup/scripts/asetup.sh</span>
+        <span class="n">atlas_setup</span> <span class="o">=</span> <span class="n">asetup</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c1"># export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;</span>
+        <span class="c1">#   source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;</span>
+        <span class="n">cleaned_atlas_setup</span> <span class="o">=</span> <span class="n">asetup</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">atlas_setup</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">atlas_setup</span> <span class="o">=</span> <span class="n">atlas_setup</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;source &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;exception caught while extracting asetup command: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">atlas_setup</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">cleaned_atlas_setup</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="k">return</span> <span class="n">atlas_setup</span><span class="p">,</span> <span class="n">cleaned_atlas_setup</span></div>
+
+
+<div class="viewcode-block" id="extract_full_atlas_setup"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.extract_full_atlas_setup">[docs]</a><span class="k">def</span> <span class="nf">extract_full_atlas_setup</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">atlas_setup</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract the full asetup (including options) from the payload setup command.</span>
+<span class="sd">    atlas_setup is typically &#39;$AtlasSetup/scripts/asetup.sh&#39;.</span>
+
+<span class="sd">    :param cmd: full payload setup command (string).</span>
+<span class="sd">    :param atlas_setup: asetup command (string).</span>
+<span class="sd">    :return: extracted full asetup command, updated full payload setup command without asetup part (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">updated_cmds</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">extracted_asetup</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">atlas_setup</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">extracted_asetup</span><span class="p">,</span> <span class="n">cmd</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">_cmd</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">subcmd</span> <span class="ow">in</span> <span class="n">_cmd</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">atlas_setup</span> <span class="ow">in</span> <span class="n">subcmd</span><span class="p">:</span>
+                <span class="n">extracted_asetup</span> <span class="o">=</span> <span class="n">subcmd</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">updated_cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">subcmd</span><span class="p">)</span>
+        <span class="n">updated_cmd</span> <span class="o">=</span> <span class="s1">&#39;;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">updated_cmds</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught while extracting full atlas setup: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">updated_cmd</span> <span class="o">=</span> <span class="n">cmd</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;updated payload setup command: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">updated_cmd</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">extracted_asetup</span><span class="p">,</span> <span class="n">updated_cmd</span></div>
+
+
+<div class="viewcode-block" id="update_alrb_setup"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.update_alrb_setup">[docs]</a><span class="k">def</span> <span class="nf">update_alrb_setup</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">use_release_setup</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update the ALRB setup command.</span>
+<span class="sd">    Add the ALRB_CONT_SETUPFILE in case the release setup file was created earlier (required available cvmfs).</span>
+
+<span class="sd">    :param cmd: full ALRB setup command (string).</span>
+<span class="sd">    :param use_release_setup: should the release setup file be added to the setup command? (Boolean).</span>
+<span class="sd">    :return: updated ALRB setup command (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">updated_cmds</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">_cmd</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">subcmd</span> <span class="ow">in</span> <span class="n">_cmd</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">subcmd</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;source $</span><span class="si">{ATLAS_LOCAL_ROOT_BASE}</span><span class="s1">&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">use_release_setup</span><span class="p">:</span>
+                <span class="n">updated_cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;export ALRB_CONT_SETUPFILE=&quot;/srv/</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="n">config</span><span class="o">.</span><span class="n">Container</span><span class="o">.</span><span class="n">release_setup</span><span class="p">)</span>
+            <span class="n">updated_cmds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">subcmd</span><span class="p">)</span>
+        <span class="n">updated_cmd</span> <span class="o">=</span> <span class="s1">&#39;;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">updated_cmds</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught while extracting full atlas setup: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">updated_cmd</span> <span class="o">=</span> <span class="n">cmd</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;updated ALRB command: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">updated_cmd</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">updated_cmd</span></div>
+
+
+<div class="viewcode-block" id="update_for_user_proxy"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.update_for_user_proxy">[docs]</a><span class="k">def</span> <span class="nf">update_for_user_proxy</span><span class="p">(</span><span class="n">_cmd</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">is_analysis</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add the X509 user proxy to the container sub command string if set, and remove it from the main container command.</span>
+<span class="sd">    Try to receive payload proxy and update X509_USER_PROXY in container setup command</span>
+<span class="sd">    In case payload proxy from server is required, this function will also download and verify this proxy.</span>
+
+<span class="sd">    :param _cmd: container setup command (string).</span>
+<span class="sd">    :param cmd: command the container will execute (string).</span>
+<span class="sd">    :param is_analysis: True for user job (Boolean).</span>
+<span class="sd">    :return: exit_code (int), diagnostics (string), updated _cmd (string), updated cmd (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">exit_code</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">x509</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;X509_USER_PROXY&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">x509</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="c1"># do not include the X509_USER_PROXY in the command the container will execute</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;export X509_USER_PROXY=</span><span class="si">%s</span><span class="s2">;&quot;</span> <span class="o">%</span> <span class="n">x509</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="c1"># add it instead to the container setup command:</span>
+
+        <span class="c1"># download and verify payload proxy from the server if desired</span>
+        <span class="n">proxy_verification</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_PROXY_VERIFICATION&#39;</span><span class="p">,</span> <span class="s1">&#39;True&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">payload_proxy_from_server</span> <span class="ow">and</span> <span class="n">is_analysis</span> <span class="ow">and</span> <span class="n">proxy_verification</span> <span class="o">==</span> <span class="s1">&#39;True&#39;</span><span class="p">:</span>
+            <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="n">x509</span> <span class="o">=</span> <span class="n">get_and_verify_payload_proxy_from_server</span><span class="p">(</span><span class="n">x509</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># do not return non-zero exit code if only download fails</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;payload proxy verification failed&#39;</span><span class="p">)</span>
+
+        <span class="c1"># add X509_USER_PROXY setting to the container setup command</span>
+        <span class="n">_cmd</span> <span class="o">=</span> <span class="s2">&quot;export X509_USER_PROXY=</span><span class="si">%s</span><span class="s2">;&quot;</span> <span class="o">%</span> <span class="n">x509</span> <span class="o">+</span> <span class="n">_cmd</span>
+
+    <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="n">_cmd</span><span class="p">,</span> <span class="n">cmd</span></div>
+
+
+<div class="viewcode-block" id="get_and_verify_payload_proxy_from_server"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.get_and_verify_payload_proxy_from_server">[docs]</a><span class="k">def</span> <span class="nf">get_and_verify_payload_proxy_from_server</span><span class="p">(</span><span class="n">x509</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Download a payload proxy from the server and verify it.</span>
+
+<span class="sd">    :param x509: X509_USER_PROXY (string).</span>
+<span class="sd">    :return:  exit code (int), diagnostics (string), updated X509_USER_PROXY (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">exit_code</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># try to receive payload proxy and update x509</span>
+    <span class="n">x509_payload</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;.proxy$&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">x509</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;-payload.proxy&#39;</span>  <span class="c1"># compose new name to store payload proxy</span>
+    <span class="c1">#x509_payload = re.sub(&#39;.proxy$&#39;, &#39;&#39;, x509) + &#39;p.proxy&#39;  # compose new name to store payload proxy</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;download payload proxy from server&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">get_payload_proxy</span><span class="p">(</span><span class="n">x509_payload</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;server returned payload proxy (verifying)&quot;</span><span class="p">)</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">verify_proxy</span><span class="p">(</span><span class="n">x509</span><span class="o">=</span><span class="n">x509_payload</span><span class="p">,</span> <span class="n">proxy_id</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="c1"># if all verifications fail, verify_proxy()  returns exit_code=0 and last failure in diagnostics</span>
+        <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="p">(</span><span class="n">exit_code</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">diagnostics</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;payload proxy verification failed&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;payload proxy verified&quot;</span><span class="p">)</span>
+            <span class="c1"># is commented: no user proxy should be in the command the container will execute</span>
+            <span class="c1"># cmd = cmd.replace(&quot;export X509_USER_PROXY=%s;&quot; % x509, &quot;export X509_USER_PROXY=%s;&quot; % x509_payload)</span>
+            <span class="n">x509</span> <span class="o">=</span> <span class="n">x509_payload</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;get_payload_proxy() failed&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="n">x509</span></div>
+
+
+<div class="viewcode-block" id="set_platform"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.set_platform">[docs]</a><span class="k">def</span> <span class="nf">set_platform</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">alrb_setup</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set thePlatform variable and add it to the sub container command.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :param alrb_setup: ALRB setup (string).</span>
+<span class="sd">    :return: updated ALRB setup (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">alrbuserplatform</span><span class="p">:</span>
+        <span class="n">alrb_setup</span> <span class="o">+=</span> <span class="s1">&#39;export thePlatform=</span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">alrbuserplatform</span>
+    <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">preprocess</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">containeroptions</span><span class="p">:</span>
+        <span class="n">alrb_setup</span> <span class="o">+=</span> <span class="s1">&#39;export thePlatform=</span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">containeroptions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;containerImage&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">imagename</span><span class="p">:</span>
+        <span class="n">alrb_setup</span> <span class="o">+=</span> <span class="s1">&#39;export thePlatform=</span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">imagename</span>
+    <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">platform</span><span class="p">:</span>
+        <span class="n">alrb_setup</span> <span class="o">+=</span> <span class="s1">&#39;export thePlatform=</span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">platform</span>
+
+    <span class="k">return</span> <span class="n">alrb_setup</span></div>
+
+
+<div class="viewcode-block" id="get_container_options"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.get_container_options">[docs]</a><span class="k">def</span> <span class="nf">get_container_options</span><span class="p">(</span><span class="n">container_options</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the container options from AGIS for the container execution command.</span>
+<span class="sd">    For Raythena ES jobs, replace the -C with &quot;&quot; (otherwise IPC does not work, needed by yampl).</span>
+
+<span class="sd">    :param container_options: container options from AGIS (string).</span>
+<span class="sd">    :return: updated container command (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">is_raythena</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">executor_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;raythena&#39;</span>
+
+    <span class="n">opts</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="c1"># Set the singularity options</span>
+    <span class="k">if</span> <span class="n">container_options</span><span class="p">:</span>
+        <span class="c1"># the event service payload cannot use -C/--containall since it will prevent yampl from working</span>
+        <span class="k">if</span> <span class="n">is_raythena</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;-C&#39;</span> <span class="ow">in</span> <span class="n">container_options</span><span class="p">:</span>
+                <span class="n">container_options</span> <span class="o">=</span> <span class="n">container_options</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-C&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39;--containall&#39;</span> <span class="ow">in</span> <span class="n">container_options</span><span class="p">:</span>
+                <span class="n">container_options</span> <span class="o">=</span> <span class="n">container_options</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;--containall&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">container_options</span><span class="p">:</span>
+            <span class="n">opts</span> <span class="o">+=</span> <span class="s1">&#39;-e </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">container_options</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># consider using options &quot;-c -i -p&quot; instead of &quot;-C&quot;. The difference is that the latter blocks all environment</span>
+        <span class="c1"># variables by default and the former does not</span>
+        <span class="c1"># update: skip the -i to allow IPC, otherwise yampl won&#39;t work</span>
+        <span class="k">if</span> <span class="n">is_raythena</span><span class="p">:</span>
+            <span class="k">pass</span>
+            <span class="c1"># opts += &#39;export ALRB_CONT_CMDOPTS=\&quot;$ALRB_CONT_CMDOPTS -c -i -p\&quot;;&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">opts</span> <span class="o">+=</span> <span class="s1">&#39;-e </span><span class="se">\&quot;</span><span class="s1">-C</span><span class="se">\&quot;</span><span class="s1">&#39;</span>
+
+    <span class="k">return</span> <span class="n">opts</span></div>
+
+
+<div class="viewcode-block" id="alrb_wrapper"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.alrb_wrapper">[docs]</a><span class="k">def</span> <span class="nf">alrb_wrapper</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrap the given command with the special ALRB setup for containers</span>
+<span class="sd">    E.g. cmd = /bin/bash hello_world.sh</span>
+<span class="sd">    -&gt;</span>
+<span class="sd">    export thePlatform=&quot;x86_64-slc6-gcc48-opt&quot;</span>
+<span class="sd">    export ALRB_CONT_RUNPAYLOAD=&quot;cmd&#39;</span>
+<span class="sd">    setupATLAS -c $thePlatform</span>
+
+<span class="sd">    :param cmd (string): command to be executed in a container.</span>
+<span class="sd">    :param workdir: (not used)</span>
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return: prepended command with singularity execution command (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">job</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;the ALRB wrapper did not get a job object - cannot proceed&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cmd</span>
+
+    <span class="n">queuedata</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span>
+    <span class="n">container_name</span> <span class="o">=</span> <span class="n">queuedata</span><span class="o">.</span><span class="n">container_type</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pilot&quot;</span><span class="p">)</span>  <span class="c1"># resolve container name for user=pilot</span>
+    <span class="k">if</span> <span class="n">container_name</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;cmd 1=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+        <span class="c1"># first get the full setup, which should be removed from cmd (or ALRB setup won&#39;t work)</span>
+        <span class="n">_asetup</span> <span class="o">=</span> <span class="n">get_asetup</span><span class="p">()</span>
+        <span class="c1"># get_asetup()</span>
+        <span class="c1"># -&gt; export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh</span>
+        <span class="c1">#     --quiet;source $AtlasSetup/scripts/asetup.sh</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;_asetup: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">_asetup</span><span class="p">)</span>
+        <span class="c1"># atlas_setup = $AtlasSetup/scripts/asetup.sh</span>
+        <span class="c1"># clean_asetup = export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source</span>
+        <span class="c1">#                   ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;</span>
+        <span class="n">atlas_setup</span><span class="p">,</span> <span class="n">clean_asetup</span> <span class="o">=</span> <span class="n">extract_atlas_setup</span><span class="p">(</span><span class="n">_asetup</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">swrelease</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;atlas_setup=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">atlas_setup</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;clean_asetup=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">clean_asetup</span><span class="p">)</span>
+        <span class="n">full_atlas_setup</span> <span class="o">=</span> <span class="n">get_full_asetup</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="s1">&#39;source &#39;</span> <span class="o">+</span> <span class="n">atlas_setup</span><span class="p">)</span> <span class="k">if</span> <span class="n">atlas_setup</span> <span class="ow">and</span> <span class="n">clean_asetup</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;full_atlas_setup=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">full_atlas_setup</span><span class="p">)</span>
+
+        <span class="c1"># do not include &#39;clean_asetup&#39; in the container script</span>
+        <span class="k">if</span> <span class="n">clean_asetup</span> <span class="ow">and</span> <span class="n">full_atlas_setup</span><span class="p">:</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">clean_asetup</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="c1"># for stand-alone containers, do not include the full atlas setup either</span>
+            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">imagename</span><span class="p">:</span>
+                <span class="n">cmd</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">full_atlas_setup</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;cmd 2=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+        <span class="c1"># get_asetup(asetup=False)</span>
+        <span class="c1"># -&gt; export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;</span>
+
+        <span class="c1"># get simplified ALRB setup (export)</span>
+        <span class="n">alrb_setup</span> <span class="o">=</span> <span class="n">get_asetup</span><span class="p">(</span><span class="n">alrb</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_if</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># get_asetup(alrb=True)</span>
+        <span class="c1"># -&gt; export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;</span>
+        <span class="c1"># get_asetup(alrb=True, add_if=True)</span>
+        <span class="c1"># -&gt; if [ -z &quot;$ATLAS_LOCAL_ROOT_BASE&quot; ]; then export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase; fi;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;initial alrb_setup: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">alrb_setup</span><span class="p">)</span>
+
+        <span class="c1"># add user proxy if necessary (actually it should also be removed from cmd)</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="n">alrb_setup</span><span class="p">,</span> <span class="n">cmd</span> <span class="o">=</span> <span class="n">update_for_user_proxy</span><span class="p">(</span><span class="n">alrb_setup</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">is_analysis</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">is_analysis</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">exit_code</span><span class="p">:</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiag</span> <span class="o">=</span> <span class="n">diagnostics</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">exit_code</span><span class="p">)</span>
+        <span class="c1"># set the platform info</span>
+        <span class="n">alrb_setup</span> <span class="o">=</span> <span class="n">set_platform</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">alrb_setup</span><span class="p">)</span>
+
+        <span class="c1"># add the jobid to be used as an identifier for the payload running inside the container</span>
+        <span class="c1"># it is used to identify the pid for the process to be tracked by the memory monitor</span>
+        <span class="k">if</span> <span class="s1">&#39;export PandaID&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">alrb_setup</span><span class="p">:</span>
+            <span class="n">alrb_setup</span> <span class="o">+=</span> <span class="s2">&quot;export PandaID=</span><span class="si">%s</span><span class="s2">;&quot;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;alrb_setup=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">alrb_setup</span><span class="p">)</span>
+
+        <span class="c1"># add TMPDIR</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;export TMPDIR=/srv;export GFORTRAN_TMPDIR=/srv;&quot;</span> <span class="o">+</span> <span class="n">cmd</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;;;&#39;</span><span class="p">,</span> <span class="s1">&#39;;&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;cmd = </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+
+        <span class="c1"># get the proper release setup script name, and create the script if necessary</span>
+        <span class="n">release_setup</span><span class="p">,</span> <span class="n">cmd</span> <span class="o">=</span> <span class="n">create_release_setup</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">atlas_setup</span><span class="p">,</span> <span class="n">full_atlas_setup</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">swrelease</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">imagename</span><span class="p">,</span>
+                                                  <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">queuedata</span><span class="o">.</span><span class="n">is_cvmfs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">cmd</span><span class="p">:</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;payload setup was reset due to missing release setup in unpacked container&#39;</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">MISSINGRELEASEUNPACKED</span><span class="p">)</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="c1"># correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)</span>
+        <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">preprocess</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">containeroptions</span><span class="p">:</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="n">replace_last_command</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">containeroptions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;containerExec&#39;</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;updated cmd with containerExec: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+
+        <span class="c1"># write the full payload command to a script file</span>
+        <span class="n">container_script</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Container</span><span class="o">.</span><span class="n">container_script</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;command to be written to container script file:</span><span class="se">\n\n</span><span class="si">%s</span><span class="s1">:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">container_script</span><span class="p">,</span> <span class="n">cmd</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">write_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">container_script</span><span class="p">),</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">container_script</span><span class="p">),</span> <span class="mo">0o755</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="c1"># also store the command string in the job object</span>
+        <span class="n">job</span><span class="o">.</span><span class="n">command</span> <span class="o">=</span> <span class="n">cmd</span>
+
+        <span class="c1"># add atlasLocalSetup command + options (overwrite the old cmd since the new cmd is the containerised version)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">add_asetup</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">alrb_setup</span><span class="p">,</span> <span class="n">queuedata</span><span class="o">.</span><span class="n">is_cvmfs</span><span class="p">,</span> <span class="n">release_setup</span><span class="p">,</span> <span class="n">container_script</span><span class="p">,</span> <span class="n">queuedata</span><span class="o">.</span><span class="n">container_options</span><span class="p">)</span>
+
+        <span class="c1"># add any container options if set</span>
+        <span class="n">execargs</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">containeroptions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;execArgs&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">execargs</span><span class="p">:</span>
+            <span class="n">cmd</span> <span class="o">+=</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="n">execargs</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">final command:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;container name not defined in AGIS&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cmd</span></div>
+
+
+<div class="viewcode-block" id="is_release_setup"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.is_release_setup">[docs]</a><span class="k">def</span> <span class="nf">is_release_setup</span><span class="p">(</span><span class="n">script</span><span class="p">,</span> <span class="n">imagename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Does the release_setup.sh file exist?</span>
+<span class="sd">    This check can only be made for unpacked containers. These must have the release setup file present, or setup will</span>
+<span class="sd">    fail. For non-unpacked containers, the function will return True and the pilot will assume that the container has</span>
+<span class="sd">    the setup file.</span>
+
+<span class="sd">    :param script: release setup script (string).</span>
+<span class="sd">    :param imagename: container/image name (string).</span>
+<span class="sd">    :return: Boolean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="s1">&#39;unpacked&#39;</span> <span class="ow">in</span> <span class="n">imagename</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">script</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">):</span>
+            <span class="n">script</span> <span class="o">=</span> <span class="n">script</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">exists</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">imagename</span><span class="p">,</span> <span class="n">script</span><span class="p">))</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">exists</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> is present in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">script</span><span class="p">,</span> <span class="n">imagename</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> is not present in </span><span class="si">%s</span><span class="s1"> - setup has failed&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">script</span><span class="p">,</span> <span class="n">imagename</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">exists</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> is assumed to be present in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">script</span><span class="p">,</span> <span class="n">imagename</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">exists</span></div>
+
+
+<div class="viewcode-block" id="add_asetup"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.add_asetup">[docs]</a><span class="k">def</span> <span class="nf">add_asetup</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">alrb_setup</span><span class="p">,</span> <span class="n">is_cvmfs</span><span class="p">,</span> <span class="n">release_setup</span><span class="p">,</span> <span class="n">container_script</span><span class="p">,</span> <span class="n">container_options</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add atlasLocalSetup and options to form the final payload command.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :param alrb_setup: ALRB setup (string).</span>
+<span class="sd">    :param is_cvmfs: True for cvmfs sites (Boolean).</span>
+<span class="sd">    :param release_setup: release setup (string).</span>
+<span class="sd">    :param container_script: container script name (string).</span>
+<span class="sd">    :param container_options: container options (string).</span>
+<span class="sd">    :return: final payload command (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># this should not be necessary after the extract_container_image() in JobData update</span>
+    <span class="c1"># containerImage should have been removed already</span>
+    <span class="k">if</span> <span class="s1">&#39;--containerImage&#39;</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">jobparams</span><span class="p">:</span>
+        <span class="n">job</span><span class="o">.</span><span class="n">jobparams</span><span class="p">,</span> <span class="n">container_path</span> <span class="o">=</span> <span class="n">remove_container_string</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobparams</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">alrbuserplatform</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_cvmfs</span><span class="p">:</span>
+                <span class="n">alrb_setup</span> <span class="o">+=</span> <span class="s1">&#39;source $</span><span class="si">{ATLAS_LOCAL_ROOT_BASE}</span><span class="s1">/user/atlasLocalSetup.sh -c </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">alrbuserplatform</span>
+        <span class="k">elif</span> <span class="n">container_path</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">alrb_setup</span> <span class="o">+=</span> <span class="s1">&#39;source $</span><span class="si">{ATLAS_LOCAL_ROOT_BASE}</span><span class="s1">/user/atlasLocalSetup.sh -c </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">container_path</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to extract container path from </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">jobparams</span><span class="p">)</span>
+            <span class="n">alrb_setup</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">alrb_setup</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_cvmfs</span><span class="p">:</span>
+            <span class="n">alrb_setup</span> <span class="o">+=</span> <span class="s1">&#39; -d&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">alrb_setup</span> <span class="o">+=</span> <span class="s1">&#39;source $</span><span class="si">{ATLAS_LOCAL_ROOT_BASE}</span><span class="s1">/user/atlasLocalSetup.sh &#39;</span>
+        <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">platform</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">alrbuserplatform</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">imagename</span><span class="p">:</span>
+            <span class="n">alrb_setup</span> <span class="o">+=</span> <span class="s1">&#39;-c $thePlatform&#39;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_cvmfs</span><span class="p">:</span>
+                <span class="n">alrb_setup</span> <span class="o">+=</span> <span class="s1">&#39; -d&#39;</span>
+
+    <span class="c1"># update the ALRB setup command</span>
+    <span class="n">alrb_setup</span> <span class="o">+=</span> <span class="s1">&#39; -s </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">release_setup</span>
+    <span class="n">alrb_setup</span> <span class="o">+=</span> <span class="s1">&#39; -r /srv/&#39;</span> <span class="o">+</span> <span class="n">container_script</span>
+    <span class="n">alrb_setup</span> <span class="o">=</span> <span class="n">alrb_setup</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;  &#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;;;&#39;</span><span class="p">,</span> <span class="s1">&#39;;&#39;</span><span class="p">)</span>
+
+    <span class="c1"># add container options</span>
+    <span class="n">alrb_setup</span> <span class="o">+=</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="n">get_container_options</span><span class="p">(</span><span class="n">container_options</span><span class="p">)</span>
+    <span class="n">alrb_setup</span> <span class="o">=</span> <span class="n">alrb_setup</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;  &#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="n">alrb_setup</span>
+
+    <span class="c1"># correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)</span>
+    <span class="c1">#if job.preprocess and job.containeroptions:</span>
+    <span class="c1">#    logger.debug(&#39;will update cmd=%s&#39; % cmd)</span>
+    <span class="c1">#    cmd = replace_last_command(cmd, &#39;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c $thePlatform&#39;)</span>
+    <span class="c1">#    logger.debug(&#39;updated cmd with containerImage&#39;)</span>
+
+    <span class="k">return</span> <span class="n">cmd</span></div>
+
+
+<div class="viewcode-block" id="get_full_asetup"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.get_full_asetup">[docs]</a><span class="k">def</span> <span class="nf">get_full_asetup</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">atlas_setup</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract the full asetup command from the payload execution command.</span>
+<span class="sd">    (Easier that generating it again). We need to remove this command for stand-alone containers.</span>
+<span class="sd">    Alternatively: do not include it in the first place (but this seems to trigger the need for further changes).</span>
+<span class="sd">    atlas_setup is &quot;source $AtlasSetup/scripts/asetup.sh&quot;, which is extracted in a previous step.</span>
+<span class="sd">    The function typically returns: &quot;source $AtlasSetup/scripts/asetup.sh 21.0,Athena,2020-05-19T2148,notest --makeflags=&#39;$MAKEFLAGS&#39;;&quot;.</span>
+
+<span class="sd">    :param cmd: payload execution command (string).</span>
+<span class="sd">    :param atlas_setup: extracted atlas setup (string).</span>
+<span class="sd">    :return: full atlas setup (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nr</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">atlas_setup</span><span class="p">)</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="n">cmd</span><span class="p">[</span><span class="n">nr</span><span class="p">:]</span>  <span class="c1"># remove everything before &#39;source $AtlasSetup/..&#39;</span>
+    <span class="n">nr</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="n">cmd</span><span class="p">[:</span><span class="n">nr</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>  <span class="c1"># remove everything after the first ;, but include the trailing ;</span>
+
+    <span class="k">return</span> <span class="n">cmd</span></div>
+
+
+<div class="viewcode-block" id="replace_last_command"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.replace_last_command">[docs]</a><span class="k">def</span> <span class="nf">replace_last_command</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">replacement</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Replace the last command in cmd with given replacement.</span>
+
+<span class="sd">    :param cmd: command (string).</span>
+<span class="sd">    :param replacement: replacement (string).</span>
+<span class="sd">    :return: updated command (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;; &#39;</span><span class="p">)</span>
+    <span class="n">last_bit</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">last_bit</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">replacement</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cmd</span></div>
+
+
+<div class="viewcode-block" id="create_release_setup"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.create_release_setup">[docs]</a><span class="k">def</span> <span class="nf">create_release_setup</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">atlas_setup</span><span class="p">,</span> <span class="n">full_atlas_setup</span><span class="p">,</span> <span class="n">release</span><span class="p">,</span> <span class="n">imagename</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">is_cvmfs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the proper release setup script name, and create the script if necessary.</span>
+
+<span class="sd">    This function also updates the cmd string (removes full asetup from payload command).</span>
+
+<span class="sd">    Note: for stand-alone containers, the function will return /release_setup.sh and assume that this script exists</span>
+<span class="sd">    in the container. The pilot will only create a my_release_setup.sh script for OS containers.</span>
+
+<span class="sd">    In case the release setup is not present in an unpacked container, the function will reset the cmd string.</span>
+
+<span class="sd">    :param cmd: Payload execution command (string).</span>
+<span class="sd">    :param atlas_setup: asetup command (string).</span>
+<span class="sd">    :param full_atlas_setup: full asetup command (string).</span>
+<span class="sd">    :param release: software release, needed to determine Athena environment (string).</span>
+<span class="sd">    :param imagename: container image name (string).</span>
+<span class="sd">    :param workdir: job workdir (string).</span>
+<span class="sd">    :param is_cvmfs: does the queue have cvmfs? (Boolean).</span>
+<span class="sd">    :return: proper release setup name (string), updated cmd (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">release_setup_name</span> <span class="o">=</span> <span class="s1">&#39;/srv/my_release_setup.sh&#39;</span>
+
+    <span class="c1"># extracted_asetup should be written to &#39;my_release_setup.sh&#39; and cmd to &#39;container_script.sh&#39;</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="s1">&#39;echo </span><span class="se">\&quot;</span><span class="s1">INFO: sourcing </span><span class="si">%s</span><span class="s1"> inside the container. &#39;</span> \
+              <span class="s1">&#39;This should not run if it is a ATLAS standalone container</span><span class="se">\&quot;</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">release_setup_name</span>
+    <span class="k">if</span> <span class="n">is_cvmfs</span> <span class="ow">and</span> <span class="n">release</span> <span class="ow">and</span> <span class="n">release</span> <span class="o">!=</span> <span class="s1">&#39;NULL&#39;</span><span class="p">:</span>
+        <span class="n">content</span><span class="p">,</span> <span class="n">cmd</span> <span class="o">=</span> <span class="n">extract_full_atlas_setup</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">atlas_setup</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">content</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">full_atlas_setup</span>
+
+    <span class="n">content</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">return $?&#39;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;command to be written to release setup file:</span><span class="se">\n\n</span><span class="si">%s</span><span class="s1">:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">release_setup_name</span><span class="p">,</span> <span class="n">content</span><span class="p">))</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">write_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">release_setup_name</span><span class="p">)),</span> <span class="n">content</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+
+    <span class="c1"># reset cmd in case release_setup.sh does not exist in unpacked image (only for those containers)</span>
+    <span class="k">if</span> <span class="n">imagename</span> <span class="ow">and</span> <span class="n">release</span> <span class="ow">and</span> <span class="n">release</span> <span class="o">!=</span> <span class="s1">&#39;NULL&#39;</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;;;&#39;</span><span class="p">,</span> <span class="s1">&#39;;&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">is_release_setup</span><span class="p">(</span><span class="n">release_setup_name</span><span class="p">,</span> <span class="n">imagename</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="k">return</span> <span class="n">release_setup_name</span><span class="p">,</span> <span class="n">cmd</span></div>
+
+
+<div class="viewcode-block" id="create_release_setup_old"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.create_release_setup_old">[docs]</a><span class="k">def</span> <span class="nf">create_release_setup_old</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">atlas_setup</span><span class="p">,</span> <span class="n">full_atlas_setup</span><span class="p">,</span> <span class="n">release</span><span class="p">,</span> <span class="n">imagename</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">is_cvmfs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the proper release setup script name, and create the script if necessary.</span>
+
+<span class="sd">    This function also updates the cmd string (removes full asetup from payload command).</span>
+
+<span class="sd">    Note: for stand-alone containers, the function will return /release_setup.sh and assume that this script exists</span>
+<span class="sd">    in the container. The pilot will only create a my_release_setup.sh script for OS containers.</span>
+
+<span class="sd">    In case the release setup is not present in an unpacked container, the function will reset the cmd string.</span>
+
+<span class="sd">    :param cmd: Payload execution command (string).</span>
+<span class="sd">    :param atlas_setup: asetup command (string).</span>
+<span class="sd">    :param full_atlas_setup: full asetup command (string).</span>
+<span class="sd">    :param release: software release, needed to determine Athena environment (string).</span>
+<span class="sd">    :param imagename: container image name (string).</span>
+<span class="sd">    :param workdir: job workdir (string).</span>
+<span class="sd">    :param is_cvmfs: does the queue have cvmfs? (Boolean).</span>
+<span class="sd">    :return: proper release setup name (string), updated cmd (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">release_setup_name</span> <span class="o">=</span> <span class="n">get_release_setup_name</span><span class="p">(</span><span class="n">release</span><span class="p">,</span> <span class="n">imagename</span><span class="p">)</span>
+
+    <span class="c1"># note: if release_setup_name.startswith(&#39;/&#39;), the pilot will NOT create the script</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">release_setup_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">):</span>
+        <span class="c1"># extracted_asetup should be written to &#39;my_release_setup.sh&#39; and cmd to &#39;container_script.sh&#39;</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="s1">&#39;echo </span><span class="se">\&quot;</span><span class="s1">INFO: sourcing </span><span class="si">%s</span><span class="s1"> inside the container. &#39;</span> \
+                  <span class="s1">&#39;This should not run if it is a ATLAS standalone container</span><span class="se">\&quot;</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">release_setup_name</span>
+        <span class="k">if</span> <span class="n">is_cvmfs</span><span class="p">:</span>
+            <span class="n">content</span><span class="p">,</span> <span class="n">cmd</span> <span class="o">=</span> <span class="n">extract_full_atlas_setup</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">atlas_setup</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">content</span><span class="p">:</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">full_atlas_setup</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">content</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                <span class="s1">&#39;will create an empty (almost) release setup file since asetup could not be extracted from command&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;command to be written to release setup file:</span><span class="se">\n\n</span><span class="si">%s</span><span class="s1">:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">release_setup_name</span><span class="p">,</span> <span class="n">content</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">write_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">release_setup_name</span><span class="p">),</span> <span class="n">content</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># reset cmd in case release_setup.sh does not exist in unpacked image (only for those containers)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;;;&#39;</span><span class="p">,</span> <span class="s1">&#39;;&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">is_release_setup</span><span class="p">(</span><span class="n">release_setup_name</span><span class="p">,</span> <span class="n">imagename</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="c1"># add the /srv for OS containers</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">release_setup_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">):</span>
+        <span class="n">release_setup_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;/srv&#39;</span><span class="p">,</span> <span class="n">release_setup_name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">release_setup_name</span><span class="p">,</span> <span class="n">cmd</span></div>
+
+
+<div class="viewcode-block" id="get_release_setup_name"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.get_release_setup_name">[docs]</a><span class="k">def</span> <span class="nf">get_release_setup_name</span><span class="p">(</span><span class="n">release</span><span class="p">,</span> <span class="n">imagename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the file name for the release setup script.</span>
+
+<span class="sd">    NOTE: the /srv path will only be added later, in the case of OS containers.</span>
+
+<span class="sd">    For OS containers, return config.Container.release_setup (my_release_setup.sh);</span>
+<span class="sd">    for stand-alone containers (user defined containers, ie when --containerImage or job.imagename was used/set),</span>
+<span class="sd">    return &#39;/release_setup.sh&#39;. release_setup.sh will NOT be created for stand-alone containers.</span>
+<span class="sd">    The pilot will specify /release_setup.sh only when jobs use the Athena environment (ie has a set job.swrelease).</span>
+
+<span class="sd">    :param release: software release (string).</span>
+<span class="sd">    :param imagename: container image name (string).</span>
+<span class="sd">    :return: release setup file name (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">imagename</span> <span class="ow">and</span> <span class="n">release</span> <span class="ow">and</span> <span class="n">release</span> <span class="o">!=</span> <span class="s1">&#39;NULL&#39;</span><span class="p">:</span>
+        <span class="c1"># stand-alone containers (script is assumed to exist inside image/container so will ignore this /srv/my_release_setup.sh)</span>
+        <span class="n">release_setup_name</span> <span class="o">=</span> <span class="s1">&#39;/srv/my_release_setup.sh&#39;</span>
+        <span class="c1"># stand-alone containers (script is assumed to exist inside image/container)</span>
+        <span class="c1"># release_setup_name = &#39;/release_setup.sh&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># OS containers (script will be created by pilot)</span>
+        <span class="n">release_setup_name</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Container</span><span class="o">.</span><span class="n">release_setup</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">release_setup_name</span><span class="p">:</span>
+            <span class="n">release_setup_name</span> <span class="o">=</span> <span class="s1">&#39;my_release_setup.sh&#39;</span>
+
+    <span class="c1"># note: if release_setup_name.startswith(&#39;/&#39;), the pilot will NOT create the script</span>
+
+    <span class="k">return</span> <span class="n">release_setup_name</span></div>
+
+
+<span class="c1">## DEPRECATED, remove after verification with user container job</span>
+<div class="viewcode-block" id="remove_container_string"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.remove_container_string">[docs]</a><span class="k">def</span> <span class="nf">remove_container_string</span><span class="p">(</span><span class="n">job_params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Retrieve the container string from the job parameters &quot;&quot;&quot;</span>
+
+    <span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot; \&#39;?\-\-containerImage\=?\ ?([\S]+)\ ?\&#39;?&quot;</span>
+    <span class="n">compiled_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+
+    <span class="c1"># remove any present &#39; around the option as well</span>
+    <span class="n">job_params</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">\ </span><span class="se">\&#39;</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">job_params</span><span class="p">)</span>
+
+    <span class="c1"># extract the container path</span>
+    <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">compiled_pattern</span><span class="p">,</span> <span class="n">job_params</span><span class="p">)</span>
+    <span class="n">container_path</span> <span class="o">=</span> <span class="n">found</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">found</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># Remove the pattern and update the job parameters</span>
+    <span class="n">job_params</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">job_params</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">job_params</span><span class="p">,</span> <span class="n">container_path</span></div>
+
+
+<div class="viewcode-block" id="singularity_wrapper"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.singularity_wrapper">[docs]</a><span class="k">def</span> <span class="nf">singularity_wrapper</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prepend the given command with the singularity execution command</span>
+<span class="sd">    E.g. cmd = /bin/bash hello_world.sh</span>
+<span class="sd">    -&gt; singularity_command = singularity exec -B &lt;bindmountsfromcatchall&gt; &lt;img&gt; /bin/bash hello_world.sh</span>
+<span class="sd">    singularity exec -B &lt;bindmountsfromcatchall&gt;  /cvmfs/atlas.cern.ch/repo/images/singularity/x86_64-slc6.img &lt;script&gt;</span>
+<span class="sd">    Note: if the job object is not set, then it is assumed that the middleware container is to be used.</span>
+
+<span class="sd">    :param cmd: command to be prepended (string).</span>
+<span class="sd">    :param workdir: explicit work directory where the command should be executed (needs to be set for Singularity) (string).</span>
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return: prepended command with singularity execution command (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">job</span><span class="p">:</span>
+        <span class="n">queuedata</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">infoservice</span> <span class="o">=</span> <span class="n">InfoService</span><span class="p">()</span>
+        <span class="n">infoservice</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_SITENAME&#39;</span><span class="p">),</span> <span class="n">infosys</span><span class="o">.</span><span class="n">confinfo</span><span class="p">,</span> <span class="n">infosys</span><span class="o">.</span><span class="n">extinfo</span><span class="p">)</span>
+        <span class="n">queuedata</span> <span class="o">=</span> <span class="n">infoservice</span><span class="o">.</span><span class="n">queuedata</span>
+
+    <span class="n">container_name</span> <span class="o">=</span> <span class="n">queuedata</span><span class="o">.</span><span class="n">container_type</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pilot&quot;</span><span class="p">)</span>  <span class="c1"># resolve container name for user=pilot</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;resolved container_name from queuedata.container_type: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">container_name</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">container_name</span> <span class="o">==</span> <span class="s1">&#39;singularity&#39;</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;singularity has been requested&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Get the singularity options</span>
+        <span class="n">singularity_options</span> <span class="o">=</span> <span class="n">queuedata</span><span class="o">.</span><span class="n">container_options</span>
+        <span class="k">if</span> <span class="n">singularity_options</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">singularity_options</span> <span class="o">+=</span> <span class="s2">&quot;,&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">singularity_options</span> <span class="o">=</span> <span class="s2">&quot;-B &quot;</span>
+        <span class="n">singularity_options</span> <span class="o">+=</span> <span class="s2">&quot;/cvmfs,$</span><span class="si">{workdir}</span><span class="s2">,/home&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;using singularity_options: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">singularity_options</span><span class="p">)</span>
+
+        <span class="c1"># Get the image path</span>
+        <span class="k">if</span> <span class="n">job</span><span class="p">:</span>
+            <span class="n">image_path</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">imagename</span> <span class="ow">or</span> <span class="n">get_grid_image_for_singularity</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">platform</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">image_path</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Container</span><span class="o">.</span><span class="n">middleware_container</span>
+
+        <span class="c1"># Does the image exist?</span>
+        <span class="k">if</span> <span class="n">image_path</span><span class="p">:</span>
+            <span class="c1"># Prepend it to the given command</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;export workdir=&quot;</span> <span class="o">+</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;; singularity --verbose exec &quot;</span> <span class="o">+</span> <span class="n">singularity_options</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">image_path</span> <span class="o">+</span> \
+                  <span class="s2">&quot; /bin/bash -c &quot;</span> <span class="o">+</span> <span class="n">pipes</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="s2">&quot;cd $workdir;pwd;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+
+            <span class="c1"># for testing user containers</span>
+            <span class="c1"># singularity_options = &quot;-B $PWD:/data --pwd / &quot;</span>
+            <span class="c1"># singularity_cmd = &quot;singularity exec &quot; + singularity_options + image_path</span>
+            <span class="c1"># cmd = re.sub(r&#39;-p &quot;([A-Za-z0-9.%/]+)&quot;&#39;, r&#39;-p &quot;%s\1&quot;&#39; % urllib.pathname2url(singularity_cmd), cmd)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;singularity options found but image does not exist&quot;</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;updated command: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cmd</span></div>
+
+
+<div class="viewcode-block" id="create_root_container_command"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.create_root_container_command">[docs]</a><span class="k">def</span> <span class="nf">create_root_container_command</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">cmd</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    :param workdir:</span>
+<span class="sd">    :param cmd:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">command</span> <span class="o">=</span> <span class="s1">&#39;cd </span><span class="si">%s</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">workdir</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">get_root_container_script</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="n">script_name</span> <span class="o">=</span> <span class="s1">&#39;open_file.sh&#39;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="n">write_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">script_name</span><span class="p">),</span> <span class="n">content</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">e</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">status</span><span class="p">:</span>
+            <span class="c1"># generate the final container command</span>
+            <span class="n">x509</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;X509_USER_PROXY&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">x509</span><span class="p">:</span>
+                <span class="n">command</span> <span class="o">+=</span> <span class="s1">&#39;export X509_USER_PROXY=</span><span class="si">%s</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">x509</span>
+            <span class="n">command</span> <span class="o">+=</span> <span class="s1">&#39;export ALRB_CONT_RUNPAYLOAD=</span><span class="se">\&quot;</span><span class="s1">source /srv/</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">script_name</span>
+            <span class="n">command</span> <span class="o">+=</span> <span class="n">get_asetup</span><span class="p">(</span><span class="n">alrb</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;</span>
+            <span class="n">command</span> <span class="o">+=</span> <span class="s1">&#39;source $</span><span class="si">{ATLAS_LOCAL_ROOT_BASE}</span><span class="s1">/user/atlasLocalSetup.sh -c CentOS7&#39;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;container command: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">command</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">command</span></div>
+
+
+<div class="viewcode-block" id="create_middleware_container_command"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.create_middleware_container_command">[docs]</a><span class="k">def</span> <span class="nf">create_middleware_container_command</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">container_options</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;stagein&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create the stage-in/out container command.</span>
+
+<span class="sd">    The function takes the isolated stage-in/out command, adds bits and pieces needed for the containerisation and stores</span>
+<span class="sd">    it in a stage[in|out].sh script file. It then generates the actual command that will execute the stage-in/out script in a</span>
+<span class="sd">    container.</span>
+
+<span class="sd">    new cmd:</span>
+<span class="sd">      lsetup rucio davis xrootd</span>
+<span class="sd">      old cmd</span>
+<span class="sd">      exit $?</span>
+<span class="sd">    write new cmd to stage[in|out].sh script</span>
+<span class="sd">    create container command and return it</span>
+
+<span class="sd">    :param workdir: working directory where script will be stored (string).</span>
+<span class="sd">    :param cmd: isolated stage-in/out command (string).</span>
+<span class="sd">    :param container_options: container options from queuedata (string).</span>
+<span class="sd">    :param label: &#39;stage-[in|out]&#39; (string).</span>
+<span class="sd">    :return: container command to be executed (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">command</span> <span class="o">=</span> <span class="s1">&#39;cd </span><span class="si">%s</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">workdir</span>
+
+    <span class="c1"># add bits and pieces for the containerisation</span>
+    <span class="n">middleware_container</span> <span class="o">=</span> <span class="n">get_middleware_container</span><span class="p">()</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">get_middleware_container_script</span><span class="p">(</span><span class="n">middleware_container</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
+    <span class="c1"># store it in setup.sh</span>
+    <span class="n">script_name</span> <span class="o">=</span> <span class="s1">&#39;stagein.sh&#39;</span> <span class="k">if</span> <span class="n">label</span> <span class="o">==</span> <span class="s1">&#39;stage-in&#39;</span> <span class="k">else</span> <span class="s1">&#39;stageout.sh&#39;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="n">write_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">script_name</span><span class="p">),</span> <span class="n">content</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">e</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">status</span><span class="p">:</span>
+            <span class="c1"># generate the final container command</span>
+            <span class="n">x509</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;X509_USER_PROXY&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">x509</span><span class="p">:</span>
+                <span class="n">command</span> <span class="o">+=</span> <span class="s1">&#39;export X509_USER_PROXY=</span><span class="si">%s</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">x509</span>
+            <span class="n">command</span> <span class="o">+=</span> <span class="s1">&#39;export ALRB_CONT_RUNPAYLOAD=</span><span class="se">\&quot;</span><span class="s1">source /srv/</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">script_name</span>
+            <span class="n">command</span> <span class="o">+=</span> <span class="n">get_asetup</span><span class="p">(</span><span class="n">alrb</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;</span>
+            <span class="n">command</span> <span class="o">+=</span> <span class="s1">&#39;source $</span><span class="si">{ATLAS_LOCAL_ROOT_BASE}</span><span class="s1">/user/atlasLocalSetup.sh -c </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">middleware_container</span>
+            <span class="n">command</span> <span class="o">+=</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="n">get_container_options</span><span class="p">(</span><span class="n">container_options</span><span class="p">)</span>
+            <span class="n">command</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;  &#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;container command: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">command</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">command</span></div>
+
+
+<div class="viewcode-block" id="get_root_container_script"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.get_root_container_script">[docs]</a><span class="k">def</span> <span class="nf">get_root_container_script</span><span class="p">(</span><span class="n">cmd</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the content of the root container script.</span>
+
+<span class="sd">    :param cmd: root command (string).</span>
+<span class="sd">    :return: script content (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># content = &#39;lsetup \&#39;root 6.20.06-x86_64-centos7-gcc8-opt\&#39;\npython %s\nexit $?&#39; % cmd</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="s1">&#39;lsetup </span><span class="se">\&#39;</span><span class="s1">root pilot</span><span class="se">\&#39;\n</span><span class="s1">python </span><span class="si">%s</span><span class="se">\n</span><span class="s1">exit $?&#39;</span> <span class="o">%</span> <span class="n">cmd</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;root setup script content:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">content</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">content</span></div>
+
+
+<div class="viewcode-block" id="get_middleware_container_script"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.get_middleware_container_script">[docs]</a><span class="k">def</span> <span class="nf">get_middleware_container_script</span><span class="p">(</span><span class="n">middleware_container</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">asetup</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the content of the middleware container script.</span>
+<span class="sd">    If asetup is True, atlasLocalSetup will be added to the command.</span>
+
+<span class="sd">    :param middleware_container: container image (string).</span>
+<span class="sd">    :param cmd: isolated stage-in/out command (string).</span>
+<span class="sd">    :param asetup: optional True/False (boolean).</span>
+<span class="sd">    :return: script content (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">sitename</span> <span class="o">=</span> <span class="s1">&#39;export PILOT_RUCIO_SITENAME=</span><span class="si">%s</span><span class="s1">; &#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_RUCIO_SITENAME&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;rucio&#39;</span> <span class="ow">in</span> <span class="n">middleware_container</span><span class="p">:</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">sitename</span> <span class="o">+</span> <span class="s1">&#39;python3 </span><span class="si">%s</span><span class="s1"> &#39;</span> <span class="o">%</span> <span class="n">cmd</span>  <span class="c1"># only works with python 3</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">is_python3</span><span class="p">():</span>
+            <span class="n">content</span> <span class="o">+=</span> <span class="s1">&#39;export ALRB_LOCAL_PY3=YES; &#39;</span>
+        <span class="k">if</span> <span class="n">asetup</span><span class="p">:</span>  <span class="c1"># export ATLAS_LOCAL_ROOT_BASE=/cvmfs/..;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;</span>
+            <span class="n">content</span> <span class="o">+=</span> <span class="n">get_asetup</span><span class="p">(</span><span class="n">asetup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">content</span> <span class="o">+=</span> <span class="n">sitename</span> <span class="o">+</span> <span class="s1">&#39;lsetup rucio davix xrootd; &#39;</span>
+        <span class="n">content</span> <span class="o">+=</span> <span class="s1">&#39;python3 </span><span class="si">%s</span><span class="s1"> &#39;</span> <span class="o">%</span> <span class="n">cmd</span> <span class="k">if</span> <span class="n">is_python3</span><span class="p">()</span> <span class="k">else</span> <span class="s1">&#39;python </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cmd</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">asetup</span><span class="p">:</span>
+        <span class="n">content</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">exit $?&#39;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;content:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">content</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">content</span></div>
+
+
+<div class="viewcode-block" id="get_middleware_container"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.get_middleware_container">[docs]</a><span class="k">def</span> <span class="nf">get_middleware_container</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the middleware container.</span>
+
+<span class="sd">    :return: path (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Container</span><span class="o">.</span><span class="n">middleware_container</span>
+    <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;requested middleware container path does not exist: </span><span class="si">%s</span><span class="s1"> (switching to default value)&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;CentOS7&#39;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;using image: </span><span class="si">%s</span><span class="s1"> for middleware container&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">path</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

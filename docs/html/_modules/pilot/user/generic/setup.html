@@ -1,0 +1,271 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.user.generic.setup &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.user.generic.setup</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+
+<span class="kn">from</span> <span class="nn">pilot.common.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
+<span class="kn">from</span> <span class="nn">pilot.util.container</span> <span class="kn">import</span> <span class="n">execute</span>
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">copy</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">errors</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="get_analysis_trf"><a class="viewcode-back" href="../../../../components/user/generic/setup.html#pilot.user.generic.setup.get_analysis_trf">[docs]</a><span class="k">def</span> <span class="nf">get_analysis_trf</span><span class="p">(</span><span class="n">transform</span><span class="p">,</span> <span class="n">workdir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prepare to download the user analysis transform with curl.</span>
+<span class="sd">    The function will verify the download location from a known list of hosts.</span>
+
+<span class="sd">    :param transform: full trf path (url) (string).</span>
+<span class="sd">    :param workdir: work directory (string).</span>
+<span class="sd">    :return: exit code (int), diagnostics (string), transform_name (string)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># test if $HARVESTER_WORKDIR is set</span>
+    <span class="n">harvester_workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HARVESTER_WORKDIR&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">harvester_workdir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">search_pattern</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/jobO.*.tar.gz&quot;</span> <span class="o">%</span> <span class="n">harvester_workdir</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;search_pattern - </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">search_pattern</span><span class="p">)</span>
+        <span class="n">jobopt_files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">search_pattern</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">jobopt_file</span> <span class="ow">in</span> <span class="n">jobopt_files</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;jobopt_file = </span><span class="si">%s</span><span class="s2"> workdir = </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">jobopt_file</span><span class="p">,</span> <span class="n">workdir</span><span class="p">))</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">copy</span><span class="p">(</span><span class="n">jobopt_file</span><span class="p">,</span> <span class="n">workdir</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;could not copy file </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2"> : </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">jobopt_file</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="s1">&#39;/&#39;</span> <span class="ow">in</span> <span class="n">transform</span><span class="p">:</span>
+        <span class="n">transform_name</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;did not detect any / in </span><span class="si">%s</span><span class="s1"> (using full transform name)&#39;</span> <span class="o">%</span> <span class="n">transform</span><span class="p">)</span>
+        <span class="n">transform_name</span> <span class="o">=</span> <span class="n">transform</span>
+
+    <span class="c1"># is the command already available? (e.g. if already downloaded by a preprocess/main process step)</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">)):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;script </span><span class="si">%s</span><span class="s1"> is already available - no need to download again&#39;</span> <span class="o">%</span> <span class="n">transform_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="n">transform_name</span>
+
+    <span class="n">original_base_url</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># verify the base URL</span>
+    <span class="k">for</span> <span class="n">base_url</span> <span class="ow">in</span> <span class="n">get_valid_base_urls</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">transform</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">base_url</span><span class="p">):</span>
+            <span class="n">original_base_url</span> <span class="o">=</span> <span class="n">base_url</span>
+            <span class="k">break</span>
+
+    <span class="k">if</span> <span class="n">original_base_url</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;invalid base URL: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">transform</span>
+        <span class="k">return</span> <span class="n">errors</span><span class="o">.</span><span class="n">TRFDOWNLOADFAILURE</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># try to download from the required location, if not - switch to backup</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">base_url</span> <span class="ow">in</span> <span class="n">get_valid_base_urls</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">original_base_url</span><span class="p">):</span>
+        <span class="n">trf</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">original_base_url</span><span class="p">,</span> <span class="n">base_url</span><span class="p">,</span> <span class="n">transform</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;attempting to download script: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">trf</span><span class="p">)</span>
+        <span class="n">status</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">download_transform</span><span class="p">(</span><span class="n">trf</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">,</span> <span class="n">workdir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">status</span><span class="p">:</span>
+            <span class="k">break</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">status</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">errors</span><span class="o">.</span><span class="n">TRFDOWNLOADFAILURE</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;successfully downloaded script&quot;</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;changing permission of </span><span class="si">%s</span><span class="s2"> to 0o755&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="mo">0o755</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;failed to chmod </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">transform_name</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">errors</span><span class="o">.</span><span class="n">CHMODTRF</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="n">transform_name</span></div>
+
+
+<div class="viewcode-block" id="get_valid_base_urls"><a class="viewcode-back" href="../../../../components/user/generic/setup.html#pilot.user.generic.setup.get_valid_base_urls">[docs]</a><span class="k">def</span> <span class="nf">get_valid_base_urls</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of valid base URLs from where the user analysis transform may be downloaded from.</span>
+<span class="sd">    If order is defined, return given item first.</span>
+<span class="sd">    E.g. order=http://atlpan.web.cern.ch/atlpan -&gt; [&#39;http://atlpan.web.cern.ch/atlpan&#39;, ...]</span>
+<span class="sd">    NOTE: the URL list may be out of date.</span>
+
+<span class="sd">    :param order: order (string).</span>
+<span class="sd">    :return: valid base URLs (list).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">valid_base_urls</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">_valid_base_urls</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;https://atlpan.web.cern.ch/atlpan&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;http://pandaserver.cern.ch&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">order</span><span class="p">:</span>
+        <span class="n">valid_base_urls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">url</span> <span class="ow">in</span> <span class="n">_valid_base_urls</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">url</span> <span class="o">!=</span> <span class="n">order</span><span class="p">:</span>
+                <span class="n">valid_base_urls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">valid_base_urls</span> <span class="o">=</span> <span class="n">_valid_base_urls</span>
+
+    <span class="k">return</span> <span class="n">valid_base_urls</span></div>
+
+
+<div class="viewcode-block" id="download_transform"><a class="viewcode-back" href="../../../../components/user/generic/setup.html#pilot.user.generic.setup.download_transform">[docs]</a><span class="k">def</span> <span class="nf">download_transform</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">,</span> <span class="n">workdir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Download the transform from the given url</span>
+<span class="sd">    :param url: download URL with path to transform (string).</span>
+<span class="sd">    :param transform_name: trf name (string).</span>
+<span class="sd">    :param workdir: work directory (string).</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">)</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;curl -sS </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1"> &gt; </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+    <span class="n">trial</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">max_trials</span> <span class="o">=</span> <span class="mi">3</span>
+
+    <span class="c1"># test if $HARVESTER_WORKDIR is set</span>
+    <span class="n">harvester_workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HARVESTER_WORKDIR&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">harvester_workdir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># skip curl by setting max_trials = 0</span>
+        <span class="n">max_trials</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">source_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">harvester_workdir</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">copy</span><span class="p">(</span><span class="n">source_path</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;Failed to copy file </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2"> : </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">source_path</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+
+    <span class="c1"># try to download the trf a maximum of 3 times</span>
+    <span class="k">while</span> <span class="n">trial</span> <span class="o">&lt;=</span> <span class="n">max_trials</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;executing command [trial </span><span class="si">%d</span><span class="s2">/</span><span class="si">%d</span><span class="s2">]: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">max_trials</span><span class="p">,</span> <span class="n">cmd</span><span class="p">))</span>
+
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">stdout</span><span class="p">:</span>
+            <span class="n">stdout</span> <span class="o">=</span> <span class="s2">&quot;(None)&quot;</span>
+        <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Analyze exit code / output</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;curl command failed: </span><span class="si">%d</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">trial</span> <span class="o">==</span> <span class="n">max_trials</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;could not download transform: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">stdout</span><span class="p">)</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;will try again after 60 s&quot;</span><span class="p">)</span>
+                <span class="n">sleep</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;curl command returned: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">stdout</span><span class="p">)</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">break</span>
+        <span class="n">trial</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">status</span><span class="p">,</span> <span class="n">diagnostics</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

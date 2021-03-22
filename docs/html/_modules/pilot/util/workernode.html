@@ -1,0 +1,323 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.util.workernode &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.util.workernode</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">from</span> <span class="nn">pilot.util.disk</span> <span class="kn">import</span> <span class="n">disk_usage</span>
+<span class="kn">from</span> <span class="nn">pilot.info</span> <span class="kn">import</span> <span class="n">infosys</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_local_disk_space"><a class="viewcode-back" href="../../../components/util/workernode.html#pilot.util.workernode.get_local_disk_space">[docs]</a><span class="k">def</span> <span class="nf">get_local_disk_space</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return remaning disk space for the disk in the given path.</span>
+<span class="sd">    Unit is MB.</span>
+
+<span class="sd">    :param path: path to disk (string). Can be None, if call to collect_workernode_info() doesn&#39;t specify it.</span>
+<span class="sd">    :return: disk space (float).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">disk</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="c1"># -mP = blocks of 1024*1024 (MB) and POSIX format</span>
+    <span class="n">diskpipe</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">popen</span><span class="p">(</span><span class="s2">&quot;df -mP </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">))</span>
+    <span class="n">disks</span> <span class="o">=</span> <span class="n">diskpipe</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">diskpipe</span><span class="o">.</span><span class="n">close</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">disk</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">disks</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught while trying to convert disk info: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">disk</span></div>
+
+
+<div class="viewcode-block" id="get_meminfo"><a class="viewcode-back" href="../../../components/util/workernode.html#pilot.util.workernode.get_meminfo">[docs]</a><span class="k">def</span> <span class="nf">get_meminfo</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the total memory (in MB).</span>
+
+<span class="sd">    :return: memory (float).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">mem</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;/proc/meminfo&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+        <span class="n">mems</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="k">while</span> <span class="n">mems</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">mems</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;MEMTOTAL&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">mem</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">mems</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mi">1024</span>  <span class="c1"># value listed by command as kB, convert to MB</span>
+                <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught while trying to convert meminfo: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="k">break</span>
+            <span class="n">mems</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">mem</span></div>
+
+
+<div class="viewcode-block" id="get_cpuinfo"><a class="viewcode-back" href="../../../components/util/workernode.html#pilot.util.workernode.get_cpuinfo">[docs]</a><span class="k">def</span> <span class="nf">get_cpuinfo</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the CPU frequency (in MHz).</span>
+
+<span class="sd">    :return: cpu (float).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">cpu</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;/proc/cpuinfo&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;cpu MHz&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>  <span class="c1"># Python 2/3</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">cpu</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught while trying to convert cpuinfo: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="k">break</span>  <span class="c1"># command info is the same for all cores, so break here</span>
+
+    <span class="k">return</span> <span class="n">cpu</span></div>
+
+
+<div class="viewcode-block" id="collect_workernode_info"><a class="viewcode-back" href="../../../components/util/workernode.html#pilot.util.workernode.collect_workernode_info">[docs]</a><span class="k">def</span> <span class="nf">collect_workernode_info</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Collect node information (cpu, memory and disk space).</span>
+<span class="sd">    The disk space (in MB) is return for the disk in the given path.</span>
+
+<span class="sd">    :param path: path to disk (string).</span>
+<span class="sd">    :return: memory (float), cpu (float), disk space (float).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">mem</span> <span class="o">=</span> <span class="n">get_meminfo</span><span class="p">()</span>
+    <span class="n">cpu</span> <span class="o">=</span> <span class="n">get_cpuinfo</span><span class="p">()</span>
+    <span class="n">disk</span> <span class="o">=</span> <span class="n">get_local_disk_space</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">mem</span><span class="p">,</span> <span class="n">cpu</span><span class="p">,</span> <span class="n">disk</span></div>
+
+
+<div class="viewcode-block" id="get_disk_space"><a class="viewcode-back" href="../../../components/util/workernode.html#pilot.util.workernode.get_disk_space">[docs]</a><span class="k">def</span> <span class="nf">get_disk_space</span><span class="p">(</span><span class="n">queuedata</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the disk space from the queuedata that should be available for running the job;</span>
+<span class="sd">    either what is actually locally available or the allowed size determined by the site (value from queuedata). This</span>
+<span class="sd">    value is only to be used internally by the job dispatcher.</span>
+
+<span class="sd">    :param queuedata: infosys object.</span>
+<span class="sd">    :return: disk space that should be available for running the job (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># --- non Job related queue data</span>
+    <span class="c1"># jobinfo provider is required to consider overwriteAGIS data coming from Job</span>
+    <span class="n">_maxinputsize</span> <span class="o">=</span> <span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">maxwdir</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;resolved value from global infosys.queuedata instance: infosys.queuedata.maxwdir=</span><span class="si">%s</span><span class="s2"> B&quot;</span> <span class="o">%</span> <span class="n">_maxinputsize</span><span class="p">)</span>
+    <span class="n">_maxinputsize</span> <span class="o">=</span> <span class="n">queuedata</span><span class="o">.</span><span class="n">maxwdir</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;resolved value: queuedata.maxwdir=</span><span class="si">%s</span><span class="s2"> B&quot;</span> <span class="o">%</span> <span class="n">_maxinputsize</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">du</span> <span class="o">=</span> <span class="n">disk_usage</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">))</span>
+        <span class="n">_diskspace</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">du</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">))</span>  <span class="c1"># need to convert from B to MB</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;failed to extract disk space: </span><span class="si">%s</span><span class="s2"> (will use schedconfig default)&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">_diskspace</span> <span class="o">=</span> <span class="n">_maxinputsize</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;available WN disk space: </span><span class="si">%d</span><span class="s2"> MB&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_diskspace</span><span class="p">))</span>
+
+    <span class="n">_diskspace</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">_diskspace</span><span class="p">,</span> <span class="n">_maxinputsize</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;sending disk space </span><span class="si">%d</span><span class="s2"> MB to dispatcher&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_diskspace</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">_diskspace</span></div>
+
+
+<div class="viewcode-block" id="get_node_name"><a class="viewcode-back" href="../../../components/util/workernode.html#pilot.util.workernode.get_node_name">[docs]</a><span class="k">def</span> <span class="nf">get_node_name</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the local node name.</span>
+
+<span class="sd">    :return: node name (string)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s1">&#39;PANDA_HOSTNAME&#39;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+        <span class="n">host</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PANDA_HOSTNAME&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">os</span><span class="p">,</span> <span class="s1">&#39;uname&#39;</span><span class="p">):</span>
+        <span class="n">host</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">uname</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">socket</span>
+        <span class="n">host</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">gethostname</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">get_condor_node_name</span><span class="p">(</span><span class="n">host</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_condor_node_name"><a class="viewcode-back" href="../../../components/util/workernode.html#pilot.util.workernode.get_condor_node_name">[docs]</a><span class="k">def</span> <span class="nf">get_condor_node_name</span><span class="p">(</span><span class="n">nodename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    On a condor system, add the SlotID to the nodename</span>
+
+<span class="sd">    :param nodename:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="s2">&quot;_CONDOR_SLOT&quot;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+        <span class="n">nodename</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">@</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;_CONDOR_SLOT&quot;</span><span class="p">),</span> <span class="n">nodename</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">nodename</span></div>
+
+
+<div class="viewcode-block" id="get_cpu_model"><a class="viewcode-back" href="../../../components/util/workernode.html#pilot.util.workernode.get_cpu_model">[docs]</a><span class="k">def</span> <span class="nf">get_cpu_model</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get cpu model and cache size from /proc/cpuinfo.</span>
+
+<span class="sd">    Example.</span>
+<span class="sd">      model name      : Intel(R) Xeon(TM) CPU 2.40GHz</span>
+<span class="sd">      cache size      : 512 KB</span>
+
+<span class="sd">    gives the return string &quot;Intel(R) Xeon(TM) CPU 2.40GHz 512 KB&quot;.</span>
+
+<span class="sd">    :return: cpu model (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">cpumodel</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">cpucache</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">modelstring</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">re_model</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^model name\s+:\s+(\w.+)&#39;</span><span class="p">)</span>  <span class="c1"># Python 3 (added r)</span>
+    <span class="n">re_cache</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^cache size\s+:\s+(\d+ KB)&#39;</span><span class="p">)</span>  <span class="c1"># Python 3 (added r)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;/proc/cpuinfo&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+
+        <span class="c1"># loop over all lines in cpuinfo</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">():</span>
+            <span class="c1"># try to grab cpumodel from current line</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">re_model</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="p">:</span>
+                <span class="c1"># found cpu model</span>
+                <span class="n">cpumodel</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># try to grab cache size from current line</span>
+            <span class="n">cache</span> <span class="o">=</span> <span class="n">re_cache</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">cache</span><span class="p">:</span>
+                <span class="c1"># found cache size</span>
+                <span class="n">cpucache</span> <span class="o">=</span> <span class="n">cache</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># stop after 1st pair found - can be multiple cpus</span>
+            <span class="k">if</span> <span class="n">cpumodel</span> <span class="ow">and</span> <span class="n">cpucache</span><span class="p">:</span>
+                <span class="c1"># create return string</span>
+                <span class="n">modelstring</span> <span class="o">=</span> <span class="n">cpumodel</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">cpucache</span>
+                <span class="k">break</span>
+
+    <span class="c1"># default return string if no info was found</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">modelstring</span><span class="p">:</span>
+        <span class="n">modelstring</span> <span class="o">=</span> <span class="s2">&quot;UNKNOWN&quot;</span>
+
+    <span class="k">return</span> <span class="n">modelstring</span></div>
+
+
+<div class="viewcode-block" id="check_hz"><a class="viewcode-back" href="../../../components/util/workernode.html#pilot.util.workernode.check_hz">[docs]</a><span class="k">def</span> <span class="nf">check_hz</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Try to read the SC_CLK_TCK and write it to the log.</span>
+
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">hz</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">sysconf</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sysconf_names</span><span class="p">[</span><span class="s1">&#39;SC_CLK_TCK&#39;</span><span class="p">])</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">traceback</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;failed to read SC_CLK_TCK - will not be able to perform CPU consumption calculation&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;SC_CLK_TCK=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">hz</span><span class="p">))</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

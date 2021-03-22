@@ -1,0 +1,633 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>container &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="jobmetrics" href="jobmetrics.html" />
+    <link rel="prev" title="common" href="common.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.user.atlas.container">
+<span id="container"></span><h1>container<a class="headerlink" href="#module-pilot.user.atlas.container" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt id="pilot.user.atlas.container.add_asetup">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">add_asetup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alrb_setup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_cvmfs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">release_setup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">container_script</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">container_options</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#add_asetup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.add_asetup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add atlasLocalSetup and options to form the final payload command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>alrb_setup</strong> – ALRB setup (string).</p></li>
+<li><p><strong>is_cvmfs</strong> – True for cvmfs sites (Boolean).</p></li>
+<li><p><strong>release_setup</strong> – release setup (string).</p></li>
+<li><p><strong>container_script</strong> – container script name (string).</p></li>
+<li><p><strong>container_options</strong> – container options (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>final payload command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.alrb_wrapper">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">alrb_wrapper</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#alrb_wrapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.alrb_wrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrap the given command with the special ALRB setup for containers
+E.g. cmd = /bin/bash hello_world.sh
+-&gt;
+export thePlatform=”x86_64-slc6-gcc48-opt”
+export ALRB_CONT_RUNPAYLOAD=”cmd’
+setupATLAS -c $thePlatform</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>(</strong><strong>string</strong><strong>)</strong> (<em>cmd</em>) – command to be executed in a container.</p></li>
+<li><p><strong>workdir</strong> – (not used)</p></li>
+<li><p><strong>job</strong> – job object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>prepended command with singularity execution command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.create_middleware_container_command">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">create_middleware_container_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">container_options</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'stagein'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#create_middleware_container_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.create_middleware_container_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create the stage-in/out container command.</p>
+<p>The function takes the isolated stage-in/out command, adds bits and pieces needed for the containerisation and stores
+it in a stage[in|out].sh script file. It then generates the actual command that will execute the stage-in/out script in a
+container.</p>
+<dl class="simple">
+<dt>new cmd:</dt><dd><p>lsetup rucio davis xrootd
+old cmd
+exit $?</p>
+</dd>
+</dl>
+<p>write new cmd to stage[in|out].sh script
+create container command and return it</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>workdir</strong> – working directory where script will be stored (string).</p></li>
+<li><p><strong>cmd</strong> – isolated stage-in/out command (string).</p></li>
+<li><p><strong>container_options</strong> – container options from queuedata (string).</p></li>
+<li><p><strong>label</strong> – ‘stage-[in|out]’ (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>container command to be executed (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.create_release_setup">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">create_release_setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atlas_setup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_atlas_setup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">release</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imagename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_cvmfs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#create_release_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.create_release_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the proper release setup script name, and create the script if necessary.</p>
+<p>This function also updates the cmd string (removes full asetup from payload command).</p>
+<p>Note: for stand-alone containers, the function will return /release_setup.sh and assume that this script exists
+in the container. The pilot will only create a my_release_setup.sh script for OS containers.</p>
+<p>In case the release setup is not present in an unpacked container, the function will reset the cmd string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> – Payload execution command (string).</p></li>
+<li><p><strong>atlas_setup</strong> – asetup command (string).</p></li>
+<li><p><strong>full_atlas_setup</strong> – full asetup command (string).</p></li>
+<li><p><strong>release</strong> – software release, needed to determine Athena environment (string).</p></li>
+<li><p><strong>imagename</strong> – container image name (string).</p></li>
+<li><p><strong>workdir</strong> – job workdir (string).</p></li>
+<li><p><strong>is_cvmfs</strong> – does the queue have cvmfs? (Boolean).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>proper release setup name (string), updated cmd (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.create_release_setup_old">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">create_release_setup_old</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atlas_setup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_atlas_setup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">release</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imagename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_cvmfs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#create_release_setup_old"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.create_release_setup_old" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the proper release setup script name, and create the script if necessary.</p>
+<p>This function also updates the cmd string (removes full asetup from payload command).</p>
+<p>Note: for stand-alone containers, the function will return /release_setup.sh and assume that this script exists
+in the container. The pilot will only create a my_release_setup.sh script for OS containers.</p>
+<p>In case the release setup is not present in an unpacked container, the function will reset the cmd string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> – Payload execution command (string).</p></li>
+<li><p><strong>atlas_setup</strong> – asetup command (string).</p></li>
+<li><p><strong>full_atlas_setup</strong> – full asetup command (string).</p></li>
+<li><p><strong>release</strong> – software release, needed to determine Athena environment (string).</p></li>
+<li><p><strong>imagename</strong> – container image name (string).</p></li>
+<li><p><strong>workdir</strong> – job workdir (string).</p></li>
+<li><p><strong>is_cvmfs</strong> – does the queue have cvmfs? (Boolean).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>proper release setup name (string), updated cmd (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.create_root_container_command">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">create_root_container_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#create_root_container_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.create_root_container_command" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>workdir</strong> – </p></li>
+<li><p><strong>cmd</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.do_use_container">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">do_use_container</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#do_use_container"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.do_use_container" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decide whether to use a container or not.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>kwargs</strong> – dictionary of key-word arguments.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if function has decided that a container should be used, False otherwise (boolean).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.extract_atlas_setup">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">extract_atlas_setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">asetup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">swrelease</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#extract_atlas_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.extract_atlas_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the asetup command from the full setup command for jobs that have a defined release.
+export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;</p>
+<blockquote>
+<div><p>source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh –quiet;source $AtlasSetup/scripts/asetup.sh</p>
+</div></blockquote>
+<dl class="simple">
+<dt>-&gt; $AtlasSetup/scripts/asetup.sh, export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase; source</dt><dd><p>${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh –quiet;</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>asetup</strong> – full asetup command (string).</p></li>
+<li><p><strong>swrelease</strong> – ATLAS release (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>extracted asetup command, cleaned up full asetup command without asetup.sh (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.extract_full_atlas_setup">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">extract_full_atlas_setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atlas_setup</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#extract_full_atlas_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.extract_full_atlas_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the full asetup (including options) from the payload setup command.
+atlas_setup is typically ‘$AtlasSetup/scripts/asetup.sh’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> – full payload setup command (string).</p></li>
+<li><p><strong>atlas_setup</strong> – asetup command (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>extracted full asetup command, updated full payload setup command without asetup part (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.extract_platform_and_os">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">extract_platform_and_os</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">platform</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#extract_platform_and_os"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.extract_platform_and_os" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the platform and OS substring from platform</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>(</strong><strong>string</strong><strong>)</strong> (<em>platform</em>) – E.g. “x86_64-slc6-gcc48-opt”</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>extracted platform specifics (string). E.g. “x86_64-slc6”. In case of failure, return the full platform</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.get_and_verify_payload_proxy_from_server">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">get_and_verify_payload_proxy_from_server</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x509</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#get_and_verify_payload_proxy_from_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.get_and_verify_payload_proxy_from_server" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download a payload proxy from the server and verify it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x509</strong> – X509_USER_PROXY (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>exit code (int), diagnostics (string), updated X509_USER_PROXY (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.get_container_options">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">get_container_options</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">container_options</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#get_container_options"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.get_container_options" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the container options from AGIS for the container execution command.
+For Raythena ES jobs, replace the -C with “” (otherwise IPC does not work, needed by yampl).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>container_options</strong> – container options from AGIS (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated container command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.get_full_asetup">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">get_full_asetup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atlas_setup</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#get_full_asetup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.get_full_asetup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the full asetup command from the payload execution command.
+(Easier that generating it again). We need to remove this command for stand-alone containers.
+Alternatively: do not include it in the first place (but this seems to trigger the need for further changes).
+atlas_setup is “source $AtlasSetup/scripts/asetup.sh”, which is extracted in a previous step.
+The function typically returns: “source $AtlasSetup/scripts/asetup.sh 21.0,Athena,2020-05-19T2148,notest –makeflags=’$MAKEFLAGS’;”.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> – payload execution command (string).</p></li>
+<li><p><strong>atlas_setup</strong> – extracted atlas setup (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>full atlas setup (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.get_grid_image_for_singularity">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">get_grid_image_for_singularity</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">platform</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#get_grid_image_for_singularity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.get_grid_image_for_singularity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the full path to the singularity grid image</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>platform</strong> – E.g. “x86_64-slc6” (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>full path to grid image (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.get_middleware_container">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">get_middleware_container</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#get_middleware_container"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.get_middleware_container" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the middleware container.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>path (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.get_middleware_container_script">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">get_middleware_container_script</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">middleware_container</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">asetup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#get_middleware_container_script"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.get_middleware_container_script" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the content of the middleware container script.
+If asetup is True, atlasLocalSetup will be added to the command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>middleware_container</strong> – container image (string).</p></li>
+<li><p><strong>cmd</strong> – isolated stage-in/out command (string).</p></li>
+<li><p><strong>asetup</strong> – optional True/False (boolean).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>script content (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.get_middleware_type">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">get_middleware_type</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">’container’,</span> <span class="pre">meaning</span> <span class="pre">that</span> <span class="pre">middleware</span> <span class="pre">should</span> <span class="pre">be</span> <span class="pre">taken</span> <span class="pre">from</span> <span class="pre">the</span> <span class="pre">container.</span> <span class="pre">The</span> <span class="pre">default</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#get_middleware_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.get_middleware_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>is otherwise ‘workernode’, i.e. middleware is assumed to be present on the worker node.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>middleware_type (string)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.get_payload_proxy">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">get_payload_proxy</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">proxy_outfile_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voms_role</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'atlas'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#get_payload_proxy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.get_payload_proxy" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>proxy_outfile_name</strong> – specify the file to store proxy</p></li>
+<li><p><strong>voms_role</strong> – what proxy (role) to request. It should exist on Panda node</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True on success</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.get_release_setup_name">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">get_release_setup_name</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">release</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imagename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#get_release_setup_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.get_release_setup_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the file name for the release setup script.</p>
+<p>NOTE: the /srv path will only be added later, in the case of OS containers.</p>
+<p>For OS containers, return config.Container.release_setup (my_release_setup.sh);
+for stand-alone containers (user defined containers, ie when –containerImage or job.imagename was used/set),
+return ‘/release_setup.sh’. release_setup.sh will NOT be created for stand-alone containers.
+The pilot will specify /release_setup.sh only when jobs use the Athena environment (ie has a set job.swrelease).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>release</strong> – software release (string).</p></li>
+<li><p><strong>imagename</strong> – container image name (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>release setup file name (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.get_root_container_script">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">get_root_container_script</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#get_root_container_script"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.get_root_container_script" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the content of the root container script.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>cmd</strong> – root command (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>script content (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.is_release_setup">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">is_release_setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">script</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imagename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#is_release_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.is_release_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Does the release_setup.sh file exist?
+This check can only be made for unpacked containers. These must have the release setup file present, or setup will
+fail. For non-unpacked containers, the function will return True and the pilot will assume that the container has
+the setup file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>script</strong> – release setup script (string).</p></li>
+<li><p><strong>imagename</strong> – container/image name (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Boolean.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.remove_container_string">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">remove_container_string</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#remove_container_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.remove_container_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve the container string from the job parameters</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.replace_last_command">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">replace_last_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#replace_last_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.replace_last_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replace the last command in cmd with given replacement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> – command (string).</p></li>
+<li><p><strong>replacement</strong> – replacement (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.set_platform">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">set_platform</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alrb_setup</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#set_platform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.set_platform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set thePlatform variable and add it to the sub container command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>alrb_setup</strong> – ALRB setup (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated ALRB setup (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.singularity_wrapper">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">singularity_wrapper</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#singularity_wrapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.singularity_wrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepend the given command with the singularity execution command
+E.g. cmd = /bin/bash hello_world.sh
+-&gt; singularity_command = singularity exec -B &lt;bindmountsfromcatchall&gt; &lt;img&gt; /bin/bash hello_world.sh
+singularity exec -B &lt;bindmountsfromcatchall&gt;  /cvmfs/atlas.cern.ch/repo/images/singularity/x86_64-slc6.img &lt;script&gt;
+Note: if the job object is not set, then it is assumed that the middleware container is to be used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> – command to be prepended (string).</p></li>
+<li><p><strong>workdir</strong> – explicit work directory where the command should be executed (needs to be set for Singularity) (string).</p></li>
+<li><p><strong>job</strong> – job object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>prepended command with singularity execution command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.update_alrb_setup">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">update_alrb_setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_release_setup</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#update_alrb_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.update_alrb_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the ALRB setup command.
+Add the ALRB_CONT_SETUPFILE in case the release setup file was created earlier (required available cvmfs).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> – full ALRB setup command (string).</p></li>
+<li><p><strong>use_release_setup</strong> – should the release setup file be added to the setup command? (Boolean).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated ALRB setup command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.update_for_user_proxy">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">update_for_user_proxy</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_analysis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#update_for_user_proxy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.update_for_user_proxy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the X509 user proxy to the container sub command string if set, and remove it from the main container command.
+Try to receive payload proxy and update X509_USER_PROXY in container setup command
+In case payload proxy from server is required, this function will also download and verify this proxy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>_cmd</strong> – container setup command (string).</p></li>
+<li><p><strong>cmd</strong> – command the container will execute (string).</p></li>
+<li><p><strong>is_analysis</strong> – True for user job (Boolean).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>exit_code (int), diagnostics (string), updated _cmd (string), updated cmd (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.container.wrapper">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></code><code class="sig-name descname"><span class="pre">wrapper</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">executable</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#wrapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.wrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper function for any container specific usage.
+This function will be called by pilot.util.container.execute() and prepends the executable with a container command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>executable</strong> – command to be executed (string).</p></li>
+<li><p><strong>kwargs</strong> – dictionary of key-word arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>executable wrapped with container command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../resource/index.html">resource components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">user components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../util/index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Components</a><ul>
+  <li><a href="../index.html">user components</a><ul>
+  <li><a href="index.html">atlas components</a><ul>
+      <li>Previous: <a href="common.html" title="previous chapter">common</a></li>
+      <li>Next: <a href="jobmetrics.html" title="next chapter">jobmetrics</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/components/user/atlas/container.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../../_sources/components/user/atlas/container.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

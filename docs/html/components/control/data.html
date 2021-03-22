@@ -1,0 +1,398 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>data &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="job" href="job.html" />
+    <link rel="prev" title="control components" href="index.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.control.data">
+<span id="data"></span><h1>data<a class="headerlink" href="#module-pilot.control.data" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt id="pilot.control.data._do_stageout">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">_do_stageout</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xdata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#_do_stageout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data._do_stageout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use the <a class="reference internal" href="../api/data.html#pilot.api.data.StageOutClient" title="pilot.api.data.StageOutClient"><code class="xref any py py-class docutils literal notranslate"><span class="pre">StageOutClient</span></code></a> in the Data API to perform stage-out.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>xdata</strong> – list of FileSpec objects.</p></li>
+<li><p><strong>activity</strong> – copytool activity or preferred list of activities to resolve copytools</p></li>
+<li><p><strong>title</strong> – type of stage-out (output, log) (string).</p></li>
+<li><p><strong>queue</strong> – PanDA queue (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True in case of success transfers</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data._stage_in">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">_stage_in</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#_stage_in"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data._stage_in" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True in case of success</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data._stage_out_new">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">_stage_out_new</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#_stage_out_new"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data._stage_out_new" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stage-out of all output files.
+If job.stageout=log then only log files will be transferred.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>args</strong> – pilot args object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True in case of success, False otherwise.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.control">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">control</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#control"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.control" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.copytool_in">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">copytool_in</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#copytool_in"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.copytool_in" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call the stage-in function and put the job object in the proper queue.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queues</strong> – internal queues for job handling.</p></li>
+<li><p><strong>traces</strong> – tuple containing internal pilot states.</p></li>
+<li><p><strong>args</strong> – Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.copytool_out">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">copytool_out</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#copytool_out"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.copytool_out" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main stage-out thread.
+Perform stage-out as soon as a job object can be extracted from the data_out queue.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queues</strong> – internal queues for job handling.</p></li>
+<li><p><strong>traces</strong> – tuple containing internal pilot states.</p></li>
+<li><p><strong>args</strong> – Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.create_log">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">create_log</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tarball_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#create_log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.create_log" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – </p></li>
+<li><p><strong>logfile</strong> – </p></li>
+<li><p><strong>tarball_name</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference internal" href="../common/exception.html#pilot.common.exception.LogFileCreationFailure" title="pilot.common.exception.LogFileCreationFailure"><strong>LogFileCreationFailure</strong></a> – in case of log file creation problem</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.create_trace_report">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">create_trace_report</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'stage-in'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#create_trace_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.create_trace_report" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create the trace report object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>label</strong> – ‘stage-[in|out]’ (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>trace report object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.filter_files_for_log">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">filter_files_for_log</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#filter_files_for_log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.filter_files_for_log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a file list recursi
+:param directory:
+:return:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.get_input_file_dictionary">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">get_input_file_dictionary</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">indata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#get_input_file_dictionary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.get_input_file_dictionary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an input file dictionary.
+Format: {‘guid’: ‘pfn’, ..}
+Normally use_turl would be set to True if direct access is used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>indata</strong> – list of FileSpec objects.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>file dictionary.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.get_rse">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">get_rse</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lfn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#get_rse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.get_rse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the ddmEndPoint corresponding to the given lfn.
+If lfn is not provided, the first ddmEndPoint will be returned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – FileSpec list object.</p></li>
+<li><p><strong>lfn</strong> – local file name (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>rse (string)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.get_trace_report_variables">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">get_trace_report_variables</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'stage-in'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#get_trace_report_variables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.get_trace_report_variables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get some of the variables needed for creating the trace report.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – job object</p></li>
+<li><p><strong>label</strong> – ‘stage-[in|out]’ (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>event_type (string), localsite (string), remotesite (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.is_already_processed">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">is_already_processed</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">processed_jobs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#is_already_processed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.is_already_processed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Skip stage-out in case the job has already been processed.
+This should not be necessary so this is a fail-safe but it seems there is a case when a job with multiple output
+files enters the stage-out more than once.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queues</strong> – queues object.</p></li>
+<li><p><strong>processed_jobs</strong> – list of already processed jobs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if stage-out queues contain a job object that has already been processed.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.queue_monitoring">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">queue_monitoring</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#queue_monitoring"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.queue_monitoring" title="Permalink to this definition">¶</a></dt>
+<dd><p>Monitoring of Data queues.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queues</strong> – internal queues for job handling.</p></li>
+<li><p><strong>traces</strong> – tuple containing internal pilot states.</p></li>
+<li><p><strong>args</strong> – Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.skip_special_files">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">skip_special_files</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#skip_special_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.skip_special_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Consult user defined code if any files should be skipped during stage-in.
+ATLAS code will skip DBRelease files e.g. as they should already be available in CVMFS.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.stage_in_auto">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">stage_in_auto</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">site</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#stage_in_auto"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.stage_in_auto" title="Permalink to this definition">¶</a></dt>
+<dd><p>Separate dummy implementation for automatic stage-in outside of pilot workflows.
+Should be merged with regular stage-in functionality later, but we need to have
+some operational experience with it first.
+Many things to improve:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>separate file error handling in the merged case</p></li>
+<li><p>auto-merging of files with same destination into single copytool call</p></li>
+</ul>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.stage_out_auto">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">stage_out_auto</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">site</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#stage_out_auto"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.stage_out_auto" title="Permalink to this definition">¶</a></dt>
+<dd><p>Separate dummy implementation for automatic stage-out outside of pilot workflows.
+Should be merged with regular stage-out functionality later, but we need to have
+some operational experience with it first.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.update_indata">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">update_indata</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#update_indata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.update_indata" title="Permalink to this definition">¶</a></dt>
+<dd><p>In case file were marked as no_transfer files, remove them from stage-in.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../util/index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">control components</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">control components</a></li>
+      <li>Next: <a href="job.html" title="next chapter">job</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/control/data.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/control/data.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

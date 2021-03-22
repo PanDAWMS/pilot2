@@ -1,0 +1,999 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.user.atlas.utilities &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.user.atlas.utilities</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018-2020</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">re</span> <span class="kn">import</span> <span class="n">search</span>
+
+<span class="c1"># from pilot.info import infosys</span>
+<span class="kn">from</span> <span class="nn">.setup</span> <span class="kn">import</span> <span class="n">get_asetup</span>
+<span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">is_python3</span>
+<span class="kn">from</span> <span class="nn">pilot.util.container</span> <span class="kn">import</span> <span class="n">execute</span>
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">read_json</span><span class="p">,</span> <span class="n">copy</span><span class="p">,</span> <span class="n">write_json</span><span class="p">,</span> <span class="n">remove</span>
+<span class="kn">from</span> <span class="nn">pilot.util.parameters</span> <span class="kn">import</span> <span class="n">convert_to_int</span>
+<span class="kn">from</span> <span class="nn">pilot.util.processes</span> <span class="kn">import</span> <span class="n">is_process_running</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_benchmark_setup"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_benchmark_setup">[docs]</a><span class="k">def</span> <span class="nf">get_benchmark_setup</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the proper setup for the benchmark command.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return: setup string for the benchmark command.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span></div>
+
+
+<div class="viewcode-block" id="get_prefetcher_setup"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_prefetcher_setup">[docs]</a><span class="k">def</span> <span class="nf">get_prefetcher_setup</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the proper setup for the Prefetcher.</span>
+<span class="sd">    Prefetcher is a tool used with the Event Streaming Service.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return: setup string for the Prefetcher command.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># add code here ..</span>
+
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span></div>
+
+
+<div class="viewcode-block" id="get_network_monitor_setup"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_network_monitor_setup">[docs]</a><span class="k">def</span> <span class="nf">get_network_monitor_setup</span><span class="p">(</span><span class="n">setup</span><span class="p">,</span> <span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the proper setup for the network monitor.</span>
+<span class="sd">    The network monitor is currently setup together with the payload and is start before it. The payload setup should</span>
+<span class="sd">    therefore be provided. The network monitor setup is prepended to it.</span>
+
+<span class="sd">    :param setup: payload setup string.</span>
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return: network monitor setup string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span></div>
+
+
+<div class="viewcode-block" id="get_memory_monitor_summary_filename"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_memory_monitor_summary_filename">[docs]</a><span class="k">def</span> <span class="nf">get_memory_monitor_summary_filename</span><span class="p">(</span><span class="n">selector</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the name for the memory monitor summary file.</span>
+
+<span class="sd">    :param selector: special conditions flag (boolean).</span>
+<span class="sd">    :return: File name (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;memory_monitor_summary.json&quot;</span>
+    <span class="k">if</span> <span class="n">selector</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">+=</span> <span class="s1">&#39;_snapshot&#39;</span>
+
+    <span class="k">return</span> <span class="n">name</span></div>
+
+
+<div class="viewcode-block" id="get_memory_monitor_output_filename"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_memory_monitor_output_filename">[docs]</a><span class="k">def</span> <span class="nf">get_memory_monitor_output_filename</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;txt&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the filename of the memory monitor text output file.</span>
+
+<span class="sd">    :return: File name (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="s2">&quot;memory_monitor_output.</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">suffix</span></div>
+
+
+<div class="viewcode-block" id="get_memory_monitor_setup"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_memory_monitor_setup">[docs]</a><span class="k">def</span> <span class="nf">get_memory_monitor_setup</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">pgrp</span><span class="p">,</span> <span class="n">jobid</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">command</span><span class="p">,</span> <span class="n">setup</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">use_container</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">transformation</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">outdata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dump_ps</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the proper setup for the memory monitor.</span>
+<span class="sd">    If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the</span>
+<span class="sd">    memory monitor was still located in the release area. After many problems with the memory monitor, it was decided</span>
+<span class="sd">    to use a fixed version for the setup. Currently, release 21.0.22 is used.</span>
+
+<span class="sd">    :param pid: job process id (int).</span>
+<span class="sd">    :param pgrp: process group id (int).</span>
+<span class="sd">    :param jobid: job id (int).</span>
+<span class="sd">    :param workdir: job work directory (string).</span>
+<span class="sd">    :param command: payload command (string).</span>
+<span class="sd">    :param setup: optional setup in case asetup can not be used, which uses infosys (string).</span>
+<span class="sd">    :param use_container: optional boolean.</span>
+<span class="sd">    :param transformation: optional name of transformation, e.g. Sim_tf.py (string).</span>
+<span class="sd">    :param outdata: optional list of output fspec objects (list).</span>
+<span class="sd">    :param dump_ps: should ps output be dumped when identifying prmon process? (Boolean).</span>
+<span class="sd">    :return: job work directory (string), pid for process inside container (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># try to get the pid from a pid.txt file which might be created by a container_script</span>
+    <span class="n">pid</span> <span class="o">=</span> <span class="n">get_proper_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">pgrp</span><span class="p">,</span> <span class="n">jobid</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">command</span><span class="p">,</span> <span class="n">transformation</span><span class="o">=</span><span class="n">transformation</span><span class="p">,</span> <span class="n">outdata</span><span class="o">=</span><span class="n">outdata</span><span class="p">,</span> <span class="n">use_container</span><span class="o">=</span><span class="n">use_container</span><span class="p">,</span> <span class="n">dump_ps</span><span class="o">=</span><span class="n">dump_ps</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">pid</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;process id was not identified before payload finished - will not launch memory monitor&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">pid</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">setup</span><span class="p">:</span>
+        <span class="n">setup</span> <span class="o">=</span> <span class="n">get_asetup</span><span class="p">(</span><span class="n">asetup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">setup</span> <span class="o">+=</span> <span class="s1">&#39;lsetup prmon;&#39;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">setup</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">):</span>
+        <span class="n">setup</span> <span class="o">+=</span> <span class="s1">&#39;;&#39;</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;prmon&quot;</span>
+    <span class="n">interval</span> <span class="o">=</span> <span class="mi">60</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="s2">&quot; --pid </span><span class="si">%d</span><span class="s2"> --filename </span><span class="si">%s</span><span class="s2"> --json-summary </span><span class="si">%s</span><span class="s2"> --interval </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span>\
+              <span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">get_memory_monitor_output_filename</span><span class="p">(),</span> <span class="n">get_memory_monitor_summary_filename</span><span class="p">(),</span> <span class="n">interval</span><span class="p">)</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;cd &quot;</span> <span class="o">+</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;;&quot;</span> <span class="o">+</span> <span class="n">setup</span> <span class="o">+</span> <span class="n">cmd</span> <span class="o">+</span> <span class="n">options</span>
+
+    <span class="k">return</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">pid</span></div>
+
+
+<div class="viewcode-block" id="get_memory_monitor_setup_old"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_memory_monitor_setup_old">[docs]</a><span class="k">def</span> <span class="nf">get_memory_monitor_setup_old</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">pgrp</span><span class="p">,</span> <span class="n">jobid</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">command</span><span class="p">,</span> <span class="n">setup</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">use_container</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">transformation</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">outdata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dump_ps</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the proper setup for the memory monitor.</span>
+<span class="sd">    If the payload release is provided, the memory monitor can be setup with the same release. Until early 2018, the</span>
+<span class="sd">    memory monitor was still located in the release area. After many problems with the memory monitor, it was decided</span>
+<span class="sd">    to use a fixed version for the setup. Currently, release 21.0.22 is used.</span>
+
+<span class="sd">    :param pid: job process id (int).</span>
+<span class="sd">    :param pgrp: process group id (int).</span>
+<span class="sd">    :param jobid: job id (int).</span>
+<span class="sd">    :param workdir: job work directory (string).</span>
+<span class="sd">    :param command: payload command (string).</span>
+<span class="sd">    :param setup: optional setup in case asetup can not be used, which uses infosys (string).</span>
+<span class="sd">    :param use_container: optional boolean.</span>
+<span class="sd">    :param transformation: optional name of transformation, e.g. Sim_tf.py (string).</span>
+<span class="sd">    :param outdata: optional list of output fspec objects (list).</span>
+<span class="sd">    :param dump_ps: should ps output be dumped when identifying prmon process? (Boolean).</span>
+<span class="sd">    :return: job work directory (string), pid for process inside container (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># try to get the pid from a pid.txt file which might be created by a container_script</span>
+    <span class="n">pid</span> <span class="o">=</span> <span class="n">get_proper_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">pgrp</span><span class="p">,</span> <span class="n">jobid</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">command</span><span class="p">,</span> <span class="n">transformation</span><span class="o">=</span><span class="n">transformation</span><span class="p">,</span> <span class="n">outdata</span><span class="o">=</span><span class="n">outdata</span><span class="p">,</span> <span class="n">use_container</span><span class="o">=</span><span class="n">use_container</span><span class="p">,</span> <span class="n">dump_ps</span><span class="o">=</span><span class="n">dump_ps</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">pid</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;process id was not identified before payload finished - will not launch memory monitor&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">pid</span>
+
+    <span class="n">release</span> <span class="o">=</span> <span class="s2">&quot;22.0.1&quot;</span>
+    <span class="n">platform</span> <span class="o">=</span> <span class="s2">&quot;x86_64-centos7-gcc8-opt&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">setup</span><span class="p">:</span>
+        <span class="n">setup</span> <span class="o">=</span> <span class="n">get_asetup</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot; Athena,&quot;</span> <span class="o">+</span> <span class="n">release</span> <span class="o">+</span> <span class="s2">&quot; --platform &quot;</span> <span class="o">+</span> <span class="n">platform</span>
+    <span class="n">interval</span> <span class="o">=</span> <span class="mi">60</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">setup</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">):</span>
+        <span class="n">setup</span> <span class="o">+=</span> <span class="s1">&#39;;&#39;</span>
+    <span class="c1"># Decide which version of the memory monitor should be used</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">which prmon&quot;</span> <span class="o">%</span> <span class="n">setup</span>
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">stdout</span> <span class="ow">and</span> <span class="s2">&quot;Command not found&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">stdout</span><span class="p">:</span>
+        <span class="n">_cmd</span> <span class="o">=</span> <span class="s2">&quot;prmon &quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to find prmon, defaulting to old memory monitor: </span><span class="si">%d</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">stderr</span><span class="p">))</span>
+        <span class="n">_cmd</span> <span class="o">=</span> <span class="s2">&quot;MemoryMonitor &quot;</span>
+        <span class="n">setup</span> <span class="o">=</span> <span class="n">setup</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">release</span><span class="p">,</span> <span class="s2">&quot;21.0.22&quot;</span><span class="p">)</span>
+        <span class="n">setup</span> <span class="o">=</span> <span class="n">setup</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">platform</span><span class="p">,</span> <span class="s2">&quot;x86_64-slc6-gcc62-opt&quot;</span><span class="p">)</span>
+
+    <span class="n">options</span> <span class="o">=</span> <span class="s2">&quot;--pid </span><span class="si">%d</span><span class="s2"> --filename </span><span class="si">%s</span><span class="s2"> --json-summary </span><span class="si">%s</span><span class="s2"> --interval </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span>\
+              <span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">get_memory_monitor_output_filename</span><span class="p">(),</span> <span class="n">get_memory_monitor_summary_filename</span><span class="p">(),</span> <span class="n">interval</span><span class="p">)</span>
+    <span class="n">_cmd</span> <span class="o">=</span> <span class="s2">&quot;cd &quot;</span> <span class="o">+</span> <span class="n">workdir</span> <span class="o">+</span> <span class="s2">&quot;;&quot;</span> <span class="o">+</span> <span class="n">setup</span> <span class="o">+</span> <span class="n">_cmd</span> <span class="o">+</span> <span class="n">options</span>
+
+    <span class="k">return</span> <span class="n">_cmd</span><span class="p">,</span> <span class="n">pid</span></div>
+
+
+<div class="viewcode-block" id="get_proper_pid"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_proper_pid">[docs]</a><span class="k">def</span> <span class="nf">get_proper_pid</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">pgrp</span><span class="p">,</span> <span class="n">jobid</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">transformation</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">outdata</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">use_container</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dump_ps</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a pid from the proper source to be used with the memory monitor.</span>
+<span class="sd">    The given pid comes from Popen(), but in the case containers are used, the pid should instead come from a ps aux</span>
+<span class="sd">    lookup.</span>
+<span class="sd">    If the main process has finished before the proper pid has been identified (it will take time if the payload is</span>
+<span class="sd">    running inside a container), then this function will abort and return -1. The called should handle this and not</span>
+<span class="sd">    launch the memory monitor as it is not needed any longer.</span>
+
+<span class="sd">    :param pid: process id (int).</span>
+<span class="sd">    :param pgrp: process group id (int).</span>
+<span class="sd">    :param jobid: job id (int).</span>
+<span class="sd">    :param command: payload command (string).</span>
+<span class="sd">    :param transformation: optional name of transformation, e.g. Sim_tf.py (string).</span>
+<span class="sd">    :param outdata: list of output fspec object (list).</span>
+<span class="sd">    :param use_container: optional boolean.</span>
+<span class="sd">    :return: pid (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">use_container</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pid</span>
+
+    <span class="c1"># abort if main process has finished already</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_process_running</span><span class="p">(</span><span class="n">pid</span><span class="p">):</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="c1">#_cmd = get_trf_command(command, transformation=transformation)</span>
+    <span class="c1"># get ps info using group id</span>
+    <span class="n">ps</span> <span class="o">=</span> <span class="n">get_ps_info</span><span class="p">(</span><span class="n">pgrp</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dump_ps</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;ps:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">ps</span><span class="p">)</span>
+    <span class="c1">#logger.debug(&#39;attempting to identify pid for Singularity (v.3) runtime parent process&#39;)</span>
+    <span class="c1">#_pid = get_pid_for_command(ps, command=&quot;Singularity runtime parent&quot;)</span>
+    <span class="c1">#if _pid:</span>
+    <span class="c1">#    logger.debug(&#39;discovered pid=%d for process \&quot;%s\&quot;&#39; % (_pid, _cmd))</span>
+    <span class="c1">#    return _pid</span>
+
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">imax</span> <span class="o">=</span> <span class="mi">120</span>
+    <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">imax</span><span class="p">:</span>
+        <span class="c1"># abort if main process has finished already</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_process_running</span><span class="p">(</span><span class="n">pid</span><span class="p">):</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="n">ps</span> <span class="o">=</span> <span class="n">get_ps_info</span><span class="p">(</span><span class="n">pgrp</span><span class="p">)</span>
+        <span class="c1">#logger.debug(&#39;ps:\n%s&#39; % ps)</span>
+
+        <span class="c1"># lookup the process id using ps aux</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;attempting to identify pid from job id&#39;</span><span class="p">)</span>
+        <span class="n">_pid</span> <span class="o">=</span> <span class="n">get_pid_for_jobid</span><span class="p">(</span><span class="n">ps</span><span class="p">,</span> <span class="n">jobid</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_pid</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;discovered pid=</span><span class="si">%d</span><span class="s1"> for job id </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_pid</span><span class="p">,</span> <span class="n">jobid</span><span class="p">))</span>
+            <span class="k">break</span>
+
+        <span class="c1">#logger.debug(&#39;attempting to identify pid from transform name and its output&#39;)</span>
+        <span class="c1">#_pid = get_pid_for_trf(ps, transformation, outdata) if outdata else None</span>
+        <span class="c1">#if _pid:</span>
+        <span class="c1">#    logger.debug(&#39;discovered pid=%d for transform name \&quot;%s\&quot;&#39; % (_pid, transformation))</span>
+        <span class="c1">#    break</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;payload pid has not yet been identified (#</span><span class="si">%d</span><span class="s1">/#</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">imax</span><span class="p">))</span>
+
+        <span class="c1"># wait until the payload has launched</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">_pid</span><span class="p">:</span>
+        <span class="n">pid</span> <span class="o">=</span> <span class="n">_pid</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;will use pid=</span><span class="si">%d</span><span class="s1"> for memory monitor&#39;</span> <span class="o">%</span> <span class="n">pid</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">pid</span></div>
+
+
+<div class="viewcode-block" id="get_ps_info"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_ps_info">[docs]</a><span class="k">def</span> <span class="nf">get_ps_info</span><span class="p">(</span><span class="n">pgrp</span><span class="p">,</span> <span class="n">whoami</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="s1">&#39;axfo pid,user,args&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return ps info for the given user.</span>
+
+<span class="sd">    :param pgrp: process group id (int).</span>
+<span class="sd">    :param whoami: user name (string).</span>
+<span class="sd">    :return: ps aux for given user (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">whoami</span><span class="p">:</span>
+        <span class="n">whoami</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getuid</span><span class="p">()</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;ps -u </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">whoami</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+    <span class="c1">#cmd = &quot;ps %s | grep %s&quot; % (options, whoami)</span>
+    <span class="c1">#cmd = &quot;ps %s | grep %s | awk -v p=%s &#39;$1 == p {print $5}&quot; % (options, whoami, pgrp)</span>
+    <span class="c1">#cmd = &quot;ps %s | awk -v p=%s &#39;$1 == p {print $5}&quot; % (options, pgrp)</span>
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">stdout</span></div>
+
+
+<div class="viewcode-block" id="get_pid_for_jobid"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_pid_for_jobid">[docs]</a><span class="k">def</span> <span class="nf">get_pid_for_jobid</span><span class="p">(</span><span class="n">ps</span><span class="p">,</span> <span class="n">jobid</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the process id for the ps entry that contains the job id.</span>
+
+<span class="sd">    :param ps: ps command output (string).</span>
+<span class="sd">    :param jobid: PanDA job id (int).</span>
+<span class="sd">    :return: pid (int) or None if no such process.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pid</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">ps</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">jobid</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="c1"># extract pid</span>
+            <span class="n">_pid</span> <span class="o">=</span> <span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\d+) &#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">pid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_pid</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;pid has wrong type: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;extracted pid=</span><span class="si">%d</span><span class="s1"> from ps output&#39;</span> <span class="o">%</span> <span class="n">pid</span><span class="p">)</span>
+            <span class="k">break</span>
+
+    <span class="k">return</span> <span class="n">pid</span></div>
+
+
+<div class="viewcode-block" id="get_pid_for_trf"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_pid_for_trf">[docs]</a><span class="k">def</span> <span class="nf">get_pid_for_trf</span><span class="p">(</span><span class="n">ps</span><span class="p">,</span> <span class="n">transformation</span><span class="p">,</span> <span class="n">outdata</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the process id for the given command and user.</span>
+<span class="sd">    Note: function returns 0 in case pid could not be found.</span>
+
+<span class="sd">    :param ps: ps command output (string).</span>
+<span class="sd">    :param transformation: transformation name, e.g. Sim_tf.py (String).</span>
+<span class="sd">    :param outdata: fspec objects (list).</span>
+<span class="sd">    :return: pid (int) or None if no such process.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pid</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">candidates</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># in the case of user analysis job, the transformation will contain a URL which should be stripped</span>
+    <span class="k">if</span> <span class="s2">&quot;/&quot;</span> <span class="ow">in</span> <span class="n">transformation</span><span class="p">:</span>
+        <span class="n">transformation</span> <span class="o">=</span> <span class="n">transformation</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;using transformation name: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">transformation</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">ps</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">transformation</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="n">candidates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">break</span>
+
+    <span class="k">if</span> <span class="n">candidates</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">outdata</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="c1"># extract pid</span>
+                    <span class="n">_pid</span> <span class="o">=</span> <span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\d+) &#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">pid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_pid</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;pid has wrong type: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;extracted pid=</span><span class="si">%d</span><span class="s1"> from ps output&#39;</span> <span class="o">%</span> <span class="n">pid</span><span class="p">)</span>
+                    <span class="k">break</span>
+            <span class="k">if</span> <span class="n">pid</span><span class="p">:</span>
+                <span class="k">break</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;pid not found in ps output for trf=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">transformation</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">pid</span></div>
+
+
+<div class="viewcode-block" id="get_pid_for_command"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_pid_for_command">[docs]</a><span class="k">def</span> <span class="nf">get_pid_for_command</span><span class="p">(</span><span class="n">ps</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="s2">&quot;python pilot2/pilot.py&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the process id for the given command and user.</span>
+<span class="sd">    The function returns 0 in case pid could not be found.</span>
+<span class="sd">    If no command is specified, the function looks for the &quot;python pilot2/pilot.py&quot; command in the ps output.</span>
+
+<span class="sd">    :param ps: ps command output (string).</span>
+<span class="sd">    :param command: command string expected to be in ps output (string).</span>
+<span class="sd">    :return: pid (int) or None if no such process.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pid</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">found</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">ps</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">command</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="n">found</span> <span class="o">=</span> <span class="n">line</span>
+            <span class="k">break</span>
+    <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+        <span class="c1"># extract pid</span>
+        <span class="n">_pid</span> <span class="o">=</span> <span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\d+) &#39;</span><span class="p">,</span> <span class="n">found</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">pid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_pid</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;pid has wrong type: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;extracted pid=</span><span class="si">%d</span><span class="s1"> from ps output: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">found</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;command not found in ps output: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">command</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">pid</span></div>
+
+
+<div class="viewcode-block" id="get_trf_command"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_trf_command">[docs]</a><span class="k">def</span> <span class="nf">get_trf_command</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">transformation</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the last command in the full payload command string.</span>
+<span class="sd">    Note: this function returns the last command in job.command which is only set for containers.</span>
+
+<span class="sd">    :param command: full payload command (string).</span>
+<span class="sd">    :param transformation: optional name of transformation, e.g. Sim_tf.py (string).</span>
+<span class="sd">    :return: trf command (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">payload_command</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">command</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">transformation</span><span class="p">:</span>
+            <span class="n">payload_command</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">transformation</span> <span class="ow">in</span> <span class="n">command</span><span class="p">:</span>
+                <span class="n">payload_command</span> <span class="o">=</span> <span class="n">command</span><span class="p">[</span><span class="n">command</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">transformation</span><span class="p">):]</span>
+
+        <span class="c1"># clean-up the command, remove &#39;-signs and any trailing ;</span>
+        <span class="n">payload_command</span> <span class="o">=</span> <span class="n">payload_command</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">payload_command</span> <span class="o">=</span> <span class="n">payload_command</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">payload_command</span> <span class="o">=</span> <span class="n">payload_command</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">payload_command</span></div>
+
+
+<div class="viewcode-block" id="get_memory_monitor_info_path"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_memory_monitor_info_path">[docs]</a><span class="k">def</span> <span class="nf">get_memory_monitor_info_path</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">allowtxtfile</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find the proper path to the utility info file</span>
+<span class="sd">    Priority order:</span>
+<span class="sd">       1. JSON summary file from workdir</span>
+<span class="sd">       2. JSON summary file from pilot initdir</span>
+<span class="sd">       3. Text output file from workdir (if allowtxtfile is True)</span>
+
+<span class="sd">    :param workdir: relevant work directory (string).</span>
+<span class="sd">    :param allowtxtfile: boolean attribute to allow for reading the raw memory monitor output.</span>
+<span class="sd">    :return: path (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pilot_initdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">get_memory_monitor_summary_filename</span><span class="p">())</span>
+    <span class="n">init_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pilot_initdir</span><span class="p">,</span> <span class="n">get_memory_monitor_summary_filename</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">init_path</span><span class="p">):</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">init_path</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;neither </span><span class="si">%s</span><span class="s2">, nor </span><span class="si">%s</span><span class="s2"> exist&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">init_path</span><span class="p">))</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">path</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="n">allowtxtfile</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">get_memory_monitor_output_filename</span><span class="p">())</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;file does not exist either: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">path</span></div>
+
+
+<div class="viewcode-block" id="get_memory_monitor_info"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_memory_monitor_info">[docs]</a><span class="k">def</span> <span class="nf">get_memory_monitor_info</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">allowtxtfile</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>  <span class="c1"># noqa: C901</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add the utility info to the node structure if available.</span>
+
+<span class="sd">    :param workdir: relevant work directory (string).</span>
+<span class="sd">    :param allowtxtfile: boolean attribute to allow for reading the raw memory monitor output.</span>
+<span class="sd">    :param name: name of memory monitor (string).</span>
+<span class="sd">    :return: node structure (dictionary).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">node</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># Get the values from the memory monitor file (json if it exists, otherwise the preliminary txt file)</span>
+    <span class="c1"># Note that only the final json file will contain the totRBYTES, etc</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">summary_dictionary</span> <span class="o">=</span> <span class="n">get_memory_values</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to get memory values from memory monitor tool: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">summary_dictionary</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;summary_dictionary=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">summary_dictionary</span><span class="p">))</span>
+
+    <span class="c1"># Fill the node dictionary</span>
+    <span class="k">if</span> <span class="n">summary_dictionary</span> <span class="ow">and</span> <span class="n">summary_dictionary</span> <span class="o">!=</span> <span class="p">{}:</span>
+        <span class="c1"># first determine which memory monitor version was running (MemoryMonitor or prmon)</span>
+        <span class="k">if</span> <span class="s1">&#39;maxRSS&#39;</span> <span class="ow">in</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">]:</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;MemoryMonitor&#39;</span>
+        <span class="k">elif</span> <span class="s1">&#39;rss&#39;</span> <span class="ow">in</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">]:</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;prmon&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;unknown&#39;</span>
+        <span class="k">if</span> <span class="n">version</span> <span class="o">==</span> <span class="s1">&#39;MemoryMonitor&#39;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;maxRSS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">][</span><span class="s1">&#39;maxRSS&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;maxVMEM&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">][</span><span class="s1">&#39;maxVMEM&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;maxSWAP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">][</span><span class="s1">&#39;maxSwap&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;maxPSS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">][</span><span class="s1">&#39;maxPSS&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;avgRSS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Avg&#39;</span><span class="p">][</span><span class="s1">&#39;avgRSS&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;avgVMEM&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Avg&#39;</span><span class="p">][</span><span class="s1">&#39;avgVMEM&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;avgSWAP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Avg&#39;</span><span class="p">][</span><span class="s1">&#39;avgSwap&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;avgPSS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Avg&#39;</span><span class="p">][</span><span class="s1">&#39;avgPSS&#39;</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;exception caught while parsing memory monitor file: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;will add -1 values for the memory info&quot;</span><span class="p">)</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;maxRSS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;maxVMEM&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;maxSWAP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;maxPSS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;avgRSS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;avgVMEM&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;avgSWAP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;avgPSS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;extracted standard info from memory monitor json&quot;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;totRCHAR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">][</span><span class="s1">&#39;totRCHAR&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;totWCHAR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">][</span><span class="s1">&#39;totWCHAR&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;totRBYTES&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">][</span><span class="s1">&#39;totRBYTES&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;totWBYTES&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">][</span><span class="s1">&#39;totWBYTES&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;rateRCHAR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Avg&#39;</span><span class="p">][</span><span class="s1">&#39;rateRCHAR&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;rateWCHAR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Avg&#39;</span><span class="p">][</span><span class="s1">&#39;rateWCHAR&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;rateRBYTES&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Avg&#39;</span><span class="p">][</span><span class="s1">&#39;rateRBYTES&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;rateWBYTES&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Avg&#39;</span><span class="p">][</span><span class="s1">&#39;rateWBYTES&#39;</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;standard memory fields were not found in memory monitor json (or json doesn&#39;t exist yet)&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;extracted standard memory fields from memory monitor json&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">version</span> <span class="o">==</span> <span class="s1">&#39;prmon&#39;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;maxRSS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">][</span><span class="s1">&#39;rss&#39;</span><span class="p">])</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;maxVMEM&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">][</span><span class="s1">&#39;vmem&#39;</span><span class="p">])</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;maxSWAP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">][</span><span class="s1">&#39;swap&#39;</span><span class="p">])</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;maxPSS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">][</span><span class="s1">&#39;pss&#39;</span><span class="p">])</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;avgRSS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Avg&#39;</span><span class="p">][</span><span class="s1">&#39;rss&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;avgVMEM&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Avg&#39;</span><span class="p">][</span><span class="s1">&#39;vmem&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;avgSWAP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Avg&#39;</span><span class="p">][</span><span class="s1">&#39;swap&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;avgPSS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Avg&#39;</span><span class="p">][</span><span class="s1">&#39;pss&#39;</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;exception caught while parsing prmon file: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;will add -1 values for the memory info&quot;</span><span class="p">)</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;maxRSS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;maxVMEM&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;maxSWAP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;maxPSS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;avgRSS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;avgVMEM&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;avgSWAP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;avgPSS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;extracted standard info from prmon json&quot;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;totRCHAR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">][</span><span class="s1">&#39;rchar&#39;</span><span class="p">])</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;totWCHAR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">][</span><span class="s1">&#39;wchar&#39;</span><span class="p">])</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;totRBYTES&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">][</span><span class="s1">&#39;read_bytes&#39;</span><span class="p">])</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;totWBYTES&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Max&#39;</span><span class="p">][</span><span class="s1">&#39;write_bytes&#39;</span><span class="p">])</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;rateRCHAR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Avg&#39;</span><span class="p">][</span><span class="s1">&#39;rchar&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;rateWCHAR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Avg&#39;</span><span class="p">][</span><span class="s1">&#39;wchar&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;rateRBYTES&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Avg&#39;</span><span class="p">][</span><span class="s1">&#39;read_bytes&#39;</span><span class="p">]</span>
+                <span class="n">node</span><span class="p">[</span><span class="s1">&#39;rateWBYTES&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary_dictionary</span><span class="p">[</span><span class="s1">&#39;Avg&#39;</span><span class="p">][</span><span class="s1">&#39;write_bytes&#39;</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;standard memory fields were not found in prmon json (or json doesn&#39;t exist yet)&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;extracted standard memory fields from prmon json&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;unknown memory monitor version&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;memory summary dictionary not yet available&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">node</span></div>
+
+
+<div class="viewcode-block" id="get_max_memory_monitor_value"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_max_memory_monitor_value">[docs]</a><span class="k">def</span> <span class="nf">get_max_memory_monitor_value</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">maxvalue</span><span class="p">,</span> <span class="n">totalvalue</span><span class="p">):</span>  <span class="c1"># noqa: C90</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the max and total value (used by memory monitoring).</span>
+<span class="sd">    Return an error code, 1, in case of value error.</span>
+
+<span class="sd">    :param value: value to be tested (integer).</span>
+<span class="sd">    :param maxvalue: current maximum value (integer).</span>
+<span class="sd">    :param totalvalue: total value (integer).</span>
+<span class="sd">    :return: exit code, maximum and total value (tuple of integers).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">value_int</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;exception caught: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">totalvalue</span> <span class="o">+=</span> <span class="n">value_int</span>
+        <span class="k">if</span> <span class="n">value_int</span> <span class="o">&gt;</span> <span class="n">maxvalue</span><span class="p">:</span>
+            <span class="n">maxvalue</span> <span class="o">=</span> <span class="n">value_int</span>
+
+    <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">maxvalue</span><span class="p">,</span> <span class="n">totalvalue</span></div>
+
+
+<div class="viewcode-block" id="convert_unicode_string"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.convert_unicode_string">[docs]</a><span class="k">def</span> <span class="nf">convert_unicode_string</span><span class="p">(</span><span class="n">unicode_string</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert a unicode string into str.</span>
+
+<span class="sd">    :param unicode_string:</span>
+<span class="sd">    :return: string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">unicode_string</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">unicode_string</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="get_average_summary_dictionary_prmon"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_average_summary_dictionary_prmon">[docs]</a><span class="k">def</span> <span class="nf">get_average_summary_dictionary_prmon</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Loop over the memory monitor output file and create the averaged summary dictionary.</span>
+
+<span class="sd">    prmon keys:</span>
+<span class="sd">    &#39;Time&#39;, &#39;nprocs&#39;, &#39;nthreads&#39;, &#39;pss&#39;, &#39;rchar&#39;, &#39;read_bytes&#39;, &#39;rss&#39;, &#39;rx_bytes&#39;,</span>
+<span class="sd">    &#39;rx_packets&#39;, &#39;stime&#39;, &#39;swap&#39;, &#39;tx_bytes&#39;, &#39;tx_packets&#39;, &#39;utime&#39;, &#39;vmem&#39;, &#39;wchar&#39;,</span>
+<span class="sd">    &#39;write_bytes&#39;, &#39;wtime&#39;</span>
+
+<span class="sd">    The function uses the first line in the output file to define the dictionary keys used</span>
+<span class="sd">    later in the function. This means that any change in the format such as new columns</span>
+<span class="sd">    will be handled automatically.</span>
+
+<span class="sd">    :param path: path to memory monitor txt output file (string).</span>
+<span class="sd">    :return: summary dictionary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">summary_dictionary</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># get the raw memory monitor output, convert to dictionary</span>
+    <span class="n">dictionary</span> <span class="o">=</span> <span class="n">convert_text_file_to_dictionary</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dictionary</span><span class="p">:</span>
+        <span class="c1"># Calculate averages and store all values</span>
+        <span class="n">summary_dictionary</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Max&quot;</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">&quot;Avg&quot;</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">&quot;Other&quot;</span><span class="p">:</span> <span class="p">{}}</span>
+
+        <span class="k">def</span> <span class="nf">filter_value</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; Inline function used to remove any string or None values from data. &quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span> <span class="ow">or</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;vmem&#39;</span><span class="p">,</span> <span class="s1">&#39;pss&#39;</span><span class="p">,</span> <span class="s1">&#39;rss&#39;</span><span class="p">,</span> <span class="s1">&#39;swap&#39;</span><span class="p">]</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">value_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="n">filter_value</span><span class="p">,</span> <span class="n">dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">0</span><span class="p">)))</span>  <span class="c1"># Python 2/3</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">value_list</span><span class="p">)</span>
+            <span class="n">average</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">value_list</span><span class="p">))</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">n</span><span class="p">))</span> <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="n">maximum</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">value_list</span><span class="p">)</span>
+            <span class="n">values</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;avg&#39;</span><span class="p">:</span> <span class="n">average</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">:</span> <span class="n">maximum</span><span class="p">}</span>
+
+        <span class="n">summary_dictionary</span><span class="p">[</span><span class="s2">&quot;Max&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;maxVMEM&quot;</span><span class="p">:</span> <span class="n">values</span><span class="p">[</span><span class="s1">&#39;vmem&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">),</span> <span class="s2">&quot;maxPSS&quot;</span><span class="p">:</span> <span class="n">values</span><span class="p">[</span><span class="s1">&#39;pss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">),</span>
+                                     <span class="s2">&quot;maxRSS&quot;</span><span class="p">:</span> <span class="n">values</span><span class="p">[</span><span class="s1">&#39;rss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">),</span> <span class="s2">&quot;maxSwap&quot;</span><span class="p">:</span> <span class="n">values</span><span class="p">[</span><span class="s1">&#39;swap&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">)}</span>
+        <span class="n">summary_dictionary</span><span class="p">[</span><span class="s2">&quot;Avg&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;avgVMEM&quot;</span><span class="p">:</span> <span class="n">values</span><span class="p">[</span><span class="s1">&#39;vmem&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">),</span> <span class="s2">&quot;avgPSS&quot;</span><span class="p">:</span> <span class="n">values</span><span class="p">[</span><span class="s1">&#39;pss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">),</span>
+                                     <span class="s2">&quot;avgRSS&quot;</span><span class="p">:</span> <span class="n">values</span><span class="p">[</span><span class="s1">&#39;rss&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">),</span> <span class="s2">&quot;avgSwap&quot;</span><span class="p">:</span> <span class="n">values</span><span class="p">[</span><span class="s1">&#39;swap&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;avg&#39;</span><span class="p">)}</span>
+
+        <span class="c1"># add the last of the rchar, .., values</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;rchar&#39;</span><span class="p">,</span> <span class="s1">&#39;wchar&#39;</span><span class="p">,</span> <span class="s1">&#39;read_bytes&#39;</span><span class="p">,</span> <span class="s1">&#39;write_bytes&#39;</span><span class="p">,</span> <span class="s1">&#39;nprocs&#39;</span><span class="p">]</span>
+        <span class="c1"># warning: should read_bytes/write_bytes be reported as rbytes/wbytes?</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">get_last_value</span><span class="p">(</span><span class="n">dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
+                <span class="n">summary_dictionary</span><span class="p">[</span><span class="s2">&quot;Other&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">return</span> <span class="n">summary_dictionary</span></div>
+
+
+<div class="viewcode-block" id="get_metadata_dict_from_txt"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_metadata_dict_from_txt">[docs]</a><span class="k">def</span> <span class="nf">get_metadata_dict_from_txt</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">storejson</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">jobid</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert memory monitor text output to json, store it, and return a selection as a dictionary.</span>
+
+<span class="sd">    :param path:</span>
+<span class="sd">    :param storejson: store dictionary on disk if True (boolean).</span>
+<span class="sd">    :param jobid: job id (string).</span>
+<span class="sd">    :return: prmon metadata (dictionary).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># get the raw memory monitor output, convert to dictionary</span>
+    <span class="n">dictionary</span> <span class="o">=</span> <span class="n">convert_text_file_to_dictionary</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dictionary</span> <span class="ow">and</span> <span class="n">storejson</span><span class="p">:</span>
+        <span class="c1"># add metadata</span>
+        <span class="n">dictionary</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;MemoryMonitorData&#39;</span>
+        <span class="n">dictionary</span><span class="p">[</span><span class="s1">&#39;pandaid&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">jobid</span>
+
+        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">get_memory_monitor_output_filename</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;json&#39;</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;writing prmon dictionary to: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+        <span class="n">write_json</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">dictionary</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;nothing to write (no prmon dictionary)&#39;</span><span class="p">)</span>
+
+    <span class="c1"># filter dictionary?</span>
+    <span class="c1"># ..</span>
+
+    <span class="k">return</span> <span class="n">dictionary</span></div>
+
+
+<div class="viewcode-block" id="convert_text_file_to_dictionary"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.convert_text_file_to_dictionary">[docs]</a><span class="k">def</span> <span class="nf">convert_text_file_to_dictionary</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert row-column text file to dictionary.</span>
+<span class="sd">    User first row identifiers as dictionary keys.</span>
+<span class="sd">    Note: file must follow the convention:</span>
+<span class="sd">        NAME1   NAME2   ..</span>
+<span class="sd">        value1  value2  ..</span>
+<span class="sd">        ..      ..      ..</span>
+
+<span class="sd">    :param path: path to file (string).</span>
+<span class="sd">    :return: dictionary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">summary_keys</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># to keep track of content</span>
+    <span class="n">header_locked</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">dictionary</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">convert_unicode_string</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">line</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># Remove empty entries from list (caused by multiple \t)</span>
+                    <span class="n">_l</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">is_python3</span><span class="p">():</span>
+                        <span class="n">_l</span> <span class="o">=</span> <span class="p">[</span><span class="n">_f</span> <span class="k">for</span> <span class="n">_f</span> <span class="ow">in</span> <span class="n">_l</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">_f</span><span class="p">]</span>  <span class="c1"># Python 3</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">_l</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">_l</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">))</span>  <span class="c1"># Python 2</span>
+
+                    <span class="c1"># define dictionary keys</span>
+                    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">_l</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">str</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">header_locked</span><span class="p">:</span>
+                        <span class="n">summary_keys</span> <span class="o">=</span> <span class="n">_l</span>
+                        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">_l</span><span class="p">:</span>
+                            <span class="n">dictionary</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="n">header_locked</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">else</span><span class="p">:</span>  <span class="c1"># sort the memory measurements in the correct columns</span>
+                        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">_l</span><span class="p">):</span>
+                            <span class="c1"># for key in _l:</span>
+                            <span class="n">key_entry</span> <span class="o">=</span> <span class="n">summary_keys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="c1"># e.g. Time</span>
+                            <span class="n">value</span> <span class="o">=</span> <span class="n">convert_to_int</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                            <span class="n">dictionary</span><span class="p">[</span><span class="n">key_entry</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;unexpected format of utility output: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">line</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dictionary</span></div>
+
+
+<div class="viewcode-block" id="get_last_value"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_last_value">[docs]</a><span class="k">def</span> <span class="nf">get_last_value</span><span class="p">(</span><span class="n">value_list</span><span class="p">):</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">value_list</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">value_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">value</span></div>
+
+
+<div class="viewcode-block" id="get_average_summary_dictionary"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_average_summary_dictionary">[docs]</a><span class="k">def</span> <span class="nf">get_average_summary_dictionary</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Loop over the memory monitor output file and create the averaged summary dictionary.</span>
+
+<span class="sd">    :param path: path to memory monitor txt output file (string).</span>
+<span class="sd">    :return: summary dictionary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">maxvmem</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">maxrss</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">maxpss</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">maxswap</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">avgvmem</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">avgrss</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">avgpss</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">avgswap</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">totalvmem</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">totalrss</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">totalpss</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">totalswap</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">summary_dictionary</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">rchar</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">wchar</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">rbytes</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">wbytes</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">first</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="c1"># Skip the first line</span>
+            <span class="k">if</span> <span class="n">first</span><span class="p">:</span>
+                <span class="n">first</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">continue</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">convert_unicode_string</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">line</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># Remove empty entries from list (caused by multiple \t)</span>
+                    <span class="k">if</span> <span class="n">is_python3</span><span class="p">():</span>
+                        <span class="n">_l</span> <span class="o">=</span> <span class="p">[</span><span class="n">_f</span> <span class="k">for</span> <span class="n">_f</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">_f</span><span class="p">]</span>  <span class="c1"># Python 3</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">_l</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">))</span>  <span class="c1"># Python 2</span>
+                    <span class="c1"># _time = _l[0]  # &#39;Time&#39; not user</span>
+                    <span class="n">vmem</span> <span class="o">=</span> <span class="n">_l</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">pss</span> <span class="o">=</span> <span class="n">_l</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                    <span class="n">rss</span> <span class="o">=</span> <span class="n">_l</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+                    <span class="n">swap</span> <span class="o">=</span> <span class="n">_l</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+                    <span class="c1"># note: the last rchar etc values will be reported</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_l</span><span class="p">)</span> <span class="o">==</span> <span class="mi">9</span><span class="p">:</span>
+                        <span class="n">rchar</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_l</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+                        <span class="n">wchar</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_l</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+                        <span class="n">rbytes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_l</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span>
+                        <span class="n">wbytes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_l</span><span class="p">[</span><span class="mi">8</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">rchar</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="n">wchar</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="n">rbytes</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="n">wbytes</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;unexpected format of utility output: </span><span class="si">%s</span><span class="s2"> (expected format: Time, VMEM,&quot;</span>
+                                   <span class="s2">&quot; PSS, RSS, Swap [, RCHAR, WCHAR, RBYTES, WBYTES])&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Convert to int</span>
+                    <span class="n">ec1</span><span class="p">,</span> <span class="n">maxvmem</span><span class="p">,</span> <span class="n">totalvmem</span> <span class="o">=</span> <span class="n">get_max_memory_monitor_value</span><span class="p">(</span><span class="n">vmem</span><span class="p">,</span> <span class="n">maxvmem</span><span class="p">,</span> <span class="n">totalvmem</span><span class="p">)</span>
+                    <span class="n">ec2</span><span class="p">,</span> <span class="n">maxpss</span><span class="p">,</span> <span class="n">totalpss</span> <span class="o">=</span> <span class="n">get_max_memory_monitor_value</span><span class="p">(</span><span class="n">pss</span><span class="p">,</span> <span class="n">maxpss</span><span class="p">,</span> <span class="n">totalpss</span><span class="p">)</span>
+                    <span class="n">ec3</span><span class="p">,</span> <span class="n">maxrss</span><span class="p">,</span> <span class="n">totalrss</span> <span class="o">=</span> <span class="n">get_max_memory_monitor_value</span><span class="p">(</span><span class="n">rss</span><span class="p">,</span> <span class="n">maxrss</span><span class="p">,</span> <span class="n">totalrss</span><span class="p">)</span>
+                    <span class="n">ec4</span><span class="p">,</span> <span class="n">maxswap</span><span class="p">,</span> <span class="n">totalswap</span> <span class="o">=</span> <span class="n">get_max_memory_monitor_value</span><span class="p">(</span><span class="n">swap</span><span class="p">,</span> <span class="n">maxswap</span><span class="p">,</span> <span class="n">totalswap</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">ec1</span> <span class="ow">or</span> <span class="n">ec2</span> <span class="ow">or</span> <span class="n">ec3</span> <span class="ow">or</span> <span class="n">ec4</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;will skip this row of numbers due to value exception: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">line</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># Calculate averages and store all values</span>
+        <span class="n">summary_dictionary</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Max&quot;</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">&quot;Avg&quot;</span><span class="p">:</span> <span class="p">{},</span> <span class="s2">&quot;Other&quot;</span><span class="p">:</span> <span class="p">{}}</span>
+        <span class="n">summary_dictionary</span><span class="p">[</span><span class="s2">&quot;Max&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;maxVMEM&quot;</span><span class="p">:</span> <span class="n">maxvmem</span><span class="p">,</span> <span class="s2">&quot;maxPSS&quot;</span><span class="p">:</span> <span class="n">maxpss</span><span class="p">,</span> <span class="s2">&quot;maxRSS&quot;</span><span class="p">:</span> <span class="n">maxrss</span><span class="p">,</span> <span class="s2">&quot;maxSwap&quot;</span><span class="p">:</span> <span class="n">maxswap</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">rchar</span><span class="p">:</span>
+            <span class="n">summary_dictionary</span><span class="p">[</span><span class="s2">&quot;Other&quot;</span><span class="p">][</span><span class="s2">&quot;rchar&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rchar</span>
+        <span class="k">if</span> <span class="n">wchar</span><span class="p">:</span>
+            <span class="n">summary_dictionary</span><span class="p">[</span><span class="s2">&quot;Other&quot;</span><span class="p">][</span><span class="s2">&quot;wchar&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wchar</span>
+        <span class="k">if</span> <span class="n">rbytes</span><span class="p">:</span>
+            <span class="n">summary_dictionary</span><span class="p">[</span><span class="s2">&quot;Other&quot;</span><span class="p">][</span><span class="s2">&quot;rbytes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rbytes</span>
+        <span class="k">if</span> <span class="n">wbytes</span><span class="p">:</span>
+            <span class="n">summary_dictionary</span><span class="p">[</span><span class="s2">&quot;Other&quot;</span><span class="p">][</span><span class="s2">&quot;wbytes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wbytes</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">avgvmem</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">totalvmem</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+            <span class="n">avgpss</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">totalpss</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+            <span class="n">avgrss</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">totalrss</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+            <span class="n">avgswap</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">totalswap</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+        <span class="n">summary_dictionary</span><span class="p">[</span><span class="s2">&quot;Avg&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;avgVMEM&quot;</span><span class="p">:</span> <span class="n">avgvmem</span><span class="p">,</span> <span class="s2">&quot;avgPSS&quot;</span><span class="p">:</span> <span class="n">avgpss</span><span class="p">,</span> <span class="s2">&quot;avgRSS&quot;</span><span class="p">:</span> <span class="n">avgrss</span><span class="p">,</span> <span class="s2">&quot;avgSwap&quot;</span><span class="p">:</span> <span class="n">avgswap</span><span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">summary_dictionary</span></div>
+
+
+<div class="viewcode-block" id="get_memory_values"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.get_memory_values">[docs]</a><span class="k">def</span> <span class="nf">get_memory_values</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find the values in the memory monitor output file.</span>
+
+<span class="sd">    In case the summary JSON file has not yet been produced, create a summary dictionary with the same format</span>
+<span class="sd">    using the output text file (produced by the memory monitor and which is updated once per minute).</span>
+
+<span class="sd">    FORMAT:</span>
+<span class="sd">       {&quot;Max&quot;:{&quot;maxVMEM&quot;:40058624,&quot;maxPSS&quot;:10340177,&quot;maxRSS&quot;:16342012,&quot;maxSwap&quot;:16235568},</span>
+<span class="sd">        &quot;Avg&quot;:{&quot;avgVMEM&quot;:19384236,&quot;avgPSS&quot;:5023500,&quot;avgRSS&quot;:6501489,&quot;avgSwap&quot;:5964997},</span>
+<span class="sd">        &quot;Other&quot;:{&quot;rchar&quot;:NN,&quot;wchar&quot;:NN,&quot;rbytes&quot;:NN,&quot;wbytes&quot;:NN}}</span>
+
+<span class="sd">    :param workdir: relevant work directory (string).</span>
+<span class="sd">    :param name: name of memory monitor (string).</span>
+<span class="sd">    :return: memory values dictionary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">summary_dictionary</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># Get the path to the proper memory info file (priority ordered)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">get_memory_monitor_info_path</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">allowtxtfile</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;using path: </span><span class="si">%s</span><span class="s2"> (trf name=</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+
+        <span class="c1"># Does a JSON summary file exist? If so, there&#39;s no need to calculate maximums and averages in the pilot</span>
+        <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;json&#39;</span><span class="p">):</span>
+            <span class="c1"># Read the dictionary from the JSON file</span>
+            <span class="n">summary_dictionary</span> <span class="o">=</span> <span class="n">read_json</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Loop over the output file, line by line, and look for the maximum PSS value</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;prmon&quot;</span><span class="p">:</span>
+                <span class="n">summary_dictionary</span> <span class="o">=</span> <span class="n">get_average_summary_dictionary_prmon</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">summary_dictionary</span> <span class="o">=</span> <span class="n">get_average_summary_dictionary</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;summary_dictionary=</span><span class="si">%s</span><span class="s1"> (trf name=</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">summary_dictionary</span><span class="p">),</span> <span class="n">name</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">path</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;filename not set for memory monitor output&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Normally this means that the memory output file has not been produced yet</span>
+            <span class="k">pass</span>
+
+    <span class="k">return</span> <span class="n">summary_dictionary</span></div>
+
+
+<div class="viewcode-block" id="post_memory_monitor_action"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.post_memory_monitor_action">[docs]</a><span class="k">def</span> <span class="nf">post_memory_monitor_action</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform post action items for memory monitor.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nap</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">path1</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">get_memory_monitor_summary_filename</span><span class="p">())</span>
+    <span class="n">path2</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">)</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">maxretry</span> <span class="o">=</span> <span class="mi">20</span>
+    <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">maxretry</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path1</span><span class="p">):</span>
+            <span class="k">break</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;taking a short nap (</span><span class="si">%d</span><span class="s2"> s) to allow the memory monitor to finish writing to the summary file (#</span><span class="si">%d</span><span class="s2">/#</span><span class="si">%d</span><span class="s2">)&quot;</span>
+                    <span class="o">%</span> <span class="p">(</span><span class="n">nap</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">maxretry</span><span class="p">))</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">nap</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">copy</span><span class="p">(</span><span class="n">path1</span><span class="p">,</span> <span class="n">path2</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to copy memory monitor output: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="precleanup"><a class="viewcode-back" href="../../../../components/user/atlas/utilities.html#pilot.user.atlas.utilities.precleanup">[docs]</a><span class="k">def</span> <span class="nf">precleanup</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Pre-cleanup at the beginning of the job to remove any pre-existing files from previous jobs in the main work dir.</span>
+
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;performing pre-cleanup of potentially pre-existing files from earlier job in main work dir&#39;</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">),</span> <span class="n">get_memory_monitor_summary_filename</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;removing no longer needed file: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+        <span class="n">remove</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

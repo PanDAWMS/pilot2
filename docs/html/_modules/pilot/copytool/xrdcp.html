@@ -1,0 +1,360 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.copytool.xrdcp &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.copytool.xrdcp</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017</span>
+
+<span class="c1"># Reimplemented by Alexey Anisenkov</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">time</span>
+
+<span class="kn">from</span> <span class="nn">.common</span> <span class="kn">import</span> <span class="n">resolve_common_transfer_errors</span><span class="p">,</span> <span class="n">verify_catalog_checksum</span>  <span class="c1">#, get_timeout</span>
+<span class="kn">from</span> <span class="nn">pilot.util.container</span> <span class="kn">import</span> <span class="n">execute</span>
+<span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">PilotException</span><span class="p">,</span> <span class="n">ErrorCodes</span>
+<span class="c1">#from pilot.util.timer import timeout</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">require_replicas</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1">## indicate if given copytool requires input replicas to be resolved</span>
+<span class="n">allowed_schemas</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;root&#39;</span><span class="p">]</span>  <span class="c1"># prioritized list of supported schemas for transfers by given copytool</span>
+
+<span class="n">copy_command</span> <span class="o">=</span> <span class="s1">&#39;xrdcp&#39;</span>
+
+
+<div class="viewcode-block" id="is_valid_for_copy_in"><a class="viewcode-back" href="../../../components/copytool/xrdcp.html#pilot.copytool.xrdcp.is_valid_for_copy_in">[docs]</a><span class="k">def</span> <span class="nf">is_valid_for_copy_in</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+    <span class="k">return</span> <span class="kc">True</span>  <span class="c1">## FIX ME LATER</span></div>
+
+
+<div class="viewcode-block" id="is_valid_for_copy_out"><a class="viewcode-back" href="../../../components/copytool/xrdcp.html#pilot.copytool.xrdcp.is_valid_for_copy_out">[docs]</a><span class="k">def</span> <span class="nf">is_valid_for_copy_out</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+    <span class="k">return</span> <span class="kc">True</span>  <span class="c1">## FIX ME LATER</span></div>
+
+
+<div class="viewcode-block" id="_resolve_checksum_option"><a class="viewcode-back" href="../../../components/copytool/xrdcp.html#pilot.copytool.xrdcp._resolve_checksum_option">[docs]</a><span class="k">def</span> <span class="nf">_resolve_checksum_option</span><span class="p">(</span><span class="n">setup</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> --version&quot;</span> <span class="o">%</span> <span class="n">copy_command</span>
+    <span class="k">if</span> <span class="n">setup</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;source </span><span class="si">%s</span><span class="s2">; </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">setup</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Execute command (</span><span class="si">%s</span><span class="s2">) to check xrdcp client version&quot;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+
+    <span class="n">rcode</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;return code: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">rcode</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;return output: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">stdout</span> <span class="o">+</span> <span class="n">stderr</span><span class="p">))</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> -h&quot;</span> <span class="o">%</span> <span class="n">copy_command</span>
+    <span class="k">if</span> <span class="n">setup</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;source </span><span class="si">%s</span><span class="s2">; </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">setup</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Execute command (</span><span class="si">%s</span><span class="s2">) to decide which option should be used to calc/verify file checksum..&quot;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+
+    <span class="n">rcode</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">stdout</span> <span class="o">+</span> <span class="n">stderr</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;return code: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">rcode</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;return output: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">output</span><span class="p">)</span>
+
+    <span class="n">coption</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">checksum_type</span> <span class="o">=</span> <span class="s1">&#39;adler32&#39;</span>  <span class="c1">## consider only adler32 for now</span>
+
+    <span class="k">if</span> <span class="n">rcode</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;FAILED to execute command=</span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">output</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;--cksum&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+            <span class="n">coption</span> <span class="o">=</span> <span class="s2">&quot;--cksum </span><span class="si">%s</span><span class="s2">:print&quot;</span> <span class="o">%</span> <span class="n">checksum_type</span>
+        <span class="k">elif</span> <span class="s2">&quot;-adler&quot;</span> <span class="ow">in</span> <span class="n">output</span> <span class="ow">and</span> <span class="n">checksum_type</span> <span class="o">==</span> <span class="s1">&#39;adler32&#39;</span><span class="p">:</span>
+            <span class="n">coption</span> <span class="o">=</span> <span class="s2">&quot;-adler&quot;</span>
+        <span class="k">elif</span> <span class="s2">&quot;-md5&quot;</span> <span class="ow">in</span> <span class="n">output</span> <span class="ow">and</span> <span class="n">checksum_type</span> <span class="o">==</span> <span class="s1">&#39;md5&#39;</span><span class="p">:</span>
+            <span class="n">coption</span> <span class="o">=</span> <span class="s2">&quot;-md5&quot;</span>
+
+    <span class="k">if</span> <span class="n">coption</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Use </span><span class="si">%s</span><span class="s2"> option to get the checksum for </span><span class="si">%s</span><span class="s2"> command&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">coption</span><span class="p">,</span> <span class="n">copy_command</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">coption</span></div>
+
+
+<span class="c1">#@timeout(seconds=10800)</span>
+<div class="viewcode-block" id="_stagefile"><a class="viewcode-back" href="../../../components/copytool/xrdcp.html#pilot.copytool.xrdcp._stagefile">[docs]</a><span class="k">def</span> <span class="nf">_stagefile</span><span class="p">(</span><span class="n">coption</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="n">filesize</span><span class="p">,</span> <span class="n">is_stagein</span><span class="p">,</span> <span class="n">setup</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Stage the file (stagein or stageout)</span>
+<span class="sd">        :return: destination file details (checksum, checksum_type) in case of success, throw exception in case of failure</span>
+<span class="sd">        :raise: PilotException in case of controlled error</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">filesize_cmd</span><span class="p">,</span> <span class="n">checksum_cmd</span><span class="p">,</span> <span class="n">checksum_type</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> -np -f </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">copy_command</span><span class="p">,</span> <span class="n">coption</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">destination</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">setup</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;source </span><span class="si">%s</span><span class="s2">; </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">setup</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
+
+    <span class="c1">#timeout = get_timeout(filesize)</span>
+    <span class="c1">#logger.info(&quot;Executing command: %s, timeout=%s&quot; % (cmd, timeout))</span>
+
+    <span class="n">rcode</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;rcode=</span><span class="si">%d</span><span class="s1">, stdout=</span><span class="si">%s</span><span class="s1">, stderr=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">rcode</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">rcode</span><span class="p">:</span>  <span class="c1">## error occurred</span>
+        <span class="n">error</span> <span class="o">=</span> <span class="n">resolve_common_transfer_errors</span><span class="p">(</span><span class="n">stdout</span> <span class="o">+</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">is_stagein</span><span class="o">=</span><span class="n">is_stagein</span><span class="p">)</span>
+
+        <span class="c1">#rcode = error.get(&#39;rcode&#39;)  ## TO BE IMPLEMENTED</span>
+        <span class="c1">#if not is_stagein and rcode == PilotErrors.ERR_CHKSUMNOTSUP: ## stage-out, on fly checksum verification is not supported .. ignore</span>
+        <span class="c1">#    logger.info(&#39;stage-out: ignore ERR_CHKSUMNOTSUP error .. will explicitly verify uploaded file&#39;)</span>
+        <span class="c1">#    return None, None</span>
+
+        <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">),</span> <span class="n">code</span><span class="o">=</span><span class="n">error</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rcode&#39;</span><span class="p">),</span> <span class="n">state</span><span class="o">=</span><span class="n">error</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">))</span>
+
+    <span class="c1"># extract filesize and checksum values from output</span>
+    <span class="k">if</span> <span class="n">coption</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">filesize_cmd</span><span class="p">,</span> <span class="n">checksum_cmd</span><span class="p">,</span> <span class="n">checksum_type</span> <span class="o">=</span> <span class="n">get_file_info_from_output</span><span class="p">(</span><span class="n">stdout</span> <span class="o">+</span> <span class="n">stderr</span><span class="p">)</span>
+
+    <span class="c1">## verify transfer by returned checksum or call remote checksum calculation</span>
+    <span class="c1">## to be moved at the base level</span>
+
+    <span class="n">is_verified</span> <span class="o">=</span> <span class="kc">True</span>   <span class="c1">## TO BE IMPLEMENTED LATER</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_verified</span><span class="p">:</span>
+        <span class="n">rcode</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">GETADMISMATCH</span> <span class="k">if</span> <span class="n">is_stagein</span> <span class="k">else</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">PUTADMISMATCH</span>
+        <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="s2">&quot;Copy command failed&quot;</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">rcode</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;AD_MISMATCH&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">filesize_cmd</span><span class="p">,</span> <span class="n">checksum_cmd</span><span class="p">,</span> <span class="n">checksum_type</span></div>
+
+
+<span class="c1"># @timeout(seconds=10800)</span>
+<div class="viewcode-block" id="copy_in"><a class="viewcode-back" href="../../../components/copytool/xrdcp.html#pilot.copytool.xrdcp.copy_in">[docs]</a><span class="k">def</span> <span class="nf">copy_in</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download given files using xrdcp command.</span>
+
+<span class="sd">        :param files: list of `FileSpec` objects</span>
+<span class="sd">        :raise: PilotException in case of controlled error</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#allow_direct_access = kwargs.get(&#39;allow_direct_access&#39;) or False</span>
+    <span class="n">setup</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;copytools&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;xrdcp&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;setup&#39;</span><span class="p">)</span>
+    <span class="n">coption</span> <span class="o">=</span> <span class="n">_resolve_checksum_option</span><span class="p">(</span><span class="n">setup</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">trace_report</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;trace_report&#39;</span><span class="p">)</span>
+
+    <span class="n">localsite</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;RUCIO_LOCAL_SITE_ID&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="c1"># update the trace report</span>
+        <span class="n">localsite</span> <span class="o">=</span> <span class="n">localsite</span> <span class="k">if</span> <span class="n">localsite</span> <span class="k">else</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">localSite</span><span class="o">=</span><span class="n">localsite</span><span class="p">,</span> <span class="n">remoteSite</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">,</span> <span class="n">filesize</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">filesize</span><span class="p">)</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">guid</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">guid</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
+
+        <span class="c1"># continue loop for files that are to be accessed directly  ## TOBE DEPRECATED (anisyonk)</span>
+        <span class="c1">#if fspec.is_directaccess(ensure_replica=False) and allow_direct_access and fspec.accessmode == &#39;direct&#39;:</span>
+        <span class="c1">#    fspec.status_code = 0</span>
+        <span class="c1">#    fspec.status = &#39;remote_io&#39;</span>
+        <span class="c1">#    trace_report.update(url=fspec.turl, clientState=&#39;FOUND_ROOT&#39;, stateReason=&#39;direct_access&#39;)</span>
+        <span class="c1">#    trace_report.send()</span>
+        <span class="c1">#    continue</span>
+
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">catStart</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+
+        <span class="n">dst</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">workdir</span> <span class="ow">or</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;workdir&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;.&#39;</span>
+        <span class="n">destination</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">filesize_cmd</span><span class="p">,</span> <span class="n">checksum_cmd</span><span class="p">,</span> <span class="n">checksum_type</span> <span class="o">=</span> <span class="n">_stagefile</span><span class="p">(</span><span class="n">coption</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">turl</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">filesize</span><span class="p">,</span>
+                                                                   <span class="n">is_stagein</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">setup</span><span class="o">=</span><span class="n">setup</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;transferred&#39;</span>
+        <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;failed&#39;</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="n">get_error_code</span><span class="p">()</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="n">get_detail</span><span class="p">()</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;STAGEIN_ATTEMPT_FAILED&#39;</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">clientState</span><span class="o">=</span><span class="n">state</span><span class="p">,</span> <span class="n">stateReason</span><span class="o">=</span><span class="n">diagnostics</span><span class="p">,</span> <span class="n">timeEnd</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># compare checksums</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">checksum</span><span class="p">[</span><span class="n">checksum_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">checksum_cmd</span>  <span class="c1"># remote checksum</span>
+            <span class="n">state</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">verify_catalog_checksum</span><span class="p">(</span><span class="n">fspec</span><span class="p">,</span> <span class="n">destination</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">diagnostics</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">clientState</span><span class="o">=</span><span class="n">state</span> <span class="ow">or</span> <span class="s1">&#39;STAGEIN_ATTEMPT_FAILED&#39;</span><span class="p">,</span> <span class="n">stateReason</span><span class="o">=</span><span class="n">diagnostics</span><span class="p">,</span>
+                                    <span class="n">timeEnd</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+                <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
+
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">clientState</span><span class="o">=</span><span class="s1">&#39;DONE&#39;</span><span class="p">,</span> <span class="n">stateReason</span><span class="o">=</span><span class="s1">&#39;OK&#39;</span><span class="p">,</span> <span class="n">timeEnd</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">files</span></div>
+
+
+<span class="c1"># @timeout(seconds=10800)</span>
+<div class="viewcode-block" id="copy_out"><a class="viewcode-back" href="../../../components/copytool/xrdcp.html#pilot.copytool.xrdcp.copy_out">[docs]</a><span class="k">def</span> <span class="nf">copy_out</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Upload given files using xrdcp command.</span>
+
+<span class="sd">        :param files: list of `FileSpec` objects</span>
+<span class="sd">        :raise: PilotException in case of controlled error</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">setup</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;copytools&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;xrdcp&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;setup&#39;</span><span class="p">)</span>
+    <span class="n">coption</span> <span class="o">=</span> <span class="n">_resolve_checksum_option</span><span class="p">(</span><span class="n">setup</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">trace_report</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;trace_report&#39;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">surl</span><span class="p">,</span> <span class="n">filesize</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">filesize</span><span class="p">)</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">catStart</span><span class="o">=</span><span class="n">time</span><span class="p">(),</span> <span class="n">filename</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">guid</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">guid</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">filesize_cmd</span><span class="p">,</span> <span class="n">checksum_cmd</span><span class="p">,</span> <span class="n">checksum_type</span> <span class="o">=</span> <span class="n">_stagefile</span><span class="p">(</span><span class="n">coption</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">surl</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">turl</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">filesize</span><span class="p">,</span>
+                                                                   <span class="n">is_stagein</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">setup</span><span class="o">=</span><span class="n">setup</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;transferred&#39;</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">clientState</span><span class="o">=</span><span class="s1">&#39;DONE&#39;</span><span class="p">,</span> <span class="n">stateReason</span><span class="o">=</span><span class="s1">&#39;OK&#39;</span><span class="p">,</span> <span class="n">timeEnd</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+        <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;failed&#39;</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="n">get_error_code</span><span class="p">()</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;STAGEOUT_ATTEMPT_FAILED&#39;</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">error</span><span class="o">.</span><span class="n">get_detail</span><span class="p">()</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">clientState</span><span class="o">=</span><span class="n">state</span><span class="p">,</span> <span class="n">stateReason</span><span class="o">=</span><span class="n">diagnostics</span><span class="p">,</span> <span class="n">timeEnd</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># compare checksums</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">checksum</span><span class="p">[</span><span class="n">checksum_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">checksum_cmd</span>  <span class="c1"># remote checksum</span>
+            <span class="n">state</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">verify_catalog_checksum</span><span class="p">(</span><span class="n">fspec</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">surl</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">diagnostics</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">clientState</span><span class="o">=</span><span class="n">state</span> <span class="ow">or</span> <span class="s1">&#39;STAGEIN_ATTEMPT_FAILED&#39;</span><span class="p">,</span> <span class="n">stateReason</span><span class="o">=</span><span class="n">diagnostics</span><span class="p">,</span>
+                                    <span class="n">timeEnd</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+                <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">files</span></div>
+
+
+<div class="viewcode-block" id="get_file_info_from_output"><a class="viewcode-back" href="../../../components/copytool/xrdcp.html#pilot.copytool.xrdcp.get_file_info_from_output">[docs]</a><span class="k">def</span> <span class="nf">get_file_info_from_output</span><span class="p">(</span><span class="n">output</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract file size, checksum value from xrdcp --chksum command output</span>
+
+<span class="sd">    :return: (filesize [int/None], checksum, checksum_type) or (None, None, None) in case of failure</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">output</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="s2">&quot;xrootd&quot;</span> <span class="ow">in</span> <span class="n">output</span> <span class="ow">or</span> <span class="s2">&quot;XRootD&quot;</span> <span class="ow">in</span> <span class="n">output</span> <span class="ow">or</span> <span class="s2">&quot;adler32&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;WARNING: Failed to extract checksum: Unexpected output: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">output</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;(?P&lt;type&gt;md5|adler32):\ (?P&lt;checksum&gt;[a-zA-Z0-9]+)\ \S+\ (?P&lt;filesize&gt;[0-9]+)&quot;</span>  <span class="c1"># Python 3 (added r)</span>
+    <span class="n">filesize</span><span class="p">,</span> <span class="n">checksum</span><span class="p">,</span> <span class="n">checksum_type</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+        <span class="n">checksum_type</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span>
+        <span class="n">checksum</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;checksum&#39;</span><span class="p">)</span>
+        <span class="n">checksum</span> <span class="o">=</span> <span class="n">checksum</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>  <span class="c1"># make it 8 chars length (adler32 xrdcp fix)</span>
+        <span class="n">filesize</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;filesize&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">filesize</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">filesize</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">filesize</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert filesize to int: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="n">filesize</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;WARNING: Checksum/file size info not found in output: failed to match pattern=</span><span class="si">%s</span><span class="s2"> in output=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">output</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">filesize</span><span class="p">,</span> <span class="n">checksum</span><span class="p">,</span> <span class="n">checksum_type</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

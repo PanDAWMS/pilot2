@@ -1,0 +1,487 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.util.https &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.util.https</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Daniel Drizhuk, d.drizhuk@gmail.com, 2017</span>
+<span class="c1"># - Mario Lassnig, mario.lassnig@cern.ch, 2017</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>  <span class="c1"># Python 2/3</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">commands</span>  <span class="c1"># Python 2</span>
+<span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+    <span class="k">pass</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">platform</span>
+<span class="kn">import</span> <span class="nn">ssl</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">urllib.request</span>  <span class="c1"># Python 3</span>
+    <span class="kn">import</span> <span class="nn">urllib.error</span>  <span class="c1"># Python 3</span>
+    <span class="kn">import</span> <span class="nn">urllib.parse</span>  <span class="c1"># Python 3</span>
+<span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">urllib</span>  <span class="c1"># Python 2</span>
+    <span class="kn">import</span> <span class="nn">urllib2</span>  <span class="c1"># Python 2</span>
+<span class="kn">import</span> <span class="nn">pipes</span>
+
+<span class="kn">from</span> <span class="nn">.filehandling</span> <span class="kn">import</span> <span class="n">write_file</span>
+<span class="kn">from</span> <span class="nn">.auxiliary</span> <span class="kn">import</span> <span class="n">is_python3</span>
+<span class="kn">from</span> <span class="nn">.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">.constants</span> <span class="kn">import</span> <span class="n">get_pilot_version</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">_ctx</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;_ctx&#39;</span><span class="p">,</span> <span class="s1">&#39;ssl_context user_agent capath cacert&#39;</span><span class="p">)</span>
+
+<span class="c1"># anisyonk: public copy of `_ctx` to avoid logic break since ssl_context is reset inside the request() -- FIXME</span>
+<span class="c1"># anisyonk: public instance, should be properly initialized by `https_setup()`</span>
+<span class="c1"># anisyonk: use lightweight class definition instead of namedtuple since tuple is immutable and we don&#39;t need/use any tuple features here</span>
+<span class="n">ctx</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="s1">&#39;ctx&#39;</span><span class="p">,</span> <span class="p">(</span><span class="nb">object</span><span class="p">,),</span> <span class="nb">dict</span><span class="p">(</span><span class="n">ssl_context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">user_agent</span><span class="o">=</span><span class="s1">&#39;Pilot2 client&#39;</span><span class="p">,</span> <span class="n">capath</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cacert</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="_tester"><a class="viewcode-back" href="../../../components/util/https.html#pilot.util.https._tester">[docs]</a><span class="k">def</span> <span class="nf">_tester</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Tests function ``func`` on arguments and returns first positive.</span>
+
+<span class="sd">    &gt;&gt;&gt; _tester(lambda x: x%3 == 0, 1, 2, 3, 4, 5, 6)</span>
+<span class="sd">    3</span>
+<span class="sd">    &gt;&gt;&gt; _tester(lambda x: x%3 == 0, 1, 2)</span>
+<span class="sd">    None</span>
+
+<span class="sd">    :param func: function(arg)-&gt;boolean</span>
+<span class="sd">    :param args: other arguments</span>
+<span class="sd">    :return: something or none</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">arg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">func</span><span class="p">(</span><span class="n">arg</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">arg</span>
+
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="capath"><a class="viewcode-back" href="../../../components/util/https.html#pilot.util.https.capath">[docs]</a><span class="k">def</span> <span class="nf">capath</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Tries to get :abbr:`CA (Certification Authority)` path with certificates.</span>
+<span class="sd">    Testifies it to be a directory.</span>
+<span class="sd">    Tries next locations:</span>
+
+<span class="sd">    1. :option:`--capath` from arguments</span>
+<span class="sd">    2. :envvar:`X509_CERT_DIR` from env</span>
+<span class="sd">    3. Path ``/etc/grid-security/certificates``</span>
+
+<span class="sd">    :param args: arguments, parsed by `argparse`</span>
+<span class="sd">    :returns: `str` -- directory path, or `None`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">_tester</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">,</span>
+                   <span class="n">args</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">capath</span><span class="p">,</span>
+                   <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;X509_CERT_DIR&#39;</span><span class="p">),</span>
+                   <span class="s1">&#39;/etc/grid-security/certificates&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="cacert_default_location"><a class="viewcode-back" href="../../../components/util/https.html#pilot.util.https.cacert_default_location">[docs]</a><span class="k">def</span> <span class="nf">cacert_default_location</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Tries to get current user ID through `os.getuid`, and get the posix path for x509 certificate.</span>
+<span class="sd">    :returns: `str` -- posix default x509 path, or `None`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;/tmp/x509up_u</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getuid</span><span class="p">())</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;No UID available? System not POSIX-compatible... trying to continue&#39;</span><span class="p">)</span>
+        <span class="k">pass</span>
+
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="cacert"><a class="viewcode-back" href="../../../components/util/https.html#pilot.util.https.cacert">[docs]</a><span class="k">def</span> <span class="nf">cacert</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Tries to get :abbr:`CA (Certification Authority)` certificate or X509 one.</span>
+<span class="sd">    Testifies it to be a regular file.</span>
+<span class="sd">    Tries next locations:</span>
+
+<span class="sd">    1. :option:`--cacert` from arguments</span>
+<span class="sd">    2. :envvar:`X509_USER_PROXY` from env</span>
+<span class="sd">    3. Path ``/tmp/x509up_uXXX``, where ``XXX`` refers to ``UID``</span>
+
+<span class="sd">    :param args: arguments, parsed by `argparse`</span>
+<span class="sd">    :returns: `str` -- certificate file path, or `None`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">_tester</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">,</span>
+                   <span class="n">args</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">cacert</span><span class="p">,</span>
+                   <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;X509_USER_PROXY&#39;</span><span class="p">),</span>
+                   <span class="n">cacert_default_location</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="https_setup"><a class="viewcode-back" href="../../../components/util/https.html#pilot.util.https.https_setup">[docs]</a><span class="k">def</span> <span class="nf">https_setup</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sets up the context for future HTTPS requests:</span>
+
+<span class="sd">    1. Selects the certificate paths</span>
+<span class="sd">    2. Sets up :mailheader:`User-Agent`</span>
+<span class="sd">    3. Tries to create `ssl.SSLContext` for future use (falls back to :command:`curl` if fails)</span>
+
+<span class="sd">    :param args: arguments, parsed by `argparse`</span>
+<span class="sd">    :param str version: pilot version string (for :mailheader:`User-Agent`)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">version</span> <span class="o">=</span> <span class="n">version</span> <span class="ow">or</span> <span class="n">get_pilot_version</span><span class="p">()</span>
+
+    <span class="n">_ctx</span><span class="o">.</span><span class="n">user_agent</span> <span class="o">=</span> <span class="s1">&#39;pilot/</span><span class="si">%s</span><span class="s1"> (Python </span><span class="si">%s</span><span class="s1">; </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">version</span><span class="p">,</span>
+                                                       <span class="n">sys</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span>
+                                                       <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">(),</span>
+                                                       <span class="n">platform</span><span class="o">.</span><span class="n">machine</span><span class="p">())</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;User-Agent: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">_ctx</span><span class="o">.</span><span class="n">user_agent</span><span class="p">)</span>
+
+    <span class="n">_ctx</span><span class="o">.</span><span class="n">capath</span> <span class="o">=</span> <span class="n">capath</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">_ctx</span><span class="o">.</span><span class="n">cacert</span> <span class="o">=</span> <span class="n">cacert</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">9</span><span class="p">):</span>  <span class="c1"># by anisyonk: actually SSL context should work, but prior to 2.7.9 there is no automatic hostname/certificate validation</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Python version &lt;2.7.9 lacks SSL contexts -- falling back to curl&#39;</span><span class="p">)</span>
+        <span class="n">_ctx</span><span class="o">.</span><span class="n">ssl_context</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_ctx</span><span class="o">.</span><span class="n">ssl_context</span> <span class="o">=</span> <span class="n">ssl</span><span class="o">.</span><span class="n">create_default_context</span><span class="p">(</span><span class="n">capath</span><span class="o">=</span><span class="n">_ctx</span><span class="o">.</span><span class="n">capath</span><span class="p">,</span>
+                                                          <span class="n">cafile</span><span class="o">=</span><span class="n">_ctx</span><span class="o">.</span><span class="n">cacert</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;SSL communication is impossible due to SSL error: </span><span class="si">%s</span><span class="s1"> -- falling back to curl&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+            <span class="n">_ctx</span><span class="o">.</span><span class="n">ssl_context</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># anisyonk: clone `_ctx` to avoid logic break since ssl_context is reset inside the request() -- FIXME</span>
+    <span class="n">ctx</span><span class="o">.</span><span class="n">capath</span> <span class="o">=</span> <span class="n">_ctx</span><span class="o">.</span><span class="n">capath</span>
+    <span class="n">ctx</span><span class="o">.</span><span class="n">cacert</span> <span class="o">=</span> <span class="n">_ctx</span><span class="o">.</span><span class="n">cacert</span>
+    <span class="n">ctx</span><span class="o">.</span><span class="n">user_agent</span> <span class="o">=</span> <span class="n">_ctx</span><span class="o">.</span><span class="n">user_agent</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">ssl_context</span> <span class="o">=</span> <span class="n">ssl</span><span class="o">.</span><span class="n">create_default_context</span><span class="p">(</span><span class="n">capath</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">capath</span><span class="p">,</span> <span class="n">cafile</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">cacert</span><span class="p">)</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">ssl_context</span><span class="o">.</span><span class="n">load_cert_chain</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">cacert</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># redandant try-catch protection, should work well for both python2 &amp; python3 -- CLEAN ME later (anisyonk)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Failed to initialize SSL context .. skipped, error: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="request"><a class="viewcode-back" href="../../../components/util/https.html#pilot.util.https.request">[docs]</a><span class="k">def</span> <span class="nf">request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">plain</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">secure</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function sends a request using HTTPS.</span>
+<span class="sd">    Sends :mailheader:`User-Agent` and certificates previously being set up by `https_setup`.</span>
+<span class="sd">    If `ssl.SSLContext` is available, uses `urllib2` as a request processor. Otherwise uses :command:`curl`.</span>
+
+<span class="sd">    If ``data`` is provided, encodes it as a URL form data and sends it to the server.</span>
+
+<span class="sd">    Treats the request as JSON unless a parameter ``plain`` is `True`.</span>
+<span class="sd">    If JSON is expected, sends ``Accept: application/json`` header.</span>
+
+<span class="sd">    :param string url: the URL of the resource</span>
+<span class="sd">    :param dict data: data to send</span>
+<span class="sd">    :param boolean plain: if true, treats the response as a plain text.</span>
+<span class="sd">    :param secure: Boolean (default: True, ie use certificates)</span>
+<span class="sd">    Usage:</span>
+
+<span class="sd">    .. code-block:: python</span>
+<span class="sd">        :emphasize-lines: 2</span>
+
+<span class="sd">        https_setup(args, PILOT_VERSION)  # sets up ssl and other stuff</span>
+<span class="sd">        response = request(&#39;https://some.url&#39;, {&#39;some&#39;:&#39;data&#39;})</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        - :keyword:`dict` -- if everything went OK</span>
+<span class="sd">        - `str` -- if ``plain`` parameter is `True`</span>
+<span class="sd">        - `None` -- if something went wrong</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_ctx</span><span class="o">.</span><span class="n">ssl_context</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># certificates are not available on the grid, use curl</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;server update dictionary = </span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+
+    <span class="c1"># get the filename and strdata for the curl config file</span>
+    <span class="n">filename</span><span class="p">,</span> <span class="n">strdata</span> <span class="o">=</span> <span class="n">get_vars</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+    <span class="c1"># write the strdata to file</span>
+    <span class="n">writestatus</span> <span class="o">=</span> <span class="n">write_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">strdata</span><span class="p">)</span>
+    <span class="c1"># get the config option for the curl command</span>
+    <span class="n">dat</span> <span class="o">=</span> <span class="n">get_curl_config_option</span><span class="p">(</span><span class="n">writestatus</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">_ctx</span><span class="o">.</span><span class="n">ssl_context</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">secure</span><span class="p">:</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="n">get_curl_command</span><span class="p">(</span><span class="n">plain</span><span class="p">,</span> <span class="n">dat</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">status</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">execute_request</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;request failed (</span><span class="si">%s</span><span class="s1">): </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">output</span><span class="p">))</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="c1"># return output if plain otherwise return json.loads(output)</span>
+        <span class="k">if</span> <span class="n">plain</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">output</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;json.loads() failed to parse output=</span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">ret</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="n">execute_urllib</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">plain</span><span class="p">,</span> <span class="n">secure</span><span class="p">)</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="n">_ctx</span><span class="o">.</span><span class="n">ssl_context</span> <span class="k">if</span> <span class="n">secure</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">is_python3</span><span class="p">():</span>  <span class="c1"># Python 3</span>
+            <span class="n">ec</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">get_urlopen_output</span><span class="p">(</span><span class="n">req</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ec</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># Python 2</span>
+            <span class="n">ec</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">get_urlopen2_output</span><span class="p">(</span><span class="n">req</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ec</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">output</span><span class="o">.</span><span class="n">read</span><span class="p">()</span> <span class="k">if</span> <span class="n">plain</span> <span class="k">else</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">output</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_curl_command"><a class="viewcode-back" href="../../../components/util/https.html#pilot.util.https.get_curl_command">[docs]</a><span class="k">def</span> <span class="nf">get_curl_command</span><span class="p">(</span><span class="n">plain</span><span class="p">,</span> <span class="n">dat</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the curl command.</span>
+
+<span class="sd">    :param plain:</span>
+<span class="sd">    :param dat: curl config option (string).</span>
+<span class="sd">    :return: curl command (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">req</span> <span class="o">=</span> <span class="s1">&#39;curl -sS --compressed --connect-timeout </span><span class="si">%s</span><span class="s1"> --max-time </span><span class="si">%s</span><span class="s1"> &#39;</span>\
+          <span class="s1">&#39;--capath </span><span class="si">%s</span><span class="s1"> --cert </span><span class="si">%s</span><span class="s1"> --cacert </span><span class="si">%s</span><span class="s1"> --key </span><span class="si">%s</span><span class="s1"> &#39;</span>\
+          <span class="s1">&#39;-H </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">http_connect_timeout</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">http_maxtime</span><span class="p">,</span>
+                           <span class="n">pipes</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">_ctx</span><span class="o">.</span><span class="n">capath</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="n">pipes</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">_ctx</span><span class="o">.</span><span class="n">cacert</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                           <span class="n">pipes</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">_ctx</span><span class="o">.</span><span class="n">cacert</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="n">pipes</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">_ctx</span><span class="o">.</span><span class="n">cacert</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                           <span class="n">pipes</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="s1">&#39;User-Agent: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">_ctx</span><span class="o">.</span><span class="n">user_agent</span><span class="p">),</span>
+                           <span class="s2">&quot;-H &quot;</span> <span class="o">+</span> <span class="n">pipes</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="s1">&#39;Accept: application/json&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">plain</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                           <span class="n">dat</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;request: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">req</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">req</span></div>
+
+
+<div class="viewcode-block" id="get_vars"><a class="viewcode-back" href="../../../components/util/https.html#pilot.util.https.get_vars">[docs]</a><span class="k">def</span> <span class="nf">get_vars</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the filename and strdata for the curl config file.</span>
+
+<span class="sd">    :param url: URL (string).</span>
+<span class="sd">    :param data: data to be written to file (dictionary).</span>
+<span class="sd">    :return: filename (string), strdata (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">strdata</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">strdata</span> <span class="o">+=</span> <span class="s1">&#39;data=&quot;</span><span class="si">%s</span><span class="s1">&quot;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlencode</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]})</span>  <span class="c1"># Python 3</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">strdata</span> <span class="o">+=</span> <span class="s1">&#39;data=&quot;</span><span class="si">%s</span><span class="s1">&quot;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlencode</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]})</span>  <span class="c1"># Python 2</span>
+    <span class="n">jobid</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">if</span> <span class="s1">&#39;jobId&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>  <span class="c1"># Python 2/3</span>
+        <span class="n">jobid</span> <span class="o">=</span> <span class="s1">&#39;_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;jobId&#39;</span><span class="p">]</span>
+
+    <span class="c1"># write data to temporary config file</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/curl_</span><span class="si">%s%s</span><span class="s1">.config&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">),</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">url</span><span class="p">),</span> <span class="n">jobid</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">filename</span><span class="p">,</span> <span class="n">strdata</span></div>
+
+
+<div class="viewcode-block" id="get_curl_config_option"><a class="viewcode-back" href="../../../components/util/https.html#pilot.util.https.get_curl_config_option">[docs]</a><span class="k">def</span> <span class="nf">get_curl_config_option</span><span class="p">(</span><span class="n">writestatus</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the curl config option.</span>
+
+<span class="sd">    :param writestatus: status of write_file call (Boolean).</span>
+<span class="sd">    :param url: URL (string).</span>
+<span class="sd">    :param data: data structure (dictionary).</span>
+<span class="sd">    :param filename: file name of config file (string).</span>
+<span class="sd">    :return: config option (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">writestatus</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to create curl config file (will attempt to urlencode data directly)&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">dat</span> <span class="o">=</span> <span class="n">pipes</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">url</span> <span class="o">+</span> <span class="s1">&#39;?&#39;</span> <span class="o">+</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="k">if</span> <span class="n">data</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>  <span class="c1"># Python 3</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">dat</span> <span class="o">=</span> <span class="n">pipes</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">url</span> <span class="o">+</span> <span class="s1">&#39;?&#39;</span> <span class="o">+</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="k">if</span> <span class="n">data</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>  <span class="c1"># Python 2</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dat</span> <span class="o">=</span> <span class="s1">&#39;--config </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dat</span></div>
+
+
+<div class="viewcode-block" id="execute_request"><a class="viewcode-back" href="../../../components/util/https.html#pilot.util.https.execute_request">[docs]</a><span class="k">def</span> <span class="nf">execute_request</span><span class="p">(</span><span class="n">req</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execute the curl request.</span>
+
+<span class="sd">    :param req: curl request command (string).</span>
+<span class="sd">    :return: status (int), output (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">status</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">getstatusoutput</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>  <span class="c1"># Python 3</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">status</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">getstatusoutput</span><span class="p">(</span><span class="n">req</span><span class="p">)</span>  <span class="c1"># Python 2</span>
+    <span class="k">return</span> <span class="n">status</span><span class="p">,</span> <span class="n">output</span></div>
+
+
+<div class="viewcode-block" id="execute_urllib"><a class="viewcode-back" href="../../../components/util/https.html#pilot.util.https.execute_urllib">[docs]</a><span class="k">def</span> <span class="nf">execute_urllib</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">plain</span><span class="p">,</span> <span class="n">secure</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execute the request using urllib.</span>
+
+<span class="sd">    :param url: URL (string).</span>
+<span class="sd">    :param data: data structure</span>
+<span class="sd">    :return: urllib request structure.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">urllib</span><span class="o">.</span><span class="n">parse</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>  <span class="c1"># Python 3</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">Request</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlencode</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>  <span class="c1"># Python 2</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">plain</span><span class="p">:</span>
+        <span class="n">req</span><span class="o">.</span><span class="n">add_header</span><span class="p">(</span><span class="s1">&#39;Accept&#39;</span><span class="p">,</span> <span class="s1">&#39;application/json&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">secure</span><span class="p">:</span>
+        <span class="n">req</span><span class="o">.</span><span class="n">add_header</span><span class="p">(</span><span class="s1">&#39;User-Agent&#39;</span><span class="p">,</span> <span class="n">_ctx</span><span class="o">.</span><span class="n">user_agent</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">req</span></div>
+
+
+<div class="viewcode-block" id="get_urlopen_output"><a class="viewcode-back" href="../../../components/util/https.html#pilot.util.https.get_urlopen_output">[docs]</a><span class="k">def</span> <span class="nf">get_urlopen_output</span><span class="p">(</span><span class="n">req</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the output from the urlopen request.</span>
+
+<span class="sd">    :param req:</span>
+<span class="sd">    :param context:</span>
+<span class="sd">    :return: ec (int), output (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ec</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">req</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">urllib</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;server error (</span><span class="si">%s</span><span class="s1">): </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">code</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
+    <span class="k">except</span> <span class="n">urllib</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">URLError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;connection error: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="o">.</span><span class="n">reason</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">output</span></div>
+
+
+<div class="viewcode-block" id="get_urlopen2_output"><a class="viewcode-back" href="../../../components/util/https.html#pilot.util.https.get_urlopen2_output">[docs]</a><span class="k">def</span> <span class="nf">get_urlopen2_output</span><span class="p">(</span><span class="n">req</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the output from the urlopen2 request.</span>
+
+<span class="sd">    :param req:</span>
+<span class="sd">    :param context:</span>
+<span class="sd">    :return: ec (int), output (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ec</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">req</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;server error (</span><span class="si">%s</span><span class="s1">): </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">code</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">read</span><span class="p">()))</span>
+    <span class="k">except</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">URLError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;connection error: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="o">.</span><span class="n">reason</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">output</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

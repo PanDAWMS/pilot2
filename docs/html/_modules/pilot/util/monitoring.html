@@ -1,0 +1,791 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.util.monitoring &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.util.monitoring</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019</span>
+
+<span class="c1"># This module contains implementations of job monitoring tasks</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">subprocess</span> <span class="kn">import</span> <span class="n">PIPE</span>
+<span class="kn">from</span> <span class="nn">glob</span> <span class="kn">import</span> <span class="n">glob</span>
+
+<span class="kn">from</span> <span class="nn">pilot.common.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
+<span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">set_pilot_state</span><span class="p">,</span> <span class="n">show_memory_usage</span>
+<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">pilot.util.container</span> <span class="kn">import</span> <span class="n">execute</span>
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">get_directory_size</span><span class="p">,</span> <span class="n">remove_files</span><span class="p">,</span> <span class="n">get_local_file_size</span><span class="p">,</span> <span class="n">read_file</span>
+<span class="kn">from</span> <span class="nn">pilot.util.loopingjob</span> <span class="kn">import</span> <span class="n">looping_job</span>
+<span class="kn">from</span> <span class="nn">pilot.util.math</span> <span class="kn">import</span> <span class="n">convert_mb_to_b</span><span class="p">,</span> <span class="n">human2bytes</span>
+<span class="kn">from</span> <span class="nn">pilot.util.parameters</span> <span class="kn">import</span> <span class="n">convert_to_int</span><span class="p">,</span> <span class="n">get_maximum_input_sizes</span>
+<span class="kn">from</span> <span class="nn">pilot.util.processes</span> <span class="kn">import</span> <span class="n">get_current_cpu_consumption_time</span><span class="p">,</span> <span class="n">kill_processes</span><span class="p">,</span> <span class="n">get_number_of_child_processes</span>
+<span class="kn">from</span> <span class="nn">pilot.util.workernode</span> <span class="kn">import</span> <span class="n">get_local_disk_space</span><span class="p">,</span> <span class="n">check_hz</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">errors</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="job_monitor_tasks"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.job_monitor_tasks">[docs]</a><span class="k">def</span> <span class="nf">job_monitor_tasks</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">mt</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform the tasks for the job monitoring.</span>
+<span class="sd">    The function is called once a minute. Individual checks will be performed at any desired time interval (&gt;= 1</span>
+<span class="sd">    minute).</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :param mt: `MonitoringTime` object.</span>
+<span class="sd">    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).</span>
+<span class="sd">    :return: exit code (int), diagnostics (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">exit_code</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">current_time</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+
+    <span class="c1"># update timing info for running jobs (to avoid an update after the job has finished)</span>
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;running&#39;</span><span class="p">:</span>
+        <span class="c1"># confirm that the worker node has a proper SC_CLK_TCK (problems seen on MPPMU)</span>
+        <span class="n">check_hz</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cpuconsumptiontime</span> <span class="o">=</span> <span class="n">get_current_cpu_consumption_time</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;Exception caught: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+            <span class="n">exit_code</span> <span class="o">=</span> <span class="n">get_exception_error_code</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptiontime</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">cpuconsumptiontime</span><span class="p">))</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptionunit</span> <span class="o">=</span> <span class="s2">&quot;s&quot;</span>
+            <span class="n">job</span><span class="o">.</span><span class="n">cpuconversionfactor</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;CPU consumption time for pid=</span><span class="si">%d</span><span class="s1">: </span><span class="si">%f</span><span class="s1"> (rounded to </span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">cpuconsumptiontime</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptiontime</span><span class="p">))</span>
+
+        <span class="c1"># check how many cores the payload is using</span>
+        <span class="n">set_number_used_cores</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+
+        <span class="c1"># check memory usage (optional) for jobs in running state</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">verify_memory_usage</span><span class="p">(</span><span class="n">current_time</span><span class="p">,</span> <span class="n">mt</span><span class="p">,</span> <span class="n">job</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+        <span class="c1"># display OOM process info</span>
+        <span class="n">display_oom_info</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
+
+    <span class="c1"># should the pilot abort the payload?</span>
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">should_abort_payload</span><span class="p">(</span><span class="n">current_time</span><span class="p">,</span> <span class="n">mt</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+    <span class="c1"># is it time to verify the pilot running time?</span>
+<span class="c1">#    exit_code, diagnostics = verify_pilot_running_time(current_time, mt, job)</span>
+<span class="c1">#    if exit_code != 0:</span>
+<span class="c1">#        return exit_code, diagnostics</span>
+
+    <span class="c1"># should the proxy be verified?</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">verify_proxy</span><span class="p">:</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">verify_user_proxy</span><span class="p">(</span><span class="n">current_time</span><span class="p">,</span> <span class="n">mt</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+    <span class="c1"># is it time to check for looping jobs?</span>
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">verify_looping_job</span><span class="p">(</span><span class="n">current_time</span><span class="p">,</span> <span class="n">mt</span><span class="p">,</span> <span class="n">job</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+    <span class="c1"># is the job using too much space?</span>
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">verify_disk_usage</span><span class="p">(</span><span class="n">current_time</span><span class="p">,</span> <span class="n">mt</span><span class="p">,</span> <span class="n">job</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+    <span class="c1"># is it time to verify the number of running processes?</span>
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">:</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">verify_running_processes</span><span class="p">(</span><span class="n">current_time</span><span class="p">,</span> <span class="n">mt</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+    <span class="c1"># make sure that any utility commands are still running</span>
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">utilities</span> <span class="o">!=</span> <span class="p">{}:</span>
+        <span class="n">utility_monitor</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span></div>
+
+
+<div class="viewcode-block" id="display_oom_info"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.display_oom_info">[docs]</a><span class="k">def</span> <span class="nf">display_oom_info</span><span class="p">(</span><span class="n">payload_pid</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Display OOM process info.</span>
+
+<span class="sd">    :param payload_pid: payload pid (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">payload_score</span> <span class="o">=</span> <span class="n">get_score</span><span class="p">(</span><span class="n">payload_pid</span><span class="p">)</span> <span class="k">if</span> <span class="n">payload_pid</span> <span class="k">else</span> <span class="s1">&#39;UNKNOWN&#39;</span>
+    <span class="n">pilot_score</span> <span class="o">=</span> <span class="n">get_score</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">())</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;oom_score(pilot) = </span><span class="si">%s</span><span class="s1">, oom_score(payload) = </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pilot_score</span><span class="p">,</span> <span class="n">payload_score</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="get_score"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.get_score">[docs]</a><span class="k">def</span> <span class="nf">get_score</span><span class="p">(</span><span class="n">pid</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the OOM process score.</span>
+
+<span class="sd">    :param pid: process id (int).</span>
+<span class="sd">    :return: score (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">read_file</span><span class="p">(</span><span class="s1">&#39;/proc/</span><span class="si">%d</span><span class="s1">/oom_score&#39;</span> <span class="o">%</span> <span class="n">pid</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;caught exception reading oom_score: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="s1">&#39;UNKNOWN&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">score</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">score</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">score</span></div>
+
+
+<div class="viewcode-block" id="get_exception_error_code"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.get_exception_error_code">[docs]</a><span class="k">def</span> <span class="nf">get_exception_error_code</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Identify a suitable error code to a given exception.</span>
+
+<span class="sd">    :param diagnostics: exception diagnostics (string).</span>
+<span class="sd">    :return: exit_code</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">import</span> <span class="nn">traceback</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+    <span class="k">if</span> <span class="s2">&quot;Resource temporarily unavailable&quot;</span> <span class="ow">in</span> <span class="n">diagnostics</span><span class="p">:</span>
+        <span class="n">exit_code</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">RESOURCEUNAVAILABLE</span>
+    <span class="k">elif</span> <span class="s2">&quot;No such file or directory&quot;</span> <span class="ow">in</span> <span class="n">diagnostics</span><span class="p">:</span>
+        <span class="n">exit_code</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">STATFILEPROBLEM</span>
+    <span class="k">elif</span> <span class="s2">&quot;No such process&quot;</span> <span class="ow">in</span> <span class="n">diagnostics</span><span class="p">:</span>
+        <span class="n">exit_code</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOSUCHPROCESS</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">exit_code</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">GENERALCPUCALCPROBLEM</span>
+
+    <span class="k">return</span> <span class="n">exit_code</span></div>
+
+
+<div class="viewcode-block" id="set_number_used_cores"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.set_number_used_cores">[docs]</a><span class="k">def</span> <span class="nf">set_number_used_cores</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set the number of cores used by the payload.</span>
+<span class="sd">    The number of actual used cores is reported with job metrics (if set).</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pilot_user</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USER&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">cpu</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.cpu&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+    <span class="n">cpu</span><span class="o">.</span><span class="n">set_core_counts</span><span class="p">(</span><span class="n">job</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="verify_memory_usage"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.verify_memory_usage">[docs]</a><span class="k">def</span> <span class="nf">verify_memory_usage</span><span class="p">(</span><span class="n">current_time</span><span class="p">,</span> <span class="n">mt</span><span class="p">,</span> <span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Verify the memory usage (optional).</span>
+<span class="sd">    Note: this function relies on a stand-alone memory monitor tool that may be executed by the Pilot.</span>
+
+<span class="sd">    :param current_time: current time at the start of the monitoring loop (int).</span>
+<span class="sd">    :param mt: measured time object.</span>
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return: exit code (int), error diagnostics (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">show_memory_usage</span><span class="p">()</span>
+
+    <span class="n">pilot_user</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USER&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">memory</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.memory&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">memory</span><span class="o">.</span><span class="n">allow_memory_usage_verifications</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># is it time to verify the memory usage?</span>
+    <span class="n">memory_verification_time</span> <span class="o">=</span> <span class="n">convert_to_int</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">memory_usage_verification_time</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">60</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">mt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ct_memory&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">memory_verification_time</span><span class="p">:</span>
+        <span class="c1"># is the used memory within the allowed limit?</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">memory</span><span class="o">.</span><span class="n">memory_usage</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;caught exception: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="n">exit_code</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;ignoring failure to parse memory monitor output&#39;</span><span class="p">)</span>
+            <span class="c1">#return exit_code, diagnostics</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># update the ct_proxy with the current time</span>
+            <span class="n">mt</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s1">&#39;ct_memory&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="should_abort_payload"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.should_abort_payload">[docs]</a><span class="k">def</span> <span class="nf">should_abort_payload</span><span class="p">(</span><span class="n">current_time</span><span class="p">,</span> <span class="n">mt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Should the pilot abort the payload?</span>
+<span class="sd">    In the case of Raythena, the Driver is monitoring the time to end jobs and may decide</span>
+<span class="sd">    that the pilot should abort the payload. Internally, this is achieved by letting the Actors</span>
+<span class="sd">    know it&#39;s time to end, and they in turn contacts the pilot by placing a &#39;pilot_kill_payload&#39; file</span>
+<span class="sd">    in the run directory.</span>
+
+<span class="sd">    :param current_time: current time at the start of the monitoring loop (int).</span>
+<span class="sd">    :param mt: measured time object.</span>
+<span class="sd">    :return: exit code (int), error diagnostics (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># is it time to look for the kill instruction file?</span>
+    <span class="n">killing_time</span> <span class="o">=</span> <span class="n">convert_to_int</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">kill_instruction_time</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">600</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">mt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ct_kill&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">killing_time</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">),</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">kill_instruction_filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;pilot encountered payload kill instruction file - will abort payload&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">errors</span><span class="o">.</span><span class="n">KILLPAYLOAD</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>  <span class="c1"># note, this is not an error</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="verify_user_proxy"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.verify_user_proxy">[docs]</a><span class="k">def</span> <span class="nf">verify_user_proxy</span><span class="p">(</span><span class="n">current_time</span><span class="p">,</span> <span class="n">mt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Verify the user proxy.</span>
+<span class="sd">    This function is called by the job_monitor_tasks() function.</span>
+
+<span class="sd">    :param current_time: current time at the start of the monitoring loop (int).</span>
+<span class="sd">    :param mt: measured time object.</span>
+<span class="sd">    :return: exit code (int), error diagnostics (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pilot_user</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USER&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">userproxy</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.proxy&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+
+    <span class="c1"># is it time to verify the proxy?</span>
+    <span class="n">proxy_verification_time</span> <span class="o">=</span> <span class="n">convert_to_int</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">proxy_verification_time</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">600</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">mt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ct_proxy&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">proxy_verification_time</span><span class="p">:</span>
+        <span class="c1"># is the proxy still valid?</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">userproxy</span><span class="o">.</span><span class="n">verify_proxy</span><span class="p">(</span><span class="n">test</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># use test=True to test expired proxy</span>
+        <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># update the ct_proxy with the current time</span>
+            <span class="n">mt</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s1">&#39;ct_proxy&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="verify_looping_job"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.verify_looping_job">[docs]</a><span class="k">def</span> <span class="nf">verify_looping_job</span><span class="p">(</span><span class="n">current_time</span><span class="p">,</span> <span class="n">mt</span><span class="p">,</span> <span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Verify that the job is not looping.</span>
+
+<span class="sd">    :param current_time: current time at the start of the monitoring loop (int).</span>
+<span class="sd">    :param mt: measured time object.</span>
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return: exit code (int), error diagnostics (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">looping_verification_time</span> <span class="o">=</span> <span class="n">convert_to_int</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">looping_verification_time</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">600</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">mt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ct_looping&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">looping_verification_time</span><span class="p">:</span>
+        <span class="c1"># is the job looping?</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">looping_job</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">mt</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;exception caught in looping job algorithm: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;No module named&quot;</span> <span class="ow">in</span> <span class="n">diagnostics</span><span class="p">:</span>
+                <span class="n">exit_code</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">BLACKHOLE</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">exit_code</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">UNKNOWNEXCEPTION</span>
+            <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+        <span class="c1"># update the ct_proxy with the current time</span>
+        <span class="n">mt</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s1">&#39;ct_looping&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="verify_disk_usage"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.verify_disk_usage">[docs]</a><span class="k">def</span> <span class="nf">verify_disk_usage</span><span class="p">(</span><span class="n">current_time</span><span class="p">,</span> <span class="n">mt</span><span class="p">,</span> <span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Verify the disk usage.</span>
+<span class="sd">    The function checks 1) payload stdout size, 2) local space, 3) work directory size, 4) output file sizes.</span>
+
+<span class="sd">    :param current_time: current time at the start of the monitoring loop (int).</span>
+<span class="sd">    :param mt: measured time object.</span>
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return: exit code (int), error diagnostics (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">disk_space_verification_time</span> <span class="o">=</span> <span class="n">convert_to_int</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">disk_space_verification_time</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">mt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ct_diskspace&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">disk_space_verification_time</span><span class="p">:</span>
+        <span class="c1"># time to check the disk space</span>
+
+        <span class="c1"># check the size of the payload stdout</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">check_payload_stdout</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+        <span class="c1"># check the local space, if it&#39;s enough left to keep running the job</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">check_local_space</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+        <span class="c1"># check the size of the workdir</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">check_work_dir</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+        <span class="c1"># check the output file sizes</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">check_output_file_sizes</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
+
+        <span class="c1"># update the ct_diskspace with the current time</span>
+        <span class="n">mt</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s1">&#39;ct_diskspace&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="verify_running_processes"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.verify_running_processes">[docs]</a><span class="k">def</span> <span class="nf">verify_running_processes</span><span class="p">(</span><span class="n">current_time</span><span class="p">,</span> <span class="n">mt</span><span class="p">,</span> <span class="n">pid</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Verify the number of running processes.</span>
+<span class="sd">    The function sets the environmental variable PILOT_MAXNPROC to the maximum number of found (child) processes</span>
+<span class="sd">    corresponding to the main payload process id.</span>
+<span class="sd">    The function does not return an error code (always returns exit code 0).</span>
+
+<span class="sd">    :param current_time: current time at the start of the monitoring loop (int).</span>
+<span class="sd">    :param mt: measured time object.</span>
+<span class="sd">    :param pid: payload process id (int).</span>
+<span class="sd">    :return: exit code (int), error diagnostics (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nproc_env</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">process_verification_time</span> <span class="o">=</span> <span class="n">convert_to_int</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">process_verification_time</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">mt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ct_process&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">process_verification_time</span><span class="p">:</span>
+        <span class="c1"># time to check the number of processes</span>
+        <span class="n">nproc</span> <span class="o">=</span> <span class="n">get_number_of_child_processes</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">nproc_env</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_MAXNPROC&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert PILOT_MAXNPROC to int: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">nproc</span> <span class="o">&gt;</span> <span class="n">nproc_env</span><span class="p">:</span>
+                <span class="c1"># set the maximum number of found processes</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PILOT_MAXNPROC&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">nproc</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">nproc_env</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;maximum number of monitored processes: </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">nproc_env</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="utility_monitor"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.utility_monitor">[docs]</a><span class="k">def</span> <span class="nf">utility_monitor</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Make sure that any utility commands are still running.</span>
+<span class="sd">    In case a utility tool has crashed, this function may restart the process.</span>
+<span class="sd">    The function is used by the job monitor thread.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pilot_user</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USER&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">usercommon</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.common&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+
+    <span class="c1"># loop over all utilities</span>
+    <span class="k">for</span> <span class="n">utcmd</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">utilities</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>  <span class="c1"># E.g. utcmd = MemoryMonitor, Python 2/3</span>
+
+        <span class="c1"># make sure the subprocess is still running</span>
+        <span class="n">utproc</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">utilities</span><span class="p">[</span><span class="n">utcmd</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">utproc</span><span class="o">.</span><span class="n">poll</span><span class="p">()</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;finished&#39;</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;failed&#39;</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;stageout&#39;</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;no need to restart utility command since payload has finished running&#39;</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># if poll() returns anything but None it means that the subprocess has ended - which it</span>
+            <span class="c1"># should not have done by itself</span>
+            <span class="n">utility_subprocess_launches</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">utilities</span><span class="p">[</span><span class="n">utcmd</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">utility_subprocess_launches</span> <span class="o">&lt;=</span> <span class="mi">5</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;detected crashed utility subprocess - will restart it&#39;</span><span class="p">)</span>
+                <span class="n">utility_command</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">utilities</span><span class="p">[</span><span class="n">utcmd</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">proc1</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">utility_command</span><span class="p">,</span> <span class="n">workdir</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">returnproc</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">usecontainer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                    <span class="n">stdout</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">queuedata</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;could not execute: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># store process handle in job object, and keep track on how many times the</span>
+                    <span class="c1"># command has been launched</span>
+                    <span class="n">job</span><span class="o">.</span><span class="n">utilities</span><span class="p">[</span><span class="n">utcmd</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">proc1</span><span class="p">,</span> <span class="n">utility_subprocess_launches</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">utility_command</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;detected crashed utility subprocess - too many restarts, will not restart </span><span class="si">%s</span><span class="s1"> again&#39;</span> <span class="o">%</span> <span class="n">utcmd</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># check the utility output (the selector option adds a substring to the output file name)</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">usercommon</span><span class="o">.</span><span class="n">get_utility_command_output_filename</span><span class="p">(</span><span class="n">utcmd</span><span class="p">,</span> <span class="n">selector</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;file: </span><span class="si">%s</span><span class="s1"> exists&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;file: </span><span class="si">%s</span><span class="s1"> does not exist&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+
+            <span class="c1"># rest</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_local_size_limit_stdout"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.get_local_size_limit_stdout">[docs]</a><span class="k">def</span> <span class="nf">get_local_size_limit_stdout</span><span class="p">(</span><span class="nb">bytes</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a proper value for the local size limit for payload stdout (from config file).</span>
+
+<span class="sd">    :param bytes: boolean (if True, convert kB to Bytes).</span>
+<span class="sd">    :return: size limit (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">localsizelimit_stdout</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">local_size_limit_stdout</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">localsizelimit_stdout</span> <span class="o">=</span> <span class="mi">2097152</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;bad value in config for local_size_limit_stdout: </span><span class="si">%s</span><span class="s1"> (will use value: </span><span class="si">%d</span><span class="s1"> kB)&#39;</span> <span class="o">%</span>
+                       <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">localsizelimit_stdout</span><span class="p">))</span>
+
+    <span class="c1"># convert from kB to B</span>
+    <span class="k">if</span> <span class="nb">bytes</span><span class="p">:</span>
+        <span class="n">localsizelimit_stdout</span> <span class="o">*=</span> <span class="mi">1024</span>
+
+    <span class="k">return</span> <span class="n">localsizelimit_stdout</span></div>
+
+
+<div class="viewcode-block" id="check_payload_stdout"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.check_payload_stdout">[docs]</a><span class="k">def</span> <span class="nf">check_payload_stdout</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check the size of the payload stdout.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return: exit code (int), diagnostics (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">exit_code</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># get list of log files</span>
+    <span class="n">file_list</span> <span class="o">=</span> <span class="n">glob</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="s1">&#39;log.*&#39;</span><span class="p">))</span>
+
+    <span class="c1"># is this a multi-trf job?</span>
+    <span class="n">n_jobs</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">jobparams</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_jobs</span><span class="p">):</span>
+        <span class="c1"># get name of payload stdout file created by the pilot</span>
+        <span class="n">_stdout</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">payloadstdout</span>
+        <span class="k">if</span> <span class="n">n_jobs</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">_stdout</span> <span class="o">=</span> <span class="n">_stdout</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;_</span><span class="si">%d</span><span class="s2">.txt&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># add the primary stdout file to the fileList</span>
+        <span class="n">file_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">_stdout</span><span class="p">))</span>
+
+    <span class="c1"># now loop over all files and check each individually (any large enough file will fail the job)</span>
+    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">file_list</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="s2">&quot;job.log.tgz&quot;</span> <span class="ow">in</span> <span class="n">filename</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;skipping file size check of file (</span><span class="si">%s</span><span class="s2">) since it is a special log file&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># get file size in bytes</span>
+                <span class="n">fsize</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;could not read file size of </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># is the file too big?</span>
+                <span class="n">localsizelimit_stdout</span> <span class="o">=</span> <span class="n">get_local_size_limit_stdout</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">fsize</span> <span class="o">&gt;</span> <span class="n">localsizelimit_stdout</span><span class="p">:</span>
+                    <span class="n">exit_code</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">STDOUTTOOBIG</span>
+                    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;Payload stdout file too big: </span><span class="si">%d</span><span class="s2"> B (larger than limit </span><span class="si">%d</span><span class="s2"> B)&quot;</span> <span class="o">%</span> \
+                                  <span class="p">(</span><span class="n">fsize</span><span class="p">,</span> <span class="n">localsizelimit_stdout</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+
+                    <span class="c1"># kill the job</span>
+                    <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s2">&quot;failed&quot;</span><span class="p">)</span>
+                    <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">exit_code</span><span class="p">)</span>
+                    <span class="n">kill_processes</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
+
+                    <span class="c1"># remove the payload stdout file after the log extracts have been created</span>
+
+                    <span class="c1"># remove any lingering input files from the work dir</span>
+                    <span class="n">lfns</span><span class="p">,</span> <span class="n">guids</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">get_lfns_and_guids</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">lfns</span><span class="p">:</span>
+                        <span class="c1"># remove any lingering input files from the work dir</span>
+                        <span class="n">exit_code</span> <span class="o">=</span> <span class="n">remove_files</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">lfns</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;payload stdout (</span><span class="si">%s</span><span class="s2">) within allowed size limit (</span><span class="si">%d</span><span class="s2"> B): </span><span class="si">%d</span><span class="s2"> B&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_stdout</span><span class="p">,</span> <span class="n">localsizelimit_stdout</span><span class="p">,</span> <span class="n">fsize</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;skipping file size check of payload stdout file (</span><span class="si">%s</span><span class="s2">) since it has not been created yet&quot;</span> <span class="o">%</span> <span class="n">_stdout</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span></div>
+
+
+<div class="viewcode-block" id="check_local_space"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.check_local_space">[docs]</a><span class="k">def</span> <span class="nf">check_local_space</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Do we have enough local disk space left to run the job?</span>
+
+<span class="sd">    :return: pilot error code (0 if success, NOLOCALSPACE if failure)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># is there enough local space to run a job?</span>
+    <span class="n">cwd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;checking local space on </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cwd</span><span class="p">)</span>
+    <span class="n">spaceleft</span> <span class="o">=</span> <span class="n">convert_mb_to_b</span><span class="p">(</span><span class="n">get_local_disk_space</span><span class="p">(</span><span class="n">cwd</span><span class="p">))</span>  <span class="c1"># B (diskspace is in MB)</span>
+    <span class="n">free_space_limit</span> <span class="o">=</span> <span class="n">human2bytes</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">free_space_limit</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">spaceleft</span> <span class="o">&lt;=</span> <span class="n">free_space_limit</span><span class="p">:</span>
+        <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;too little space left on local disk to run job: </span><span class="si">%d</span><span class="s1"> B (need &gt; </span><span class="si">%d</span><span class="s1"> B)&#39;</span> <span class="o">%</span>\
+                      <span class="p">(</span><span class="n">spaceleft</span><span class="p">,</span> <span class="n">free_space_limit</span><span class="p">)</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOLOCALSPACE</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;sufficient remaining disk space (</span><span class="si">%d</span><span class="s1"> B)&#39;</span> <span class="o">%</span> <span class="n">spaceleft</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span></div>
+
+
+<div class="viewcode-block" id="check_work_dir"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.check_work_dir">[docs]</a><span class="k">def</span> <span class="nf">check_work_dir</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check the size of the work directory.</span>
+<span class="sd">    The function also updates the workdirsizes list in the job object.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return: exit code (int), error diagnostics (string)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">exit_code</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">):</span>
+        <span class="c1"># get the limit of the workdir</span>
+        <span class="n">maxwdirsize</span> <span class="o">=</span> <span class="n">get_max_allowed_work_dir_size</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">):</span>
+            <span class="n">workdirsize</span> <span class="o">=</span> <span class="n">get_directory_size</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+
+            <span class="c1"># is user dir within allowed size limit?</span>
+            <span class="k">if</span> <span class="n">workdirsize</span> <span class="o">&gt;</span> <span class="n">maxwdirsize</span><span class="p">:</span>
+                <span class="n">exit_code</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">USERDIRTOOLARGE</span>
+                <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;work directory (</span><span class="si">%s</span><span class="s2">) is too large: </span><span class="si">%d</span><span class="s2"> B (must be &lt; </span><span class="si">%d</span><span class="s2"> B)&quot;</span> <span class="o">%</span> \
+                              <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">workdirsize</span><span class="p">,</span> <span class="n">maxwdirsize</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">diagnostics</span><span class="p">)</span>
+
+                <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;ls -altrR </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span>
+                <span class="n">_ec</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cmd</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">))</span>
+
+                <span class="c1"># kill the job</span>
+                <span class="c1"># pUtil.createLockFile(True, self.__env[&#39;jobDic&#39;][k][1].workdir, lockfile=&quot;JOBWILLBEKILLED&quot;)</span>
+                <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s2">&quot;failed&quot;</span><span class="p">)</span>
+                <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">exit_code</span><span class="p">)</span>
+                <span class="n">kill_processes</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
+
+                <span class="c1"># remove any lingering input files from the work dir</span>
+                <span class="n">lfns</span><span class="p">,</span> <span class="n">guids</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">get_lfns_and_guids</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">lfns</span><span class="p">:</span>
+                    <span class="n">remove_files</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">lfns</span><span class="p">)</span>
+
+                    <span class="c1"># remeasure the size of the workdir at this point since the value is stored below</span>
+                    <span class="n">workdirsize</span> <span class="o">=</span> <span class="n">get_directory_size</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;size of work directory </span><span class="si">%s</span><span class="s2">: </span><span class="si">%d</span><span class="s2"> B (within </span><span class="si">%d</span><span class="s2"> B limit)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">workdirsize</span><span class="p">,</span> <span class="n">maxwdirsize</span><span class="p">))</span>
+
+            <span class="c1"># Store the measured disk space (the max value will later be sent with the job metrics)</span>
+            <span class="k">if</span> <span class="n">workdirsize</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">job</span><span class="o">.</span><span class="n">add_workdir_size</span><span class="p">(</span><span class="n">workdirsize</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;job work dir does not exist: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;skipping size check of workdir since it has not been created yet&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span></div>
+
+
+<div class="viewcode-block" id="get_max_allowed_work_dir_size"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.get_max_allowed_work_dir_size">[docs]</a><span class="k">def</span> <span class="nf">get_max_allowed_work_dir_size</span><span class="p">(</span><span class="n">queuedata</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the maximum allowed size of the work directory.</span>
+
+<span class="sd">    :param queuedata: job.infosys.queuedata object.</span>
+<span class="sd">    :return: max allowed work dir size in Bytes (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">maxwdirsize</span> <span class="o">=</span> <span class="n">convert_mb_to_b</span><span class="p">(</span><span class="n">get_maximum_input_sizes</span><span class="p">())</span>  <span class="c1"># from MB to B, e.g. 16336 MB -&gt; 17,129,537,536 B</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">max_input_size</span> <span class="o">=</span> <span class="n">get_max_input_size</span><span class="p">()</span>
+        <span class="n">maxwdirsize</span> <span class="o">=</span> <span class="n">max_input_size</span> <span class="o">+</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">local_size_limit_stdout</span> <span class="o">*</span> <span class="mi">1024</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;work directory size check will use </span><span class="si">%d</span><span class="s2"> B as a max limit (maxinputsize [</span><span class="si">%d</span><span class="s2"> B] + local size limit for&quot;</span>
+                    <span class="s2">&quot; stdout [</span><span class="si">%d</span><span class="s2"> B])&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">maxwdirsize</span><span class="p">,</span> <span class="n">max_input_size</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">local_size_limit_stdout</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;conversion caught exception: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># grace margin, as discussed in https://its.cern.ch/jira/browse/ATLASPANDA-482</span>
+        <span class="n">margin</span> <span class="o">=</span> <span class="mf">10.0</span>  <span class="c1"># percent, read later from somewhere</span>
+        <span class="n">maxwdirsize</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">maxwdirsize</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">margin</span> <span class="o">/</span> <span class="mf">100.0</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;work directory size check will use </span><span class="si">%d</span><span class="s2"> B as a max limit (10</span><span class="si">%%</span><span class="s2"> grace limit added)&quot;</span> <span class="o">%</span> <span class="n">maxwdirsize</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">maxwdirsize</span></div>
+
+
+<div class="viewcode-block" id="get_max_input_size"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.get_max_input_size">[docs]</a><span class="k">def</span> <span class="nf">get_max_input_size</span><span class="p">(</span><span class="n">queuedata</span><span class="p">,</span> <span class="n">megabyte</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a proper maxinputsize value.</span>
+
+<span class="sd">    :param queuedata: job.infosys.queuedata object.</span>
+<span class="sd">    :param megabyte: return results in MB (Boolean).</span>
+<span class="sd">    :return: max input size (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_maxinputsize</span> <span class="o">=</span> <span class="n">queuedata</span><span class="o">.</span><span class="n">maxwdir</span>  <span class="c1"># normally 14336+2000 MB</span>
+    <span class="n">max_input_file_sizes</span> <span class="o">=</span> <span class="mi">14</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>  <span class="c1"># 14 GB, 14336 MB (pilot default)</span>
+    <span class="n">max_input_file_sizes_mb</span> <span class="o">=</span> <span class="mi">14</span> <span class="o">*</span> <span class="mi">1024</span>  <span class="c1"># 14336 MB (pilot default)</span>
+    <span class="k">if</span> <span class="n">_maxinputsize</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">megabyte</span><span class="p">:</span>  <span class="c1"># convert to MB int</span>
+                <span class="n">_maxinputsize</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_maxinputsize</span><span class="p">)</span>  <span class="c1"># MB</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># convert to B int</span>
+                <span class="n">_maxinputsize</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_maxinputsize</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>  <span class="c1"># MB -&gt; B</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;schedconfig.maxinputsize: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">megabyte</span><span class="p">:</span>
+                <span class="n">_maxinputsize</span> <span class="o">=</span> <span class="n">max_input_file_sizes_mb</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_maxinputsize</span> <span class="o">=</span> <span class="n">max_input_file_sizes</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">megabyte</span><span class="p">:</span>
+            <span class="n">_maxinputsize</span> <span class="o">=</span> <span class="n">max_input_file_sizes_mb</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_maxinputsize</span> <span class="o">=</span> <span class="n">max_input_file_sizes</span>
+
+    <span class="k">if</span> <span class="n">megabyte</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;max input size = </span><span class="si">%d</span><span class="s2"> MB (pilot default)&quot;</span> <span class="o">%</span> <span class="n">_maxinputsize</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Max input size = </span><span class="si">%d</span><span class="s2"> B (pilot default)&quot;</span> <span class="o">%</span> <span class="n">_maxinputsize</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_maxinputsize</span></div>
+
+
+<div class="viewcode-block" id="check_output_file_sizes"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.check_output_file_sizes">[docs]</a><span class="k">def</span> <span class="nf">check_output_file_sizes</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Are the output files within the allowed size limits?</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :return: exit code (int), error diagnostics (string)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">exit_code</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># loop over all known output files</span>
+    <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">outdata</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="c1"># get the current file size</span>
+            <span class="n">fsize</span> <span class="o">=</span> <span class="n">get_local_file_size</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="n">max_fsize</span> <span class="o">=</span> <span class="n">human2bytes</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">maximum_output_file_size</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">fsize</span> <span class="ow">and</span> <span class="n">fsize</span> <span class="o">&lt;</span> <span class="n">max_fsize</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;output file </span><span class="si">%s</span><span class="s1"> is within allowed size limit (</span><span class="si">%d</span><span class="s1"> B &lt; </span><span class="si">%d</span><span class="s1"> B)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">fsize</span><span class="p">,</span> <span class="n">max_fsize</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">exit_code</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">OUTPUTFILETOOLARGE</span>
+                <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;output file </span><span class="si">%s</span><span class="s1"> is not within allowed size limit (</span><span class="si">%d</span><span class="s1"> B &gt; </span><span class="si">%d</span><span class="s1"> B)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">fsize</span><span class="p">,</span> <span class="n">max_fsize</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;output file size check: skipping output file </span><span class="si">%s</span><span class="s1"> since it does not exist&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

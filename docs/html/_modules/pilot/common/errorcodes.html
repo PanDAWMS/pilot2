@@ -1,0 +1,602 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.common.errorcodes &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.common.errorcodes</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021</span>
+<span class="c1"># - Wen Guan, wen.guan@cern.ch, 2018</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+
+
+<div class="viewcode-block" id="ErrorCodes"><a class="viewcode-back" href="../../../components/common/errorcodes.html#pilot.common.errorcodes.ErrorCodes">[docs]</a><span class="k">class</span> <span class="nc">ErrorCodes</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Pilot error codes.</span>
+
+<span class="sd">    Note: Error code numbering is the same as in Pilot 1 since that is expected by the PanDA server and monitor.</span>
+<span class="sd">    Note 2: Add error codes as they are needed in other modules. Do not import the full Pilot 1 list at once as there</span>
+<span class="sd">    might very well be codes that can be reassigned/removed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Error code constants (from Pilot 1)</span>
+    <span class="n">GENERALERROR</span> <span class="o">=</span> <span class="mi">1008</span>
+    <span class="n">NOLOCALSPACE</span> <span class="o">=</span> <span class="mi">1098</span>
+    <span class="n">STAGEINFAILED</span> <span class="o">=</span> <span class="mi">1099</span>
+    <span class="n">REPLICANOTFOUND</span> <span class="o">=</span> <span class="mi">1100</span>
+    <span class="n">NOSUCHFILE</span> <span class="o">=</span> <span class="mi">1103</span>
+    <span class="n">USERDIRTOOLARGE</span> <span class="o">=</span> <span class="mi">1104</span>
+    <span class="n">STDOUTTOOBIG</span> <span class="o">=</span> <span class="mi">1106</span>
+    <span class="n">SETUPFAILURE</span> <span class="o">=</span> <span class="mi">1110</span>
+    <span class="n">NFSSQLITE</span> <span class="o">=</span> <span class="mi">1115</span>
+    <span class="n">QUEUEDATA</span> <span class="o">=</span> <span class="mi">1116</span>
+    <span class="n">QUEUEDATANOTOK</span> <span class="o">=</span> <span class="mi">1117</span>
+    <span class="n">OUTPUTFILETOOLARGE</span> <span class="o">=</span> <span class="mi">1124</span>
+    <span class="n">NOSTORAGE</span> <span class="o">=</span> <span class="mi">1133</span>
+    <span class="n">STAGEOUTFAILED</span> <span class="o">=</span> <span class="mi">1137</span>
+    <span class="n">PUTMD5MISMATCH</span> <span class="o">=</span> <span class="mi">1141</span>
+    <span class="n">CHMODTRF</span> <span class="o">=</span> <span class="mi">1143</span>
+    <span class="n">PANDAKILL</span> <span class="o">=</span> <span class="mi">1144</span>
+    <span class="n">GETMD5MISMATCH</span> <span class="o">=</span> <span class="mi">1145</span>
+    <span class="n">TRFDOWNLOADFAILURE</span> <span class="o">=</span> <span class="mi">1149</span>
+    <span class="n">LOOPINGJOB</span> <span class="o">=</span> <span class="mi">1150</span>
+    <span class="n">STAGEINTIMEOUT</span> <span class="o">=</span> <span class="mi">1151</span>  <span class="c1"># called GETTIMEOUT in Pilot 1</span>
+    <span class="n">STAGEOUTTIMEOUT</span> <span class="o">=</span> <span class="mi">1152</span>  <span class="c1"># called PUTTIMEOUT in Pilot 1</span>
+    <span class="n">NOPROXY</span> <span class="o">=</span> <span class="mi">1163</span>
+    <span class="n">MISSINGOUTPUTFILE</span> <span class="o">=</span> <span class="mi">1165</span>
+    <span class="n">SIZETOOLARGE</span> <span class="o">=</span> <span class="mi">1168</span>
+    <span class="n">GETADMISMATCH</span> <span class="o">=</span> <span class="mi">1171</span>
+    <span class="n">PUTADMISMATCH</span> <span class="o">=</span> <span class="mi">1172</span>
+    <span class="n">NOVOMSPROXY</span> <span class="o">=</span> <span class="mi">1177</span>
+    <span class="n">GETGLOBUSSYSERR</span> <span class="o">=</span> <span class="mi">1180</span>
+    <span class="n">PUTGLOBUSSYSERR</span> <span class="o">=</span> <span class="mi">1181</span>
+    <span class="n">NOSOFTWAREDIR</span> <span class="o">=</span> <span class="mi">1186</span>
+    <span class="n">NOPAYLOADMETADATA</span> <span class="o">=</span> <span class="mi">1187</span>
+    <span class="n">LFNTOOLONG</span> <span class="o">=</span> <span class="mi">1190</span>
+    <span class="n">ZEROFILESIZE</span> <span class="o">=</span> <span class="mi">1191</span>
+    <span class="n">MKDIR</span> <span class="o">=</span> <span class="mi">1199</span>
+    <span class="n">KILLSIGNAL</span> <span class="o">=</span> <span class="mi">1200</span>
+    <span class="n">SIGTERM</span> <span class="o">=</span> <span class="mi">1201</span>
+    <span class="n">SIGQUIT</span> <span class="o">=</span> <span class="mi">1202</span>
+    <span class="n">SIGSEGV</span> <span class="o">=</span> <span class="mi">1203</span>
+    <span class="n">SIGXCPU</span> <span class="o">=</span> <span class="mi">1204</span>
+    <span class="n">USERKILL</span> <span class="o">=</span> <span class="mi">1205</span>  <span class="c1"># reserved error code, currently not used by pilot</span>
+    <span class="n">SIGBUS</span> <span class="o">=</span> <span class="mi">1206</span>
+    <span class="n">SIGUSR1</span> <span class="o">=</span> <span class="mi">1207</span>
+    <span class="n">MISSINGINSTALLATION</span> <span class="o">=</span> <span class="mi">1211</span>
+    <span class="n">PAYLOADOUTOFMEMORY</span> <span class="o">=</span> <span class="mi">1212</span>
+    <span class="n">REACHEDMAXTIME</span> <span class="o">=</span> <span class="mi">1213</span>
+    <span class="n">UNKNOWNPAYLOADFAILURE</span> <span class="o">=</span> <span class="mi">1220</span>
+    <span class="n">FILEEXISTS</span> <span class="o">=</span> <span class="mi">1221</span>
+    <span class="n">BADALLOC</span> <span class="o">=</span> <span class="mi">1223</span>
+    <span class="n">ESRECOVERABLE</span> <span class="o">=</span> <span class="mi">1224</span>
+    <span class="n">ESFATAL</span> <span class="o">=</span> <span class="mi">1228</span>
+    <span class="n">EXECUTEDCLONEJOB</span> <span class="o">=</span> <span class="mi">1234</span>
+    <span class="n">PAYLOADEXCEEDMAXMEM</span> <span class="o">=</span> <span class="mi">1235</span>
+    <span class="n">FAILEDBYSERVER</span> <span class="o">=</span> <span class="mi">1236</span>
+    <span class="n">ESNOEVENTS</span> <span class="o">=</span> <span class="mi">1238</span>
+    <span class="n">MESSAGEHANDLINGFAILURE</span> <span class="o">=</span> <span class="mi">1240</span>
+    <span class="n">CHKSUMNOTSUP</span> <span class="o">=</span> <span class="mi">1242</span>
+    <span class="n">NORELEASEFOUND</span> <span class="o">=</span> <span class="mi">1244</span>
+    <span class="n">NOUSERTARBALL</span> <span class="o">=</span> <span class="mi">1246</span>
+    <span class="n">BADXML</span> <span class="o">=</span> <span class="mi">1247</span>
+
+    <span class="c1"># Error code constants (new since Pilot 2)</span>
+    <span class="n">NOTIMPLEMENTED</span> <span class="o">=</span> <span class="mi">1300</span>
+    <span class="n">UNKNOWNEXCEPTION</span> <span class="o">=</span> <span class="mi">1301</span>
+    <span class="n">CONVERSIONFAILURE</span> <span class="o">=</span> <span class="mi">1302</span>
+    <span class="n">FILEHANDLINGFAILURE</span> <span class="o">=</span> <span class="mi">1303</span>
+    <span class="n">PAYLOADEXECUTIONFAILURE</span> <span class="o">=</span> <span class="mi">1305</span>
+    <span class="n">SINGULARITYGENERALFAILURE</span> <span class="o">=</span> <span class="mi">1306</span>
+    <span class="n">SINGULARITYNOLOOPDEVICES</span> <span class="o">=</span> <span class="mi">1307</span>
+    <span class="n">SINGULARITYBINDPOINTFAILURE</span> <span class="o">=</span> <span class="mi">1308</span>
+    <span class="n">SINGULARITYIMAGEMOUNTFAILURE</span> <span class="o">=</span> <span class="mi">1309</span>
+    <span class="n">PAYLOADEXECUTIONEXCEPTION</span> <span class="o">=</span> <span class="mi">1310</span>
+    <span class="n">NOTDEFINED</span> <span class="o">=</span> <span class="mi">1311</span>
+    <span class="n">NOTSAMELENGTH</span> <span class="o">=</span> <span class="mi">1312</span>
+    <span class="n">NOSTORAGEPROTOCOL</span> <span class="o">=</span> <span class="mi">1313</span>
+    <span class="n">UNKNOWNCHECKSUMTYPE</span> <span class="o">=</span> <span class="mi">1314</span>
+    <span class="n">UNKNOWNTRFFAILURE</span> <span class="o">=</span> <span class="mi">1315</span>
+    <span class="n">RUCIOSERVICEUNAVAILABLE</span> <span class="o">=</span> <span class="mi">1316</span>
+    <span class="n">EXCEEDEDMAXWAITTIME</span> <span class="o">=</span> <span class="mi">1317</span>
+    <span class="n">COMMUNICATIONFAILURE</span> <span class="o">=</span> <span class="mi">1318</span>
+    <span class="n">INTERNALPILOTPROBLEM</span> <span class="o">=</span> <span class="mi">1319</span>
+    <span class="n">LOGFILECREATIONFAILURE</span> <span class="o">=</span> <span class="mi">1320</span>
+    <span class="n">RUCIOLOCATIONFAILED</span> <span class="o">=</span> <span class="mi">1321</span>
+    <span class="n">RUCIOLISTREPLICASFAILED</span> <span class="o">=</span> <span class="mi">1322</span>
+    <span class="n">UNKNOWNCOPYTOOL</span> <span class="o">=</span> <span class="mi">1323</span>
+    <span class="n">SERVICENOTAVAILABLE</span> <span class="o">=</span> <span class="mi">1324</span>
+    <span class="n">SINGULARITYNOTINSTALLED</span> <span class="o">=</span> <span class="mi">1325</span>
+    <span class="n">NOREPLICAS</span> <span class="o">=</span> <span class="mi">1326</span>
+    <span class="n">UNREACHABLENETWORK</span> <span class="o">=</span> <span class="mi">1327</span>
+    <span class="n">PAYLOADSIGSEGV</span> <span class="o">=</span> <span class="mi">1328</span>
+    <span class="n">NONDETERMINISTICDDM</span> <span class="o">=</span> <span class="mi">1329</span>
+    <span class="n">JSONRETRIEVALTIMEOUT</span> <span class="o">=</span> <span class="mi">1330</span>
+    <span class="n">MISSINGINPUTFILE</span> <span class="o">=</span> <span class="mi">1331</span>
+    <span class="n">BLACKHOLE</span> <span class="o">=</span> <span class="mi">1332</span>
+    <span class="n">NOREMOTESPACE</span> <span class="o">=</span> <span class="mi">1333</span>
+    <span class="n">SETUPFATAL</span> <span class="o">=</span> <span class="mi">1334</span>
+    <span class="n">MISSINGUSERCODE</span> <span class="o">=</span> <span class="mi">1335</span>
+    <span class="n">JOBALREADYRUNNING</span> <span class="o">=</span> <span class="mi">1336</span>
+    <span class="n">BADMEMORYMONITORJSON</span> <span class="o">=</span> <span class="mi">1337</span>
+    <span class="n">STAGEINAUTHENTICATIONFAILURE</span> <span class="o">=</span> <span class="mi">1338</span>
+    <span class="n">DBRELEASEFAILURE</span> <span class="o">=</span> <span class="mi">1339</span>
+    <span class="n">SINGULARITYNEWUSERNAMESPACE</span> <span class="o">=</span> <span class="mi">1340</span>
+    <span class="n">BADQUEUECONFIGURATION</span> <span class="o">=</span> <span class="mi">1341</span>
+    <span class="n">MIDDLEWAREIMPORTFAILURE</span> <span class="o">=</span> <span class="mi">1342</span>
+    <span class="n">NOOUTPUTINJOBREPORT</span> <span class="o">=</span> <span class="mi">1343</span>
+    <span class="n">RESOURCEUNAVAILABLE</span> <span class="o">=</span> <span class="mi">1344</span>
+    <span class="n">SINGULARITYFAILEDUSERNAMESPACE</span> <span class="o">=</span> <span class="mi">1345</span>
+    <span class="n">TRANSFORMNOTFOUND</span> <span class="o">=</span> <span class="mi">1346</span>
+    <span class="n">UNSUPPORTEDSL5OS</span> <span class="o">=</span> <span class="mi">1347</span>
+    <span class="n">SINGULARITYRESOURCEUNAVAILABLE</span> <span class="o">=</span> <span class="mi">1348</span>
+    <span class="n">UNRECOGNIZEDTRFARGUMENTS</span> <span class="o">=</span> <span class="mi">1349</span>
+    <span class="n">EMPTYOUTPUTFILE</span> <span class="o">=</span> <span class="mi">1350</span>
+    <span class="n">UNRECOGNIZEDTRFSTDERR</span> <span class="o">=</span> <span class="mi">1351</span>
+    <span class="n">STATFILEPROBLEM</span> <span class="o">=</span> <span class="mi">1352</span>
+    <span class="n">NOSUCHPROCESS</span> <span class="o">=</span> <span class="mi">1353</span>
+    <span class="n">GENERALCPUCALCPROBLEM</span> <span class="o">=</span> <span class="mi">1354</span>
+    <span class="n">COREDUMP</span> <span class="o">=</span> <span class="mi">1355</span>
+    <span class="n">PREPROCESSFAILURE</span> <span class="o">=</span> <span class="mi">1356</span>
+    <span class="n">POSTPROCESSFAILURE</span> <span class="o">=</span> <span class="mi">1357</span>
+    <span class="n">MISSINGRELEASEUNPACKED</span> <span class="o">=</span> <span class="mi">1358</span>
+    <span class="n">PANDAQUEUENOTACTIVE</span> <span class="o">=</span> <span class="mi">1359</span>
+    <span class="n">IMAGENOTFOUND</span> <span class="o">=</span> <span class="mi">1360</span>
+    <span class="n">REMOTEFILECOULDNOTBEOPENED</span> <span class="o">=</span> <span class="mi">1361</span>
+    <span class="n">XRDCPERROR</span> <span class="o">=</span> <span class="mi">1362</span>
+    <span class="n">KILLPAYLOAD</span> <span class="o">=</span> <span class="mi">1363</span>  <span class="c1"># note, not a failure but a kill instruction from Raythena</span>
+
+    <span class="n">_error_messages</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">GENERALERROR</span><span class="p">:</span> <span class="s2">&quot;General pilot error, consult batch log&quot;</span><span class="p">,</span>
+        <span class="n">NOLOCALSPACE</span><span class="p">:</span> <span class="s2">&quot;Not enough local space&quot;</span><span class="p">,</span>
+        <span class="n">STAGEINFAILED</span><span class="p">:</span> <span class="s2">&quot;Failed to stage-in file&quot;</span><span class="p">,</span>
+        <span class="n">REPLICANOTFOUND</span><span class="p">:</span> <span class="s2">&quot;Replica not found&quot;</span><span class="p">,</span>
+        <span class="n">NOSUCHFILE</span><span class="p">:</span> <span class="s2">&quot;No such file or directory&quot;</span><span class="p">,</span>
+        <span class="n">USERDIRTOOLARGE</span><span class="p">:</span> <span class="s2">&quot;User work directory too large&quot;</span><span class="p">,</span>
+        <span class="n">STDOUTTOOBIG</span><span class="p">:</span> <span class="s2">&quot;Payload log or stdout file too big&quot;</span><span class="p">,</span>
+        <span class="n">SETUPFAILURE</span><span class="p">:</span> <span class="s2">&quot;Failed during payload setup&quot;</span><span class="p">,</span>
+        <span class="n">NFSSQLITE</span><span class="p">:</span> <span class="s2">&quot;NFS SQLite locking problems&quot;</span><span class="p">,</span>
+        <span class="n">QUEUEDATA</span><span class="p">:</span> <span class="s2">&quot;Pilot could not download queuedata&quot;</span><span class="p">,</span>
+        <span class="n">QUEUEDATANOTOK</span><span class="p">:</span> <span class="s2">&quot;Pilot found non-valid queuedata&quot;</span><span class="p">,</span>
+        <span class="n">OUTPUTFILETOOLARGE</span><span class="p">:</span> <span class="s2">&quot;Output file too large&quot;</span><span class="p">,</span>
+        <span class="n">NOSTORAGE</span><span class="p">:</span> <span class="s2">&quot;Fetching default storage failed: no activity related storage defined&quot;</span><span class="p">,</span>
+        <span class="n">STAGEOUTFAILED</span><span class="p">:</span> <span class="s2">&quot;Failed to stage-out file&quot;</span><span class="p">,</span>
+        <span class="n">PUTMD5MISMATCH</span><span class="p">:</span> <span class="s2">&quot;md5sum mismatch on output file&quot;</span><span class="p">,</span>
+        <span class="n">GETMD5MISMATCH</span><span class="p">:</span> <span class="s2">&quot;md5sum mismatch on input file&quot;</span><span class="p">,</span>
+        <span class="n">CHMODTRF</span><span class="p">:</span> <span class="s2">&quot;Failed to chmod transform&quot;</span><span class="p">,</span>
+        <span class="n">PANDAKILL</span><span class="p">:</span> <span class="s2">&quot;This job was killed by panda server&quot;</span><span class="p">,</span>
+        <span class="n">MISSINGOUTPUTFILE</span><span class="p">:</span> <span class="s2">&quot;Local output file is missing&quot;</span><span class="p">,</span>
+        <span class="n">SIZETOOLARGE</span><span class="p">:</span> <span class="s2">&quot;Total file size too large&quot;</span><span class="p">,</span>
+        <span class="n">TRFDOWNLOADFAILURE</span><span class="p">:</span> <span class="s2">&quot;Transform could not be downloaded&quot;</span><span class="p">,</span>
+        <span class="n">LOOPINGJOB</span><span class="p">:</span> <span class="s2">&quot;Looping job killed by pilot&quot;</span><span class="p">,</span>
+        <span class="n">STAGEINTIMEOUT</span><span class="p">:</span> <span class="s2">&quot;File transfer timed out during stage-in&quot;</span><span class="p">,</span>
+        <span class="n">STAGEOUTTIMEOUT</span><span class="p">:</span> <span class="s2">&quot;File transfer timed out during stage-out&quot;</span><span class="p">,</span>
+        <span class="n">NOPROXY</span><span class="p">:</span> <span class="s2">&quot;Grid proxy not valid&quot;</span><span class="p">,</span>
+        <span class="n">GETADMISMATCH</span><span class="p">:</span> <span class="s2">&quot;adler32 mismatch on input file&quot;</span><span class="p">,</span>
+        <span class="n">PUTADMISMATCH</span><span class="p">:</span> <span class="s2">&quot;adler32 mismatch on output file&quot;</span><span class="p">,</span>
+        <span class="n">NOVOMSPROXY</span><span class="p">:</span> <span class="s2">&quot;Voms proxy not valid&quot;</span><span class="p">,</span>
+        <span class="n">GETGLOBUSSYSERR</span><span class="p">:</span> <span class="s2">&quot;Globus system error during stage-in&quot;</span><span class="p">,</span>
+        <span class="n">PUTGLOBUSSYSERR</span><span class="p">:</span> <span class="s2">&quot;Globus system error during stage-out&quot;</span><span class="p">,</span>
+        <span class="n">NOSOFTWAREDIR</span><span class="p">:</span> <span class="s2">&quot;Software directory does not exist&quot;</span><span class="p">,</span>
+        <span class="n">NOPAYLOADMETADATA</span><span class="p">:</span> <span class="s2">&quot;Payload metadata does not exist&quot;</span><span class="p">,</span>
+        <span class="n">LFNTOOLONG</span><span class="p">:</span> <span class="s2">&quot;LFN too long (exceeding limit of 255 characters)&quot;</span><span class="p">,</span>
+        <span class="n">ZEROFILESIZE</span><span class="p">:</span> <span class="s2">&quot;File size cannot be zero&quot;</span><span class="p">,</span>
+        <span class="n">MKDIR</span><span class="p">:</span> <span class="s2">&quot;Failed to create local directory&quot;</span><span class="p">,</span>
+        <span class="n">KILLSIGNAL</span><span class="p">:</span> <span class="s2">&quot;Job terminated by unknown kill signal&quot;</span><span class="p">,</span>
+        <span class="n">SIGTERM</span><span class="p">:</span> <span class="s2">&quot;Job killed by signal: SIGTERM&quot;</span><span class="p">,</span>
+        <span class="n">SIGQUIT</span><span class="p">:</span> <span class="s2">&quot;Job killed by signal: SIGQUIT&quot;</span><span class="p">,</span>
+        <span class="n">SIGSEGV</span><span class="p">:</span> <span class="s2">&quot;Job killed by signal: SIGSEGV&quot;</span><span class="p">,</span>
+        <span class="n">SIGXCPU</span><span class="p">:</span> <span class="s2">&quot;Job killed by signal: SIGXCPU&quot;</span><span class="p">,</span>
+        <span class="n">SIGUSR1</span><span class="p">:</span> <span class="s2">&quot;Job killed by signal: SIGUSR1&quot;</span><span class="p">,</span>
+        <span class="n">SIGBUS</span><span class="p">:</span> <span class="s2">&quot;Job killed by signal: SIGBUS&quot;</span><span class="p">,</span>
+        <span class="n">USERKILL</span><span class="p">:</span> <span class="s2">&quot;Job killed by user&quot;</span><span class="p">,</span>
+        <span class="n">MISSINGINSTALLATION</span><span class="p">:</span> <span class="s2">&quot;Missing installation&quot;</span><span class="p">,</span>
+        <span class="n">PAYLOADOUTOFMEMORY</span><span class="p">:</span> <span class="s2">&quot;Payload ran out of memory&quot;</span><span class="p">,</span>
+        <span class="n">REACHEDMAXTIME</span><span class="p">:</span> <span class="s2">&quot;Reached batch system time limit&quot;</span><span class="p">,</span>
+        <span class="n">UNKNOWNPAYLOADFAILURE</span><span class="p">:</span> <span class="s2">&quot;Job failed due to unknown reason (consult log file)&quot;</span><span class="p">,</span>
+        <span class="n">FILEEXISTS</span><span class="p">:</span> <span class="s2">&quot;File already exists&quot;</span><span class="p">,</span>
+        <span class="n">BADALLOC</span><span class="p">:</span> <span class="s2">&quot;Transform failed due to bad_alloc&quot;</span><span class="p">,</span>
+        <span class="n">CHKSUMNOTSUP</span><span class="p">:</span> <span class="s2">&quot;Query checksum is not supported&quot;</span><span class="p">,</span>
+        <span class="n">NORELEASEFOUND</span><span class="p">:</span> <span class="s2">&quot;No release candidates found&quot;</span><span class="p">,</span>
+        <span class="n">NOUSERTARBALL</span><span class="p">:</span> <span class="s2">&quot;User tarball could not be downloaded from PanDA server&quot;</span><span class="p">,</span>
+        <span class="n">BADXML</span><span class="p">:</span> <span class="s2">&quot;Badly formed XML&quot;</span><span class="p">,</span>
+        <span class="n">ESRECOVERABLE</span><span class="p">:</span> <span class="s2">&quot;Event service: recoverable error&quot;</span><span class="p">,</span>
+        <span class="n">ESFATAL</span><span class="p">:</span> <span class="s2">&quot;Event service: fatal error&quot;</span><span class="p">,</span>
+        <span class="n">EXECUTEDCLONEJOB</span><span class="p">:</span> <span class="s2">&quot;Clone job is already executed&quot;</span><span class="p">,</span>
+        <span class="n">PAYLOADEXCEEDMAXMEM</span><span class="p">:</span> <span class="s2">&quot;Payload exceeded maximum allowed memory&quot;</span><span class="p">,</span>
+        <span class="n">FAILEDBYSERVER</span><span class="p">:</span> <span class="s2">&quot;Failed by server&quot;</span><span class="p">,</span>
+        <span class="n">ESNOEVENTS</span><span class="p">:</span> <span class="s2">&quot;Event service: no events&quot;</span><span class="p">,</span>
+        <span class="n">MESSAGEHANDLINGFAILURE</span><span class="p">:</span> <span class="s2">&quot;Failed to handle message from payload&quot;</span><span class="p">,</span>
+        <span class="n">NOTIMPLEMENTED</span><span class="p">:</span> <span class="s2">&quot;The class or function is not implemented&quot;</span><span class="p">,</span>
+        <span class="n">UNKNOWNEXCEPTION</span><span class="p">:</span> <span class="s2">&quot;An unknown pilot exception has occurred&quot;</span><span class="p">,</span>
+        <span class="n">CONVERSIONFAILURE</span><span class="p">:</span> <span class="s2">&quot;Failed to convert object data&quot;</span><span class="p">,</span>
+        <span class="n">FILEHANDLINGFAILURE</span><span class="p">:</span> <span class="s2">&quot;Failed during file handling&quot;</span><span class="p">,</span>
+        <span class="n">PAYLOADEXECUTIONFAILURE</span><span class="p">:</span> <span class="s2">&quot;Failed to execute payload&quot;</span><span class="p">,</span>
+        <span class="n">SINGULARITYGENERALFAILURE</span><span class="p">:</span> <span class="s2">&quot;Singularity: general failure&quot;</span><span class="p">,</span>
+        <span class="n">SINGULARITYNOLOOPDEVICES</span><span class="p">:</span> <span class="s2">&quot;Singularity: No more available loop devices&quot;</span><span class="p">,</span>
+        <span class="n">SINGULARITYBINDPOINTFAILURE</span><span class="p">:</span> <span class="s2">&quot;Singularity: Not mounting requested bind point&quot;</span><span class="p">,</span>
+        <span class="n">SINGULARITYIMAGEMOUNTFAILURE</span><span class="p">:</span> <span class="s2">&quot;Singularity: Failed to mount image&quot;</span><span class="p">,</span>
+        <span class="n">SINGULARITYNOTINSTALLED</span><span class="p">:</span> <span class="s2">&quot;Singularity: not installed&quot;</span><span class="p">,</span>
+        <span class="n">PAYLOADEXECUTIONEXCEPTION</span><span class="p">:</span> <span class="s2">&quot;Exception caught during payload execution&quot;</span><span class="p">,</span>
+        <span class="n">NOTDEFINED</span><span class="p">:</span> <span class="s2">&quot;Not defined&quot;</span><span class="p">,</span>
+        <span class="n">NOTSAMELENGTH</span><span class="p">:</span> <span class="s2">&quot;Not same length&quot;</span><span class="p">,</span>
+        <span class="n">NOSTORAGEPROTOCOL</span><span class="p">:</span> <span class="s2">&quot;No protocol defined for storage endpoint&quot;</span><span class="p">,</span>
+        <span class="n">UNKNOWNCHECKSUMTYPE</span><span class="p">:</span> <span class="s2">&quot;Unknown checksum type&quot;</span><span class="p">,</span>
+        <span class="n">UNKNOWNTRFFAILURE</span><span class="p">:</span> <span class="s2">&quot;Unknown transform failure&quot;</span><span class="p">,</span>
+        <span class="n">RUCIOSERVICEUNAVAILABLE</span><span class="p">:</span> <span class="s2">&quot;Rucio: Service unavailable&quot;</span><span class="p">,</span>
+        <span class="n">EXCEEDEDMAXWAITTIME</span><span class="p">:</span> <span class="s2">&quot;Exceeded maximum waiting time&quot;</span><span class="p">,</span>
+        <span class="n">COMMUNICATIONFAILURE</span><span class="p">:</span> <span class="s2">&quot;Failed to communicate with server&quot;</span><span class="p">,</span>
+        <span class="n">INTERNALPILOTPROBLEM</span><span class="p">:</span> <span class="s2">&quot;An internal Pilot problem has occurred (consult Pilot log)&quot;</span><span class="p">,</span>
+        <span class="n">LOGFILECREATIONFAILURE</span><span class="p">:</span> <span class="s2">&quot;Failed during creation of log file&quot;</span><span class="p">,</span>
+        <span class="n">RUCIOLOCATIONFAILED</span><span class="p">:</span> <span class="s2">&quot;Failed to get client location for Rucio&quot;</span><span class="p">,</span>
+        <span class="n">RUCIOLISTREPLICASFAILED</span><span class="p">:</span> <span class="s2">&quot;Failed to get replicas from Rucio&quot;</span><span class="p">,</span>
+        <span class="n">UNKNOWNCOPYTOOL</span><span class="p">:</span> <span class="s2">&quot;Unknown copy tool&quot;</span><span class="p">,</span>
+        <span class="n">SERVICENOTAVAILABLE</span><span class="p">:</span> <span class="s2">&quot;Service not available at the moment&quot;</span><span class="p">,</span>
+        <span class="n">NOREPLICAS</span><span class="p">:</span> <span class="s2">&quot;No matching replicas were found in list_replicas() output&quot;</span><span class="p">,</span>
+        <span class="n">UNREACHABLENETWORK</span><span class="p">:</span> <span class="s2">&quot;Unable to stage-in file since network is unreachable&quot;</span><span class="p">,</span>
+        <span class="n">PAYLOADSIGSEGV</span><span class="p">:</span> <span class="s2">&quot;SIGSEGV: Invalid memory reference or a segmentation fault&quot;</span><span class="p">,</span>
+        <span class="n">NONDETERMINISTICDDM</span><span class="p">:</span> <span class="s2">&quot;Failed to construct SURL for non-deterministic ddm (update CRIC)&quot;</span><span class="p">,</span>
+        <span class="n">JSONRETRIEVALTIMEOUT</span><span class="p">:</span> <span class="s2">&quot;JSON retrieval timed out&quot;</span><span class="p">,</span>
+        <span class="n">MISSINGINPUTFILE</span><span class="p">:</span> <span class="s2">&quot;Input file is missing in storage element&quot;</span><span class="p">,</span>
+        <span class="n">BLACKHOLE</span><span class="p">:</span> <span class="s2">&quot;Black hole detected in file system (consult Pilot log)&quot;</span><span class="p">,</span>
+        <span class="n">NOREMOTESPACE</span><span class="p">:</span> <span class="s2">&quot;No space left on device&quot;</span><span class="p">,</span>
+        <span class="n">SETUPFATAL</span><span class="p">:</span> <span class="s2">&quot;Setup failed with a fatal exception (consult Payload log)&quot;</span><span class="p">,</span>
+        <span class="n">MISSINGUSERCODE</span><span class="p">:</span> <span class="s2">&quot;User code not available on PanDA server (resubmit task with --useNewCode)&quot;</span><span class="p">,</span>
+        <span class="n">JOBALREADYRUNNING</span><span class="p">:</span> <span class="s2">&quot;Job is already running elsewhere&quot;</span><span class="p">,</span>
+        <span class="n">BADMEMORYMONITORJSON</span><span class="p">:</span> <span class="s2">&quot;Memory monitor produced bad output&quot;</span><span class="p">,</span>
+        <span class="n">STAGEINAUTHENTICATIONFAILURE</span><span class="p">:</span> <span class="s2">&quot;Authentication failure during stage-in&quot;</span><span class="p">,</span>
+        <span class="n">DBRELEASEFAILURE</span><span class="p">:</span> <span class="s2">&quot;Local DBRelease handling failed (consult Pilot log)&quot;</span><span class="p">,</span>
+        <span class="n">SINGULARITYNEWUSERNAMESPACE</span><span class="p">:</span> <span class="s2">&quot;Singularity: Failed invoking the NEWUSER namespace runtime&quot;</span><span class="p">,</span>
+        <span class="n">BADQUEUECONFIGURATION</span><span class="p">:</span> <span class="s2">&quot;Bad queue configuration detected&quot;</span><span class="p">,</span>
+        <span class="n">MIDDLEWAREIMPORTFAILURE</span><span class="p">:</span> <span class="s2">&quot;Failed to import middleware (consult Pilot log)&quot;</span><span class="p">,</span>
+        <span class="n">NOOUTPUTINJOBREPORT</span><span class="p">:</span> <span class="s2">&quot;Found no output in job report&quot;</span><span class="p">,</span>
+        <span class="n">RESOURCEUNAVAILABLE</span><span class="p">:</span> <span class="s2">&quot;Resource temporarily unavailable&quot;</span><span class="p">,</span>
+        <span class="n">SINGULARITYFAILEDUSERNAMESPACE</span><span class="p">:</span> <span class="s2">&quot;Singularity: Failed to create user namespace&quot;</span><span class="p">,</span>
+        <span class="n">TRANSFORMNOTFOUND</span><span class="p">:</span> <span class="s2">&quot;Transform not found&quot;</span><span class="p">,</span>
+        <span class="n">UNSUPPORTEDSL5OS</span><span class="p">:</span> <span class="s2">&quot;Unsupported SL5 OS&quot;</span><span class="p">,</span>
+        <span class="n">SINGULARITYRESOURCEUNAVAILABLE</span><span class="p">:</span> <span class="s2">&quot;Singularity: Resource temporarily unavailable&quot;</span><span class="p">,</span>  <span class="c1"># not the same as RESOURCEUNAVAILABLE</span>
+        <span class="n">UNRECOGNIZEDTRFARGUMENTS</span><span class="p">:</span> <span class="s2">&quot;Unrecognized transform arguments&quot;</span><span class="p">,</span>
+        <span class="n">EMPTYOUTPUTFILE</span><span class="p">:</span> <span class="s2">&quot;Empty output file detected&quot;</span><span class="p">,</span>
+        <span class="n">UNRECOGNIZEDTRFSTDERR</span><span class="p">:</span> <span class="s2">&quot;Unrecognized fatal error in transform stderr&quot;</span><span class="p">,</span>
+        <span class="n">STATFILEPROBLEM</span><span class="p">:</span> <span class="s2">&quot;Failed to stat proc file for CPU consumption calculation&quot;</span><span class="p">,</span>
+        <span class="n">NOSUCHPROCESS</span><span class="p">:</span> <span class="s2">&quot;CPU consumption calculation failed: No such process&quot;</span><span class="p">,</span>
+        <span class="n">GENERALCPUCALCPROBLEM</span><span class="p">:</span> <span class="s2">&quot;General CPU consumption calculation problem (consult Pilot log)&quot;</span><span class="p">,</span>
+        <span class="n">COREDUMP</span><span class="p">:</span> <span class="s2">&quot;Core dump detected&quot;</span><span class="p">,</span>
+        <span class="n">PREPROCESSFAILURE</span><span class="p">:</span> <span class="s2">&quot;Pre-process command failed&quot;</span><span class="p">,</span>
+        <span class="n">POSTPROCESSFAILURE</span><span class="p">:</span> <span class="s2">&quot;Post-process command failed&quot;</span><span class="p">,</span>
+        <span class="n">MISSINGRELEASEUNPACKED</span><span class="p">:</span> <span class="s2">&quot;Missing release setup in unpacked container&quot;</span><span class="p">,</span>
+        <span class="n">PANDAQUEUENOTACTIVE</span><span class="p">:</span> <span class="s2">&quot;PanDA queue is not active&quot;</span><span class="p">,</span>
+        <span class="n">IMAGENOTFOUND</span><span class="p">:</span> <span class="s2">&quot;Image not found&quot;</span><span class="p">,</span>
+        <span class="n">REMOTEFILECOULDNOTBEOPENED</span><span class="p">:</span> <span class="s2">&quot;Remote file could not be opened&quot;</span><span class="p">,</span>
+        <span class="n">XRDCPERROR</span><span class="p">:</span> <span class="s2">&quot;Xrdcp was unable to open file&quot;</span><span class="p">,</span>
+        <span class="n">KILLPAYLOAD</span><span class="p">:</span> <span class="s2">&quot;Raythena has decided to kill payload&quot;</span>
+    <span class="p">}</span>
+
+    <span class="n">put_error_codes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1135</span><span class="p">,</span> <span class="mi">1136</span><span class="p">,</span> <span class="mi">1137</span><span class="p">,</span> <span class="mi">1141</span><span class="p">,</span> <span class="mi">1152</span><span class="p">,</span> <span class="mi">1181</span><span class="p">]</span>
+    <span class="n">recoverable_error_codes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">put_error_codes</span>
+
+<div class="viewcode-block" id="ErrorCodes.get_kill_signal_error_code"><a class="viewcode-back" href="../../../components/common/errorcodes.html#pilot.common.errorcodes.ErrorCodes.get_kill_signal_error_code">[docs]</a>    <span class="k">def</span> <span class="nf">get_kill_signal_error_code</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Match a kill signal with a corresponding Pilot error code.</span>
+
+<span class="sd">        :param signal: signal name (string).</span>
+<span class="sd">        :return: Pilot error code (integer).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">signals_dictionary</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;SIGTERM&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span>
+                              <span class="s1">&#39;SIGQUIT&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">SIGQUIT</span><span class="p">,</span>
+                              <span class="s1">&#39;SIGSEGV&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">SIGSEGV</span><span class="p">,</span>
+                              <span class="s1">&#39;SIGXCPU&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">SIGXCPU</span><span class="p">,</span>
+                              <span class="s1">&#39;SIGUSR1&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">SIGUSR1</span><span class="p">,</span>
+                              <span class="s1">&#39;SIGBUS&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">SIGBUS</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">signals_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">KILLSIGNAL</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ErrorCodes.get_error_message"><a class="viewcode-back" href="../../../components/common/errorcodes.html#pilot.common.errorcodes.ErrorCodes.get_error_message">[docs]</a>    <span class="k">def</span> <span class="nf">get_error_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">errorcode</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the error message corresponding to the given error code.</span>
+
+<span class="sd">        :param errorcode:</span>
+<span class="sd">        :return: errormessage (string)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">errorcode</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_error_messages</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_error_messages</span><span class="p">[</span><span class="n">errorcode</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;Unknown error code: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">errorcode</span></div>
+
+<div class="viewcode-block" id="ErrorCodes.add_error_code"><a class="viewcode-back" href="../../../components/common/errorcodes.html#pilot.common.errorcodes.ErrorCodes.add_error_code">[docs]</a>    <span class="k">def</span> <span class="nf">add_error_code</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">errorcode</span><span class="p">,</span> <span class="n">pilot_error_codes</span><span class="o">=</span><span class="p">[],</span> <span class="n">pilot_error_diags</span><span class="o">=</span><span class="p">[],</span> <span class="n">priority</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add pilot error code to list of error codes.</span>
+<span class="sd">        This function adds the given error code to the list of all errors that have occurred. This is needed since</span>
+<span class="sd">        several errors can happen; e.g. a stage-in error can be followed by a stage-out error during the log transfer.</span>
+<span class="sd">        The full list of errors is dumped to the log, but only the first error is reported to the server.</span>
+<span class="sd">        The function also sets the corresponding error message.</span>
+
+<span class="sd">        :param errorcode: pilot error code (integer)</span>
+<span class="sd">        :param pilot_error_codes: list of pilot error codes (list of integers)</span>
+<span class="sd">        :param pilot_error_diags: list of pilot error diags (list of strings)</span>
+<span class="sd">        :param priority: if set to True, the new errorcode will be added to the error code list first (highest priority)</span>
+<span class="sd">        :param msg: error message (more detailed) to overwrite standard error message (string).</span>
+<span class="sd">        :return: pilot_error_codes, pilot_error_diags</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># do nothing if the error code has already been added</span>
+        <span class="k">if</span> <span class="n">errorcode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">pilot_error_codes</span><span class="p">:</span>
+            <span class="n">error_msg</span> <span class="o">=</span> <span class="n">msg</span> <span class="k">if</span> <span class="n">msg</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_error_message</span><span class="p">(</span><span class="n">errorcode</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">priority</span><span class="p">:</span>
+                <span class="n">pilot_error_codes</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">errorcode</span><span class="p">)</span>
+                <span class="n">pilot_error_diags</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">error_msg</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pilot_error_codes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">errorcode</span><span class="p">)</span>
+                <span class="n">pilot_error_diags</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">pilot_error_codes</span><span class="p">,</span> <span class="n">pilot_error_diags</span></div>
+
+<div class="viewcode-block" id="ErrorCodes.remove_error_code"><a class="viewcode-back" href="../../../components/common/errorcodes.html#pilot.common.errorcodes.ErrorCodes.remove_error_code">[docs]</a>    <span class="k">def</span> <span class="nf">remove_error_code</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">errorcode</span><span class="p">,</span> <span class="n">pilot_error_codes</span><span class="o">=</span><span class="p">[],</span> <span class="n">pilot_error_diags</span><span class="o">=</span><span class="p">[]):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Silently remove an error code and its diagnostics from the internal error lists.</span>
+<span class="sd">        There is no warning or exception thrown in case the error code is not present in the lists.</span>
+
+<span class="sd">        :param errorcode: error code (int).</span>
+<span class="sd">        :return: pilot_error_codes, pilot_error_diags</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">errorcode</span> <span class="ow">in</span> <span class="n">pilot_error_codes</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="n">pilot_error_codes</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">errorcode</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># remove the entries in pilot_error_codes and pilot_error_diags</span>
+                <span class="n">pilot_error_codes</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+                <span class="n">pilot_error_diags</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">pilot_error_codes</span><span class="p">,</span> <span class="n">pilot_error_diags</span></div>
+
+<div class="viewcode-block" id="ErrorCodes.report_errors"><a class="viewcode-back" href="../../../components/common/errorcodes.html#pilot.common.errorcodes.ErrorCodes.report_errors">[docs]</a>    <span class="k">def</span> <span class="nf">report_errors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pilot_error_codes</span><span class="p">,</span> <span class="n">pilot_error_diags</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Report all errors that occurred during running.</span>
+<span class="sd">        The function should be called towards the end of running a job.</span>
+
+<span class="sd">        :param pilot_error_codes: list of pilot error codes (list of integers)</span>
+<span class="sd">        :param pilot_error_diags: list of pilot error diags (list of strings)</span>
+<span class="sd">        :return: error_report (string)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">pilot_error_codes</span> <span class="o">==</span> <span class="p">[]:</span>
+            <span class="n">report</span> <span class="o">=</span> <span class="s2">&quot;no pilot errors were reported&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">report</span> <span class="o">=</span> <span class="s2">&quot;Nr.</span><span class="se">\t</span><span class="s2">Error code</span><span class="se">\t</span><span class="s2">Error diagnostics&quot;</span>
+            <span class="k">for</span> <span class="n">errorcode</span> <span class="ow">in</span> <span class="n">pilot_error_codes</span><span class="p">:</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">report</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="si">%d</span><span class="s2">.</span><span class="se">\t</span><span class="si">%d</span><span class="se">\t</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">errorcode</span><span class="p">,</span> <span class="n">pilot_error_diags</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">report</span></div>
+
+<div class="viewcode-block" id="ErrorCodes.resolve_transform_error"><a class="viewcode-back" href="../../../components/common/errorcodes.html#pilot.common.errorcodes.ErrorCodes.resolve_transform_error">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_transform_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">stderr</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Assign a pilot error code to a specific transform error.</span>
+<span class="sd">        :param exit_code: transform exit code.</span>
+<span class="sd">        :param stderr: transform stderr</span>
+<span class="sd">        :return: pilot error code (int)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">251</span> <span class="ow">and</span> <span class="s2">&quot;Not mounting requested bind point&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
+            <span class="n">ec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SINGULARITYBINDPOINTFAILURE</span>
+        <span class="k">elif</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">255</span> <span class="ow">and</span> <span class="s2">&quot;No more available loop devices&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
+            <span class="n">ec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SINGULARITYNOLOOPDEVICES</span>
+        <span class="k">elif</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">255</span> <span class="ow">and</span> <span class="s2">&quot;Failed to mount image&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
+            <span class="n">ec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SINGULARITYIMAGEMOUNTFAILURE</span>
+        <span class="k">elif</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">255</span> <span class="ow">and</span> <span class="s2">&quot;Operation not permitted&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
+            <span class="n">ec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SINGULARITYGENERALFAILURE</span>
+        <span class="k">elif</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">64</span> <span class="ow">and</span> <span class="s2">&quot;Singularity is not installed&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
+            <span class="n">ec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SINGULARITYNOTINSTALLED</span>
+        <span class="k">elif</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">64</span> <span class="ow">and</span> <span class="s2">&quot;cannot create directory&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
+            <span class="n">ec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">MKDIR</span>
+        <span class="k">elif</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">ec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UNKNOWNTRFFAILURE</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># do not assign a pilot error code for unidentified transform error, return 0</span>
+            <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="n">ec</span></div>
+
+<div class="viewcode-block" id="ErrorCodes.extract_stderr_error"><a class="viewcode-back" href="../../../components/common/errorcodes.html#pilot.common.errorcodes.ErrorCodes.extract_stderr_error">[docs]</a>    <span class="k">def</span> <span class="nf">extract_stderr_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stderr</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract the ERROR message from the payload stderr.</span>
+<span class="sd">        :param stderr: string.</span>
+<span class="sd">        :return: string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># first look for special messages (ie cases not containing ERROR, Error or error labels)</span>
+        <span class="k">if</span> <span class="s2">&quot;command not found&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="n">stderr</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_message_for_pattern</span><span class="p">([</span><span class="sa">r</span><span class="s2">&quot;ERROR\s*:\s*(.*)&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;Error\s*:\s*(.*)&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;error\s*:\s*(.*)&quot;</span><span class="p">],</span> <span class="n">stderr</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">msg</span></div>
+
+<div class="viewcode-block" id="ErrorCodes.extract_stderr_warning"><a class="viewcode-back" href="../../../components/common/errorcodes.html#pilot.common.errorcodes.ErrorCodes.extract_stderr_warning">[docs]</a>    <span class="k">def</span> <span class="nf">extract_stderr_warning</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stderr</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract the WARNING message from the payload stderr.</span>
+<span class="sd">        :param stderr: string.</span>
+<span class="sd">        :return: string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_message_for_pattern</span><span class="p">([</span><span class="sa">r</span><span class="s2">&quot;WARNING\s*:\s*(.*)&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;Warning\s*:\s*(.*)&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;warning\s*:\s*(.*)&quot;</span><span class="p">],</span> <span class="n">stderr</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ErrorCodes.get_message_for_pattern"><a class="viewcode-back" href="../../../components/common/errorcodes.html#pilot.common.errorcodes.ErrorCodes.get_message_for_pattern">[docs]</a>    <span class="k">def</span> <span class="nf">get_message_for_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">patterns</span><span class="p">,</span> <span class="n">stderr</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        :param patterns: list of patterns.</span>
+<span class="sd">        :param stderr: string.</span>
+<span class="sd">        :return: string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">patterns</span><span class="p">:</span>
+            <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">found</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="n">found</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">break</span>
+
+        <span class="k">return</span> <span class="n">msg</span></div>
+
+<div class="viewcode-block" id="ErrorCodes.format_diagnostics"><a class="viewcode-back" href="../../../components/common/errorcodes.html#pilot.common.errorcodes.ErrorCodes.format_diagnostics">[docs]</a>    <span class="k">def</span> <span class="nf">format_diagnostics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">code</span><span class="p">,</span> <span class="n">diag</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Format the error diagnostics by adding the standard error message and the tail of the longer piloterrordiag.</span>
+<span class="sd">        If there is any kind of failure handling the diagnostics string, the standard error description will be returned.</span>
+
+<span class="sd">        :param code: standard error code (int).</span>
+<span class="sd">        :param diag: dynamic error diagnostics (string).</span>
+<span class="sd">        :return: formatted error diagnostics (string).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">max_message_length</span> <span class="o">=</span> <span class="mi">256</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">standard_message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_error_messages</span><span class="p">[</span><span class="n">code</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;:&quot;</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">standard_message</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+        <span class="c1"># extract the relevant info for reporting exceptions</span>
+        <span class="k">if</span> <span class="s2">&quot;Traceback&quot;</span> <span class="ow">in</span> <span class="n">diag</span><span class="p">:</span>
+            <span class="n">pattern</span> <span class="o">=</span> <span class="s1">&#39;details:(.+)&#39;</span>
+            <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">diag</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+                <span class="n">diag</span> <span class="o">=</span> <span class="n">found</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">diag</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\[?PilotException\(\&quot;?</span><span class="se">\&#39;</span><span class="s1">?&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">diag</span><span class="p">)</span>
+                <span class="n">diag</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\[?StageInFailure\(\&quot;?</span><span class="se">\&#39;</span><span class="s1">?&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">diag</span><span class="p">)</span>
+                <span class="n">diag</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\[?StageOutFailure\(\&quot;?</span><span class="se">\&#39;</span><span class="s1">?&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">diag</span><span class="p">)</span>
+                <span class="n">diag</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39; +&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">diag</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">diag</span><span class="p">:</span>
+                <span class="c1"># ensure that the message to be displayed on the PanDA monitor is not longer than max_message_length</span>
+                <span class="c1"># if it is, then reformat it so that the standard message is always displayed first.</span>
+                <span class="c1"># e.g. &quot;Failed to stage-in file:abcdefghijklmnopqrstuvwxyz0123456789&quot;</span>
+                <span class="k">if</span> <span class="n">standard_message</span> <span class="ow">in</span> <span class="n">diag</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">diag</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_message_length</span><span class="p">:</span>
+                        <span class="n">error_message</span> <span class="o">=</span> <span class="n">standard_message</span> <span class="o">+</span> <span class="n">diag</span><span class="p">[</span><span class="o">-</span><span class="p">(</span><span class="n">max_message_length</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">standard_message</span><span class="p">)):]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">error_message</span> <span class="o">=</span> <span class="n">standard_message</span> <span class="o">+</span> <span class="n">diag</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">standard_message</span><span class="p">):][</span><span class="o">-</span><span class="n">max_message_length</span><span class="p">:]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">diag</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">standard_message</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_message_length</span><span class="p">:</span>
+                        <span class="n">error_message</span> <span class="o">=</span> <span class="n">standard_message</span> <span class="o">+</span> <span class="n">diag</span><span class="p">[:(</span><span class="n">max_message_length</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">standard_message</span><span class="p">))]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">error_message</span> <span class="o">=</span> <span class="n">standard_message</span> <span class="o">+</span> <span class="n">diag</span>
+
+                <span class="k">if</span> <span class="s1">&#39;::&#39;</span> <span class="ow">in</span> <span class="n">error_message</span><span class="p">:</span>
+                    <span class="n">error_message</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;:+&#39;</span><span class="p">,</span> <span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="n">error_message</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">error_message</span> <span class="o">=</span> <span class="n">standard_message</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">error_message</span> <span class="o">=</span> <span class="n">diag</span>
+
+        <span class="k">return</span> <span class="n">error_message</span></div>
+
+<div class="viewcode-block" id="ErrorCodes.is_recoverable"><a class="viewcode-back" href="../../../components/common/errorcodes.html#pilot.common.errorcodes.ErrorCodes.is_recoverable">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">is_recoverable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine whether code is a recoverable error code or not.</span>
+
+<span class="sd">        :param code: Pilot error code (int).</span>
+<span class="sd">        :return: boolean.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">code</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">recoverable_error_codes</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

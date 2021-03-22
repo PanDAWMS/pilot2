@@ -1,0 +1,267 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>timer &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="timing" href="timing.html" />
+    <link rel="prev" title="proxy" href="proxy.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.util.timer">
+<span id="timer"></span><h1>timer<a class="headerlink" href="#module-pilot.util.timer" title="Permalink to this headline">¶</a></h1>
+<p>Standalone implementation of time-out check on function call.
+Timer stops execution of wrapped function if it reaches the limit of provided time. Supports decorator feature.</p>
+<dl class="field-list simple">
+<dt class="field-odd">author</dt>
+<dd class="field-odd"><p>Alexey Anisenkov</p>
+</dd>
+<dt class="field-even">contact</dt>
+<dd class="field-even"><p><a class="reference external" href="mailto:anisyonk&#37;&#52;&#48;cern&#46;ch">anisyonk<span>&#64;</span>cern<span>&#46;</span>ch</a></p>
+</dd>
+<dt class="field-odd">date</dt>
+<dd class="field-odd"><p>March 2018</p>
+</dd>
+</dl>
+<dl class="py class">
+<dt id="pilot.util.timer.TimedProcess">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">pilot.util.timer.</span></code><code class="sig-name descname"><span class="pre">TimedProcess</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timer.html#TimedProcess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timer.TimedProcess" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process-based Timer implementation (<a class="reference external" href="https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">multiprocessing</span></code></a> module). Uses shared Queue to keep result.
+(completely isolated memory space)
+In default python implementation multiprocessing considers (c)pickle as serialization backend
+which is not able properly (requires a hack) to pickle local and decorated functions (affects Windows only)
+Traceback data is printed to stderr</p>
+<dl class="py attribute">
+<dt id="pilot.util.timer.TimedProcess.__dict__">
+<code class="sig-name descname"><span class="pre">__dict__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">mappingproxy({'__module__':</span> <span class="pre">'pilot.util.timer',</span> <span class="pre">'__doc__':</span> <span class="pre">'\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Process-based</span> <span class="pre">Timer</span> <span class="pre">implementation</span> <span class="pre">(`multiprocessing`</span> <span class="pre">module).</span> <span class="pre">Uses</span> <span class="pre">shared</span> <span class="pre">Queue</span> <span class="pre">to</span> <span class="pre">keep</span> <span class="pre">result.\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">(completely</span> <span class="pre">isolated</span> <span class="pre">memory</span> <span class="pre">space)\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">In</span> <span class="pre">default</span> <span class="pre">python</span> <span class="pre">implementation</span> <span class="pre">multiprocessing</span> <span class="pre">considers</span> <span class="pre">(c)pickle</span> <span class="pre">as</span> <span class="pre">serialization</span> <span class="pre">backend\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">which</span> <span class="pre">is</span> <span class="pre">not</span> <span class="pre">able</span> <span class="pre">properly</span> <span class="pre">(requires</span> <span class="pre">a</span> <span class="pre">hack)</span> <span class="pre">to</span> <span class="pre">pickle</span> <span class="pre">local</span> <span class="pre">and</span> <span class="pre">decorated</span> <span class="pre">functions</span> <span class="pre">(affects</span> <span class="pre">Windows</span> <span class="pre">only)\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Traceback</span> <span class="pre">data</span> <span class="pre">is</span> <span class="pre">printed</span> <span class="pre">to</span> <span class="pre">stderr\n</span>&#160;&#160;&#160; <span class="pre">',</span> <span class="pre">'__init__':</span> <span class="pre">&lt;function</span> <span class="pre">TimedProcess.__init__&gt;,</span> <span class="pre">'run':</span> <span class="pre">&lt;function</span> <span class="pre">TimedProcess.run&gt;,</span> <span class="pre">'__dict__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__dict__'</span> <span class="pre">of</span> <span class="pre">'TimedProcess'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__weakref__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__weakref__'</span> <span class="pre">of</span> <span class="pre">'TimedProcess'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__annotations__':</span> <span class="pre">{}})</span></em><a class="headerlink" href="#pilot.util.timer.TimedProcess.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.util.timer.TimedProcess.__init__">
+<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timer.html#TimedProcess.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timer.TimedProcess.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>timeout</strong> – timeout value for operation in seconds.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.timer.TimedProcess.__module__">
+<code class="sig-name descname"><span class="pre">__module__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'pilot.util.timer'</span></em><a class="headerlink" href="#pilot.util.timer.TimedProcess.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.timer.TimedProcess.__weakref__">
+<code class="sig-name descname"><span class="pre">__weakref__</span></code><a class="headerlink" href="#pilot.util.timer.TimedProcess.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.util.timer.TimedProcess.run">
+<code class="sig-name descname"><span class="pre">run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timer.html#TimedProcess.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timer.TimedProcess.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pilot.util.timer.TimedThread">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">pilot.util.timer.</span></code><code class="sig-name descname"><span class="pre">TimedThread</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timer.html#TimedThread"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timer.TimedThread" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thread-based Timer implementation (<a class="reference external" href="https://docs.python.org/3/library/threading.html#module-threading" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">threading</span></code></a> module)
+(shared memory space, GIL limitations, no way to kill thread, Windows compatible)</p>
+<dl class="py attribute">
+<dt id="pilot.util.timer.TimedThread.__dict__">
+<code class="sig-name descname"><span class="pre">__dict__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">mappingproxy({'__module__':</span> <span class="pre">'pilot.util.timer',</span> <span class="pre">'__doc__':</span> <span class="pre">'\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Thread-based</span> <span class="pre">Timer</span> <span class="pre">implementation</span> <span class="pre">(`threading`</span> <span class="pre">module)\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">(shared</span> <span class="pre">memory</span> <span class="pre">space,</span> <span class="pre">GIL</span> <span class="pre">limitations,</span> <span class="pre">no</span> <span class="pre">way</span> <span class="pre">to</span> <span class="pre">kill</span> <span class="pre">thread,</span> <span class="pre">Windows</span> <span class="pre">compatible)\n</span>&#160;&#160;&#160; <span class="pre">',</span> <span class="pre">'__init__':</span> <span class="pre">&lt;function</span> <span class="pre">TimedThread.__init__&gt;,</span> <span class="pre">'execute':</span> <span class="pre">&lt;function</span> <span class="pre">TimedThread.execute&gt;,</span> <span class="pre">'run':</span> <span class="pre">&lt;function</span> <span class="pre">TimedThread.run&gt;,</span> <span class="pre">'__dict__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__dict__'</span> <span class="pre">of</span> <span class="pre">'TimedThread'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__weakref__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__weakref__'</span> <span class="pre">of</span> <span class="pre">'TimedThread'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__annotations__':</span> <span class="pre">{}})</span></em><a class="headerlink" href="#pilot.util.timer.TimedThread.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.util.timer.TimedThread.__init__">
+<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timer.html#TimedThread.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timer.TimedThread.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>timeout</strong> – timeout value for operation in seconds.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.timer.TimedThread.__module__">
+<code class="sig-name descname"><span class="pre">__module__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'pilot.util.timer'</span></em><a class="headerlink" href="#pilot.util.timer.TimedThread.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.timer.TimedThread.__weakref__">
+<code class="sig-name descname"><span class="pre">__weakref__</span></code><a class="headerlink" href="#pilot.util.timer.TimedThread.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.util.timer.TimedThread.execute">
+<code class="sig-name descname"><span class="pre">execute</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timer.html#TimedThread.execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timer.TimedThread.execute" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.util.timer.TimedThread.run">
+<code class="sig-name descname"><span class="pre">run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kwargs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timer.html#TimedThread.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timer.TimedThread.run" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Raise</dt>
+<dd class="field-odd"><p>TimeoutException if timeout value is reached before function finished</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt id="pilot.util.timer.TimeoutException">
+<em class="property"><span class="pre">exception</span> </em><code class="sig-prename descclassname"><span class="pre">pilot.util.timer.</span></code><code class="sig-name descname"><span class="pre">TimeoutException</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timer.html#TimeoutException"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timer.TimeoutException" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt id="pilot.util.timer.TimeoutException.__init__">
+<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timer.html#TimeoutException.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timer.TimeoutException.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.timer.TimeoutException.__module__">
+<code class="sig-name descname"><span class="pre">__module__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'pilot.util.timer'</span></em><a class="headerlink" href="#pilot.util.timer.TimeoutException.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.util.timer.TimeoutException.__str__">
+<code class="sig-name descname"><span class="pre">__str__</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timer.html#TimeoutException.__str__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timer.TimeoutException.__str__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return str(self).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.timer.TimeoutException.__weakref__">
+<code class="sig-name descname"><span class="pre">__weakref__</span></code><a class="headerlink" href="#pilot.util.timer.TimeoutException.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.util.timer.Timer">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timer.</span></code><code class="sig-name descname"><span class="pre">Timer</span></code><a class="headerlink" href="#pilot.util.timer.Timer" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="#pilot.util.timer.TimedProcess" title="pilot.util.timer.TimedProcess"><code class="xref py py-class docutils literal notranslate"><span class="pre">pilot.util.timer.TimedProcess</span></code></a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.timer.timeout">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.timer.</span></code><code class="sig-name descname"><span class="pre">timeout</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seconds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timer.html#timeout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timer.timeout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator for a function which causes it to timeout (stop execution) once passed given number of seconds.
+:param timer: timer class (by default is Timer)
+:raise: TimeoutException in case of timeout interrupt</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">util components</a><ul>
+      <li>Previous: <a href="proxy.html" title="previous chapter">proxy</a></li>
+      <li>Next: <a href="timing.html" title="next chapter">timing</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/util/timer.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/util/timer.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

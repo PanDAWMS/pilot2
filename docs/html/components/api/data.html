@@ -1,0 +1,492 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>data &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="memorymonitor" href="memorymonitor.html" />
+    <link rel="prev" title="benchmark" href="benchmark.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.api.data">
+<span id="data"></span><h1>data<a class="headerlink" href="#module-pilot.api.data" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="pilot.api.data.StageInClient">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">pilot.api.data.</span></code><code class="sig-name descname"><span class="pre">StageInClient</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">infosys_instance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acopytools</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_copytools</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'rucio'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StageInClient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StageInClient" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py attribute">
+<dt id="pilot.api.data.StageInClient.__module__">
+<code class="sig-name descname"><span class="pre">__module__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'pilot.api.data'</span></em><a class="headerlink" href="#pilot.api.data.StageInClient.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StageInClient.check_availablespace">
+<code class="sig-name descname"><span class="pre">check_availablespace</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StageInClient.check_availablespace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StageInClient.check_availablespace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verify that enough local space is available to stage in and run the job</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>files</strong> – list of FileSpec objects.</p>
+</dd>
+<dt class="field-even">Raise</dt>
+<dd class="field-even"><p>PilotException in case of not enough space or total input size too large</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StageInClient.get_direct_access_variables">
+<code class="sig-name descname"><span class="pre">get_direct_access_variables</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StageInClient.get_direct_access_variables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StageInClient.get_direct_access_variables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the direct access settings for the PQ.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>allow_direct_access (bool), direct_access_type (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.api.data.StageInClient.mode">
+<code class="sig-name descname"><span class="pre">mode</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'stage-in'</span></em><a class="headerlink" href="#pilot.api.data.StageInClient.mode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StageInClient.resolve_replica">
+<code class="sig-name descname"><span class="pre">resolve_replica</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fspec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">primary_schemas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed_schemas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StageInClient.resolve_replica"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StageInClient.resolve_replica" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve input replica (matched by <code class="xref any docutils literal notranslate"><span class="pre">domain</span></code> if need) first according to <code class="xref any docutils literal notranslate"><span class="pre">primary_schemas</span></code>,
+if not found then look up within <code class="xref any docutils literal notranslate"><span class="pre">allowed_schemas</span></code>
+Primary schemas ignore replica priority (used to resolve direct access replica, which could be not with top priority set)
+:param fspec: input <code class="xref any docutils literal notranslate"><span class="pre">FileSpec</span></code> objects
+:param allowed_schemas: list of allowed schemas or any if None
+:return: dict(surl, ddmendpoint, pfn, domain) or None if replica not found</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StageInClient.set_status_for_direct_access">
+<code class="sig-name descname"><span class="pre">set_status_for_direct_access</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StageInClient.set_status_for_direct_access"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StageInClient.set_status_for_direct_access" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the FileSpec status with ‘remote_io’ for direct access mode.
+Should be called only once since the function sends traces</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>files</strong> – list of FileSpec objects.</p></li>
+<li><p><strong>workdir</strong> – work directory (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StageInClient.transfer_files">
+<code class="sig-name descname"><span class="pre">transfer_files</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">copytool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StageInClient.transfer_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StageInClient.transfer_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Automatically stage in files using the selected copy tool module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>copytool</strong> – copytool module</p></li>
+<li><p><strong>files</strong> – list of <code class="xref any docutils literal notranslate"><span class="pre">FileSpec</span></code> objects</p></li>
+<li><p><strong>kwargs</strong> – extra kwargs to be passed to copytool transfer handler</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of processed <code class="xref any docutils literal notranslate"><span class="pre">FileSpec</span></code> objects</p>
+</dd>
+<dt class="field-odd">Raise</dt>
+<dd class="field-odd"><p>PilotException in case of controlled error</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pilot.api.data.StageOutClient">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">pilot.api.data.</span></code><code class="sig-name descname"><span class="pre">StageOutClient</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">infosys_instance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acopytools</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_copytools</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'rucio'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StageOutClient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StageOutClient" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py attribute">
+<dt id="pilot.api.data.StageOutClient.__module__">
+<code class="sig-name descname"><span class="pre">__module__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'pilot.api.data'</span></em><a class="headerlink" href="#pilot.api.data.StageOutClient.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StageOutClient.get_path">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">get_path</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lfn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'rucio'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StageOutClient.get_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StageOutClient.get_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a partial Rucio PFN using the scope and the LFN</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.api.data.StageOutClient.mode">
+<code class="sig-name descname"><span class="pre">mode</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'stage-out'</span></em><a class="headerlink" href="#pilot.api.data.StageOutClient.mode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StageOutClient.prepare_destinations">
+<code class="sig-name descname"><span class="pre">prepare_destinations</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activities</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StageOutClient.prepare_destinations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StageOutClient.prepare_destinations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve destination RSE (filespec.ddmendpoint) for each entry from <a class="reference external" href="https://docs.python.org/3/library/importlib.metadata.html#files" title="(in Python v3.9)"><code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">files</span></code></a> according to requested <code class="xref any docutils literal notranslate"><span class="pre">activities</span></code>
+Apply Pilot-side logic to choose proper destination
+:param files: list of FileSpec objects to be processed
+:param activities: ordered list of activities to be used to resolve astorages
+:return: updated fspec entries</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StageOutClient.resolve_surl">
+<code class="sig-name descname"><span class="pre">resolve_surl</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fspec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">protocol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ddmconf</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StageOutClient.resolve_surl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StageOutClient.resolve_surl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get final destination SURL for file to be transferred
+Can be customized at the level of specific copytool
+:param protocol: suggested protocol
+:param ddmconf: full ddmconf data
+:param activity: ordered list of preferred activity names to resolve SE protocols
+:return: dict with keys (‘pfn’, ‘ddmendpoint’)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StageOutClient.transfer_files">
+<code class="sig-name descname"><span class="pre">transfer_files</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">copytool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activity</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StageOutClient.transfer_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StageOutClient.transfer_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Automatically stage out files using the selected copy tool module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>copytool</strong> – copytool module</p></li>
+<li><p><strong>files</strong> – list of <code class="xref any docutils literal notranslate"><span class="pre">FileSpec</span></code> objects</p></li>
+<li><p><strong>activity</strong> – ordered list of preferred activity names to resolve SE protocols</p></li>
+<li><p><strong>kwargs</strong> – extra kwargs to be passed to copytool transfer handler</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the output of the copytool transfer operation</p>
+</dd>
+<dt class="field-odd">Raise</dt>
+<dd class="field-odd"><p>PilotException in case of controlled error</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="pilot.api.data.StagingClient">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">pilot.api.data.</span></code><code class="sig-name descname"><span class="pre">StagingClient</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">infosys_instance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acopytools</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_copytools</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'rucio'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StagingClient"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StagingClient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base Staging Client</p>
+<dl class="py attribute">
+<dt id="pilot.api.data.StagingClient.__dict__">
+<code class="sig-name descname"><span class="pre">__dict__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">mappingproxy({'__module__':</span> <span class="pre">'pilot.api.data',</span> <span class="pre">'__doc__':</span> <span class="pre">'\n</span>&#160;&#160;&#160;&#160;&#160;&#160;&#160; <span class="pre">Base</span> <span class="pre">Staging</span> <span class="pre">Client\n</span>&#160;&#160;&#160; <span class="pre">',</span> <span class="pre">'mode':</span> <span class="pre">'',</span> <span class="pre">'copytool_modules':</span> <span class="pre">{'rucio':</span> <span class="pre">{'module_name':</span> <span class="pre">'rucio'},</span> <span class="pre">'gfal':</span> <span class="pre">{'module_name':</span> <span class="pre">'gfal'},</span> <span class="pre">'gfalcopy':</span> <span class="pre">{'module_name':</span> <span class="pre">'gfal'},</span> <span class="pre">'xrdcp':</span> <span class="pre">{'module_name':</span> <span class="pre">'xrdcp'},</span> <span class="pre">'mv':</span> <span class="pre">{'module_name':</span> <span class="pre">'mv'},</span> <span class="pre">'lsm':</span> <span class="pre">{'module_name':</span> <span class="pre">'lsm'}},</span> <span class="pre">'direct_remoteinput_allowed_schemas':</span> <span class="pre">['root',</span> <span class="pre">'https'],</span> <span class="pre">'direct_localinput_allowed_schemas':</span> <span class="pre">['root',</span> <span class="pre">'dcache',</span> <span class="pre">'dcap',</span> <span class="pre">'file',</span> <span class="pre">'https'],</span> <span class="pre">'remoteinput_allowed_schemas':</span> <span class="pre">['root',</span> <span class="pre">'gsiftp',</span> <span class="pre">'dcap',</span> <span class="pre">'davs',</span> <span class="pre">'srm',</span> <span class="pre">'storm',</span> <span class="pre">'https'],</span> <span class="pre">'__init__':</span> <span class="pre">&lt;function</span> <span class="pre">StagingClient.__init__&gt;,</span> <span class="pre">'set_acopytools':</span> <span class="pre">&lt;function</span> <span class="pre">StagingClient.set_acopytools&gt;,</span> <span class="pre">'get_default_copytools':</span> <span class="pre">&lt;staticmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'get_preferred_replica':</span> <span class="pre">&lt;classmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'prepare_sources':</span> <span class="pre">&lt;function</span> <span class="pre">StagingClient.prepare_sources&gt;,</span> <span class="pre">'prepare_inputddms':</span> <span class="pre">&lt;function</span> <span class="pre">StagingClient.prepare_inputddms&gt;,</span> <span class="pre">'sort_replicas':</span> <span class="pre">&lt;classmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'resolve_replicas':</span> <span class="pre">&lt;function</span> <span class="pre">StagingClient.resolve_replicas&gt;,</span> <span class="pre">'add_replicas':</span> <span class="pre">&lt;function</span> <span class="pre">StagingClient.add_replicas&gt;,</span> <span class="pre">'detect_client_location':</span> <span class="pre">&lt;classmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'transfer_files':</span> <span class="pre">&lt;function</span> <span class="pre">StagingClient.transfer_files&gt;,</span> <span class="pre">'transfer':</span> <span class="pre">&lt;function</span> <span class="pre">StagingClient.transfer&gt;,</span> <span class="pre">'require_protocols':</span> <span class="pre">&lt;function</span> <span class="pre">StagingClient.require_protocols&gt;,</span> <span class="pre">'resolve_protocols':</span> <span class="pre">&lt;function</span> <span class="pre">StagingClient.resolve_protocols&gt;,</span> <span class="pre">'resolve_protocol':</span> <span class="pre">&lt;classmethod</span> <span class="pre">object&gt;,</span> <span class="pre">'__dict__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__dict__'</span> <span class="pre">of</span> <span class="pre">'StagingClient'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__weakref__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__weakref__'</span> <span class="pre">of</span> <span class="pre">'StagingClient'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__annotations__':</span> <span class="pre">{}})</span></em><a class="headerlink" href="#pilot.api.data.StagingClient.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StagingClient.__init__">
+<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">infosys_instance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acopytools</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_copytools</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'rucio'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StagingClient.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StagingClient.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>If <a class="reference internal" href="../info/queuedata.html#pilot.info.queuedata.QueueData.acopytools" title="pilot.info.queuedata.QueueData.acopytools"><code class="xref any py py-attr docutils literal notranslate"><span class="pre">acopytools</span></code></a> is not specified then it will be automatically resolved via infosys. In this case <code class="xref any docutils literal notranslate"><span class="pre">infosys</span></code> requires initialization.
+:param acopytools: dict of copytool names per activity to be used for transfers. Accepts also list of names or string value without activity passed.
+:param logger: logging.Logger object to use for logging (None means no logging)
+:param default_copytools: copytool name(s) to be used in case of unknown activity passed. Accepts either list of names or single string value.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.api.data.StagingClient.__module__">
+<code class="sig-name descname"><span class="pre">__module__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'pilot.api.data'</span></em><a class="headerlink" href="#pilot.api.data.StagingClient.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.api.data.StagingClient.__weakref__">
+<code class="sig-name descname"><span class="pre">__weakref__</span></code><a class="headerlink" href="#pilot.api.data.StagingClient.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StagingClient.add_replicas">
+<code class="sig-name descname"><span class="pre">add_replicas</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fdat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replica</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StagingClient.add_replicas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StagingClient.add_replicas" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the replicas to the fdat structure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fdat</strong> – </p></li>
+<li><p><strong>replica</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated fdat.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.api.data.StagingClient.copytool_modules">
+<code class="sig-name descname"><span class="pre">copytool_modules</span></code><em class="property"> <span class="pre">=</span> <span class="pre">{'gfal':</span> <span class="pre">{'module_name':</span> <span class="pre">'gfal'},</span> <span class="pre">'gfalcopy':</span> <span class="pre">{'module_name':</span> <span class="pre">'gfal'},</span> <span class="pre">'lsm':</span> <span class="pre">{'module_name':</span> <span class="pre">'lsm'},</span> <span class="pre">'mv':</span> <span class="pre">{'module_name':</span> <span class="pre">'mv'},</span> <span class="pre">'rucio':</span> <span class="pre">{'module_name':</span> <span class="pre">'rucio'},</span> <span class="pre">'xrdcp':</span> <span class="pre">{'module_name':</span> <span class="pre">'xrdcp'}}</span></em><a class="headerlink" href="#pilot.api.data.StagingClient.copytool_modules" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StagingClient.detect_client_location">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">detect_client_location</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StagingClient.detect_client_location"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StagingClient.detect_client_location" title="Permalink to this definition">¶</a></dt>
+<dd><p>Open a UDP socket to a machine on the internet, to get the local IPv4 and IPv6
+addresses of the requesting client.
+Try to determine the sitename automatically from common environment variables,
+in this order: SITE_NAME, ATLAS_SITE_NAME, OSG_SITE_NAME. If none of these exist
+use the fixed string ‘ROAMING’.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.api.data.StagingClient.direct_localinput_allowed_schemas">
+<code class="sig-name descname"><span class="pre">direct_localinput_allowed_schemas</span></code><em class="property"> <span class="pre">=</span> <span class="pre">['root',</span> <span class="pre">'dcache',</span> <span class="pre">'dcap',</span> <span class="pre">'file',</span> <span class="pre">'https']</span></em><a class="headerlink" href="#pilot.api.data.StagingClient.direct_localinput_allowed_schemas" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.api.data.StagingClient.direct_remoteinput_allowed_schemas">
+<code class="sig-name descname"><span class="pre">direct_remoteinput_allowed_schemas</span></code><em class="property"> <span class="pre">=</span> <span class="pre">['root',</span> <span class="pre">'https']</span></em><a class="headerlink" href="#pilot.api.data.StagingClient.direct_remoteinput_allowed_schemas" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StagingClient.get_default_copytools">
+<em class="property"><span class="pre">static</span> </em><code class="sig-name descname"><span class="pre">get_default_copytools</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">default_copytools</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StagingClient.get_default_copytools"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StagingClient.get_default_copytools" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the default copytools.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>default_copytools</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>default copytools (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StagingClient.get_preferred_replica">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">get_preferred_replica</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">replicas</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed_schemas</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StagingClient.get_preferred_replica"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StagingClient.get_preferred_replica" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get preferred replica from the <code class="xref any docutils literal notranslate"><span class="pre">replicas</span></code> list suitable for <code class="xref any docutils literal notranslate"><span class="pre">allowed_schemas</span></code>
+:return: first matched replica or None if not found</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.api.data.StagingClient.mode">
+<code class="sig-name descname"><span class="pre">mode</span></code><em class="property"> <span class="pre">=</span> <span class="pre">''</span></em><a class="headerlink" href="#pilot.api.data.StagingClient.mode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StagingClient.prepare_inputddms">
+<code class="sig-name descname"><span class="pre">prepare_inputddms</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activities</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StagingClient.prepare_inputddms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StagingClient.prepare_inputddms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Populates filespec.inputddms for each entry from <a class="reference external" href="https://docs.python.org/3/library/importlib.metadata.html#files" title="(in Python v3.9)"><code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">files</span></code></a> list
+:param files: list of <code class="xref any docutils literal notranslate"><span class="pre">FileSpec</span></code> objects
+:param activities: sting or ordered list of activities to resolve astorages (optional)
+:return: None</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StagingClient.prepare_sources">
+<code class="sig-name descname"><span class="pre">prepare_sources</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activities</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StagingClient.prepare_sources"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StagingClient.prepare_sources" title="Permalink to this definition">¶</a></dt>
+<dd><p>Customize/prepare source data for each entry in <a class="reference external" href="https://docs.python.org/3/library/importlib.metadata.html#files" title="(in Python v3.9)"><code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">files</span></code></a> optionally checking data for requested <code class="xref any docutils literal notranslate"><span class="pre">activities</span></code>
+(custom StageClient could extend the logic if need)
+:param files: list of <code class="xref any docutils literal notranslate"><span class="pre">FileSpec</span></code> objects to be processed
+:param activities: string or ordered list of activities to resolve <a class="reference internal" href="../info/queuedata.html#pilot.info.queuedata.QueueData.astorages" title="pilot.info.queuedata.QueueData.astorages"><code class="xref any py py-attr docutils literal notranslate"><span class="pre">astorages</span></code></a> (optional)
+:return: None</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.api.data.StagingClient.remoteinput_allowed_schemas">
+<code class="sig-name descname"><span class="pre">remoteinput_allowed_schemas</span></code><em class="property"> <span class="pre">=</span> <span class="pre">['root',</span> <span class="pre">'gsiftp',</span> <span class="pre">'dcap',</span> <span class="pre">'davs',</span> <span class="pre">'srm',</span> <span class="pre">'storm',</span> <span class="pre">'https']</span></em><a class="headerlink" href="#pilot.api.data.StagingClient.remoteinput_allowed_schemas" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StagingClient.require_protocols">
+<code class="sig-name descname"><span class="pre">require_protocols</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copytool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StagingClient.require_protocols"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StagingClient.require_protocols" title="Permalink to this definition">¶</a></dt>
+<dd><p>Populates fspec.protocols and fspec.turl for each entry in <a class="reference external" href="https://docs.python.org/3/library/importlib.metadata.html#files" title="(in Python v3.9)"><code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">files</span></code></a> according to preferred fspec.ddm_activity
+:param files: list of <code class="xref any docutils literal notranslate"><span class="pre">FileSpec</span></code> objects
+:param activity: str or ordered list of transfer activity names to resolve acopytools related data
+:return: None</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StagingClient.resolve_protocol">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">resolve_protocol</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fspec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed_schemas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StagingClient.resolve_protocol"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StagingClient.resolve_protocol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve protocols according to allowed schema
+:param fspec: <code class="xref any docutils literal notranslate"><span class="pre">FileSpec</span></code> instance
+:param allowed_schemas: list of allowed schemas or any if None
+:return: list of dict(endpoint, path, flavour)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StagingClient.resolve_protocols">
+<code class="sig-name descname"><span class="pre">resolve_protocols</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StagingClient.resolve_protocols"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StagingClient.resolve_protocols" title="Permalink to this definition">¶</a></dt>
+<dd><p>Populates filespec.protocols for each entry from <a class="reference external" href="https://docs.python.org/3/library/importlib.metadata.html#files" title="(in Python v3.9)"><code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">files</span></code></a> according to preferred <code class="xref any docutils literal notranslate"><span class="pre">fspec.ddm_activity</span></code> value
+:param files: list of <code class="xref any docutils literal notranslate"><span class="pre">FileSpec</span></code> objects
+fdat.protocols = [dict(endpoint, path, flavour), ..]
+:return: <a class="reference external" href="https://docs.python.org/3/library/importlib.metadata.html#files" title="(in Python v3.9)"><code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">files</span></code></a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StagingClient.resolve_replicas">
+<code class="sig-name descname"><span class="pre">resolve_replicas</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_vp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StagingClient.resolve_replicas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StagingClient.resolve_replicas" title="Permalink to this definition">¶</a></dt>
+<dd><p>Populates filespec.replicas for each entry from <a class="reference external" href="https://docs.python.org/3/library/importlib.metadata.html#files" title="(in Python v3.9)"><code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">files</span></code></a> list</p>
+<blockquote>
+<div><p>fdat.replicas = [{‘ddmendpoint’:’ddmendpoint’, ‘pfn’:’replica’, ‘domain’:’domain value’}]</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>files</strong> – list of <code class="xref any docutils literal notranslate"><span class="pre">FileSpec</span></code> objects.</p></li>
+<li><p><strong>use_vp</strong> – True for VP jobs (boolean).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/importlib.metadata.html#files" title="(in Python v3.9)"><code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">files</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StagingClient.set_acopytools">
+<code class="sig-name descname"><span class="pre">set_acopytools</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StagingClient.set_acopytools"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StagingClient.set_acopytools" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the internal acopytools.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StagingClient.sort_replicas">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">sort_replicas</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">replicas</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputddms</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StagingClient.sort_replicas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StagingClient.sort_replicas" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sort input replicas: consider first affected replicas from inputddms
+:param replicas: Prioritized list of replicas [(pfn, dat)]
+:param inputddms: preferred list of ddmebdpoint
+:return: sorted <code class="xref any docutils literal notranslate"><span class="pre">replicas</span></code></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StagingClient.transfer">
+<code class="sig-name descname"><span class="pre">transfer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'default'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StagingClient.transfer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StagingClient.transfer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Automatically stage passed files using copy tools related to given <code class="xref any docutils literal notranslate"><span class="pre">activity</span></code>
+:param files: list of <code class="xref any docutils literal notranslate"><span class="pre">FileSpec</span></code> objects
+:param activity: list of activity names used to determine appropriate copytool (prioritized list)
+:param kwargs: extra kwargs to be passed to copytool transfer handler
+:raise: PilotException in case of controlled error
+:return: list of processed <code class="xref any docutils literal notranslate"><span class="pre">FileSpec</span></code> objects</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.api.data.StagingClient.transfer_files">
+<code class="sig-name descname"><span class="pre">transfer_files</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">copytool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/api/data.html#StagingClient.transfer_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.api.data.StagingClient.transfer_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply transfer of given <a class="reference external" href="https://docs.python.org/3/library/importlib.metadata.html#files" title="(in Python v3.9)"><code class="docutils literal notranslate"><span class="pre">Distribution</span> <span class="pre">files</span></code></a> using passed <code class="xref any docutils literal notranslate"><span class="pre">copytool</span></code> module
+Should be implemented by custom Staging Client
+:param copytool: copytool module
+:param files: list of <code class="xref any docutils literal notranslate"><span class="pre">FileSpec</span></code> objects
+:param kwargs: extra kwargs to be passed to copytool transfer handler
+:raise: PilotException in case of controlled error</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../util/index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">api components</a><ul>
+      <li>Previous: <a href="benchmark.html" title="previous chapter">benchmark</a></li>
+      <li>Next: <a href="memorymonitor.html" title="next chapter">memorymonitor</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/api/data.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/api/data.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

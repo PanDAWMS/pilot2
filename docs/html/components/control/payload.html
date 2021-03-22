@@ -1,0 +1,301 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>payload &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="payloads components" href="payloads/index.html" />
+    <link rel="prev" title="monitor" href="monitor.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.control.payload">
+<span id="payload"></span><h1>payload<a class="headerlink" href="#module-pilot.control.payload" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt id="pilot.control.payload._validate_payload">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.payload.</span></code><code class="sig-name descname"><span class="pre">_validate_payload</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/payload.html#_validate_payload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payload._validate_payload" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform validation tests for the payload.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>boolean.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.payload.control">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.payload.</span></code><code class="sig-name descname"><span class="pre">control</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/payload.html#control"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payload.control" title="Permalink to this definition">¶</a></dt>
+<dd><p>(add description)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queues</strong> – </p></li>
+<li><p><strong>traces</strong> – </p></li>
+<li><p><strong>args</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.payload.execute_payloads">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.payload.</span></code><code class="sig-name descname"><span class="pre">execute_payloads</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/payload.html#execute_payloads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payload.execute_payloads" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute queued payloads.</p>
+<p>Extract a Job object from the “validated_payloads” queue and put it in the “monitored_jobs” queue. The payload
+stdout/err streams are opened and the pilot state is changed to “starting”. A payload executor is selected (for
+executing a normal job, an event service job or event service merge job). After the payload (or rather its executor)
+is started, the thread will wait for it to finish and then check for any failures. A successfully completed job is
+placed in the “finished_payloads” queue, and a failed job will be placed in the “failed_payloads” queue.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queues</strong> – internal queues for job handling.</p></li>
+<li><p><strong>traces</strong> – tuple containing internal pilot states.</p></li>
+<li><p><strong>args</strong> – Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.payload.failed_post">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.payload.</span></code><code class="sig-name descname"><span class="pre">failed_post</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/payload.html#failed_post"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payload.failed_post" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a Job object from the “failed_payloads” queue. Set the pilot state to “stakeout” and the stageout field to
+“log”, and add the Job object to the “data_out” queue.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queues</strong> – internal queues for job handling.</p></li>
+<li><p><strong>traces</strong> – tuple containing internal pilot states.</p></li>
+<li><p><strong>args</strong> – Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.payload.get_payload_executor">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.payload.</span></code><code class="sig-name descname"><span class="pre">get_payload_executor</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/payload.html#get_payload_executor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payload.get_payload_executor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get payload executor function for different payload.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – args object.</p></li>
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>out</strong> – </p></li>
+<li><p><strong>err</strong> – </p></li>
+<li><p><strong>traces</strong> – traces object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>instance of a payload executor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.payload.perform_initial_payload_error_analysis">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.payload.</span></code><code class="sig-name descname"><span class="pre">perform_initial_payload_error_analysis</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exit_code</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/payload.html#perform_initial_payload_error_analysis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payload.perform_initial_payload_error_analysis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform an initial analysis of the payload.
+Singularity errors are caught here.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>exit_code</strong> – exit code from payload execution.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.payload.set_cpu_consumption_time">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.payload.</span></code><code class="sig-name descname"><span class="pre">set_cpu_consumption_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/payload.html#set_cpu_consumption_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payload.set_cpu_consumption_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the CPU consumption time.
+:param job: job object.
+:return:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.payload.set_error_code_from_stderr">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.payload.</span></code><code class="sig-name descname"><span class="pre">set_error_code_from_stderr</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fatal</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/payload.html#set_error_code_from_stderr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payload.set_error_code_from_stderr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identify specific errors in stderr and set the corresponding error code.
+The function returns 0 if no error is recognized.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>msg</strong> – stderr (string).</p></li>
+<li><p><strong>fatal</strong> – boolean flag if fatal error among warning messages in stderr.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>error code (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.payload.validate_post">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.payload.</span></code><code class="sig-name descname"><span class="pre">validate_post</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/payload.html#validate_post"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payload.validate_post" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate finished payloads.
+If payload finished correctly, add the job to the data_out queue. If it failed, add it to the data_out queue as
+well but only for log stage-out (in failed_post() below).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queues</strong> – internal queues for job handling.</p></li>
+<li><p><strong>traces</strong> – tuple containing internal pilot states.</p></li>
+<li><p><strong>args</strong> – Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.payload.validate_pre">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.payload.</span></code><code class="sig-name descname"><span class="pre">validate_pre</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/payload.html#validate_pre"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payload.validate_pre" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a Job object from the “payloads” queue and validate it.</p>
+<p>If the payload is successfully validated (user defined), the Job object is placed in the “validated_payloads” queue,
+otherwise it is placed in the “failed_payloads” queue.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queues</strong> – internal queues for job handling.</p></li>
+<li><p><strong>traces</strong> – tuple containing internal pilot states.</p></li>
+<li><p><strong>args</strong> – Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../util/index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">control components</a><ul>
+      <li>Previous: <a href="monitor.html" title="previous chapter">monitor</a></li>
+      <li>Next: <a href="payloads/index.html" title="next chapter">payloads components</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/control/payload.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/control/payload.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

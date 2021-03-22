@@ -1,0 +1,242 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.user.atlas.nordugrid &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.user.atlas.nordugrid</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">xml.dom</span> <span class="kn">import</span> <span class="n">minidom</span>
+<span class="kn">from</span> <span class="nn">xml.etree</span> <span class="kn">import</span> <span class="n">ElementTree</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="XMLDictionary"><a class="viewcode-back" href="../../../../components/user/atlas/nordugrid.html#pilot.user.atlas.nordugrid.XMLDictionary">[docs]</a><span class="k">class</span> <span class="nc">XMLDictionary</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This is a helper class that is used to create the dictionary which is converted to the special XML files for</span>
+<span class="sd">    Nordugrid pilots.</span>
+<span class="sd">    Example dictionary:</span>
+<span class="sd">      dictionary = { &quot;outfiles&quot;: [ { &quot;file&quot;: { &quot;surl&quot;: &quot;some_surl&quot;, &quot;size&quot;: &quot;123&quot;, &quot;ad32&quot;: &quot;aaaaaaa&quot;,</span>
+<span class="sd">                                               &quot;guid&quot;: &quot;ababa22&quot;, &quot;lfn&quot;: &quot;some_lfn&quot;, &quot;dataset&quot;: &quot;some_dataset&quot;,</span>
+<span class="sd">                                               &quot;date&quot;: &quot;11/11/11&quot; } },</span>
+<span class="sd">                                    {}, {}, ..</span>
+<span class="sd">                                 ]</span>
+<span class="sd">                    }</span>
+
+<span class="sd">    Usage:</span>
+<span class="sd">      xmldic = XMLDictionary()</span>
+<span class="sd">      xmldic.add_to_list({&quot;surl&quot;: &quot;some_surl1&quot;, &quot;size&quot;: &quot;123&quot;, &quot;ad32&quot;: &quot;aaaaaaa&quot;, &quot;guid&quot;: &quot;ababa22&quot;, &quot;lfn&quot;: &quot;some_lfn&quot;,</span>
+<span class="sd">                          &quot;dataset&quot;: &quot;some_dataset&quot;, &quot;date&quot;: &quot;11/11/11&quot;})</span>
+<span class="sd">      dictionary = xmldic.get_dictionary()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_dictionary</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="XMLDictionary.__init__"><a class="viewcode-back" href="../../../../components/user/atlas/nordugrid.html#pilot.user.atlas.nordugrid.XMLDictionary.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rootname</span><span class="o">=</span><span class="s2">&quot;outfiles&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Standard init function.</span>
+<span class="sd">        :param rootname: name of the root key. There is only one root key in the Nordugrid XML file (&#39;outfiles&#39;).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dictionary</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dictionary</span><span class="p">[</span><span class="n">rootname</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="XMLDictionary.add_to_list"><a class="viewcode-back" href="../../../../components/user/atlas/nordugrid.html#pilot.user.atlas.nordugrid.XMLDictionary.add_to_list">[docs]</a>    <span class="k">def</span> <span class="nf">add_to_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dictionary</span><span class="p">,</span> <span class="n">rootname</span><span class="o">=</span><span class="s2">&quot;outfiles&quot;</span><span class="p">,</span> <span class="n">itemname</span><span class="o">=</span><span class="s2">&quot;file&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add dictionary to itemname key. See example in class header.</span>
+<span class="sd">        :param dictionary: dictionary to add to itemname key.</span>
+<span class="sd">        :param rootname: name of the root key. There is only one root key in the Nordugrid XML file (&#39;outfiles&#39;).</span>
+<span class="sd">        :param itemname: name of the item key. In the Nordugrid XML it should be called &#39;file&#39;.</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dictionary</span><span class="p">)</span> <span class="o">==</span> <span class="nb">dict</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dictionary</span><span class="p">[</span><span class="n">rootname</span><span class="p">])</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+                <span class="n">_dic</span> <span class="o">=</span> <span class="p">{</span><span class="n">itemname</span><span class="p">:</span> <span class="n">dictionary</span><span class="p">}</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_dictionary</span><span class="p">[</span><span class="n">rootname</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_dic</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;not a dictionary: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dictionary</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="XMLDictionary.get_dictionary"><a class="viewcode-back" href="../../../../components/user/atlas/nordugrid.html#pilot.user.atlas.nordugrid.XMLDictionary.get_dictionary">[docs]</a>    <span class="k">def</span> <span class="nf">get_dictionary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the dictionary to be converted to XML.</span>
+<span class="sd">        It should be populated with the dictionary added to it in add_to_list().</span>
+<span class="sd">        :return: dictionary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dictionary</span></div></div>
+
+
+<div class="viewcode-block" id="convert_to_xml"><a class="viewcode-back" href="../../../../components/user/atlas/nordugrid.html#pilot.user.atlas.nordugrid.convert_to_xml">[docs]</a><span class="k">def</span> <span class="nf">convert_to_xml</span><span class="p">(</span><span class="n">dictionary</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert a dictionary to XML.</span>
+<span class="sd">    The dictionary is expected to follow the Nordugrid format. See the XMLDictionary helper class.</span>
+
+<span class="sd">    Example of XML (OutputFiles.xml):</span>
+
+<span class="sd">    &lt;?xml version=&quot;1.0&quot; ?&gt;</span>
+<span class="sd">    &lt;outfiles&gt;</span>
+<span class="sd">    &lt;file&gt;</span>
+<span class="sd">      &lt;ad32&gt;aaaaaaa&lt;/ad32&gt;</span>
+<span class="sd">      &lt;surl&gt;some_surl1&lt;/surl&gt;</span>
+<span class="sd">      &lt;lfn&gt;some_lfn&lt;/lfn&gt;</span>
+<span class="sd">      &lt;dataset&gt;some_dataset&lt;/dataset&gt;</span>
+<span class="sd">      &lt;date&gt;11/11/11&lt;/date&gt;</span>
+<span class="sd">      &lt;guid&gt;ababa22&lt;/guid&gt;</span>
+<span class="sd">      &lt;size&gt;123&lt;/size&gt;</span>
+<span class="sd">    &lt;/file&gt;</span>
+<span class="sd">    &lt;/outfiles&gt;</span>
+
+<span class="sd">    :param dictionary: dictionary created with XMLDictionary.</span>
+<span class="sd">    :return: xml (pretty printed for python &gt;= 2.7 - for older python, use the convert_to_prettyprint() function).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">failed</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">single_file_tag</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dictionary</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>  <span class="c1"># Python 2/3</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">single_file_tag</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;unexpected format - expected single entry, got </span><span class="si">%d</span><span class="s2"> entries&quot;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">single_file_tag</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;dictionary = </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">dictionary</span><span class="p">))</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">file_tag</span> <span class="o">=</span> <span class="n">single_file_tag</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="n">ElementTree</span><span class="o">.</span><span class="n">Element</span><span class="p">(</span><span class="n">file_tag</span><span class="p">)</span>
+
+    <span class="n">file_list</span> <span class="o">=</span> <span class="n">dictionary</span><span class="p">[</span><span class="n">file_tag</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">file_list</span><span class="p">)</span> <span class="o">==</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">file_entry</span> <span class="ow">in</span> <span class="n">file_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">file_entry</span><span class="p">)</span> <span class="o">==</span> <span class="nb">dict</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">file_entry</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">single_entry</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">file_entry</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># Python 2/3</span>
+
+                <span class="c1"># add the &#39;file&#39; element</span>
+                <span class="n">file_element</span> <span class="o">=</span> <span class="n">ElementTree</span><span class="o">.</span><span class="n">Element</span><span class="p">(</span><span class="n">single_entry</span><span class="p">)</span>
+                <span class="n">root</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file_element</span><span class="p">)</span>
+
+                <span class="n">file_dictionary</span> <span class="o">=</span> <span class="n">file_entry</span><span class="p">[</span><span class="n">single_entry</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">file_dictionary</span><span class="p">)</span> <span class="o">==</span> <span class="nb">dict</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">dictionary_entry</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">file_dictionary</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>  <span class="c1"># Python 2/3</span>
+                        <span class="c1"># convert all entries to xml elements</span>
+                        <span class="n">entry</span> <span class="o">=</span> <span class="n">ElementTree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">file_element</span><span class="p">,</span> <span class="n">dictionary_entry</span><span class="p">)</span>
+                        <span class="n">entry</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">file_dictionary</span><span class="p">[</span><span class="n">dictionary_entry</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;unexpected format - expected a dictionary, got </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">file_dictionary</span><span class="p">)</span>
+                    <span class="n">failed</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;unexpected format - expected a length 1 dictionary, got </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">file_entry</span><span class="p">)</span>
+                <span class="n">failed</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;unexpected format - expected a list, got </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">file_list</span><span class="p">)</span>
+        <span class="n">failed</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="n">failed</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="c1"># generate pretty print</span>
+    <span class="k">return</span> <span class="n">minidom</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">ElementTree</span><span class="o">.</span><span class="n">tostring</span><span class="p">(</span><span class="n">root</span><span class="p">))</span><span class="o">.</span><span class="n">toprettyxml</span><span class="p">(</span><span class="n">indent</span><span class="o">=</span><span class="s2">&quot;   &quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="convert_to_prettyprint"><a class="viewcode-back" href="../../../../components/user/atlas/nordugrid.html#pilot.user.atlas.nordugrid.convert_to_prettyprint">[docs]</a><span class="k">def</span> <span class="nf">convert_to_prettyprint</span><span class="p">(</span><span class="n">xmlstr</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert XML to pretty print for older python versions (&lt; 2.7).</span>
+<span class="sd">    :param xmlstr: input XML string</span>
+<span class="sd">    :return: XML string (pretty printed)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">text_re</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;&gt;\n\s+([^&lt;&gt;\s].*?)\n\s+&lt;/&#39;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span>  <span class="c1"># Python 3 (added r)</span>
+    <span class="k">return</span> <span class="n">text_re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;&gt;\g&lt;1&gt;&lt;/&#39;</span><span class="p">,</span> <span class="n">xmlstr</span><span class="p">)</span>  <span class="c1"># Python 3 (added r)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

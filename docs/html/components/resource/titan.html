@@ -1,0 +1,235 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>titan &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="user components" href="../user/index.html" />
+    <link rel="prev" title="summit" href="summit.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.resource.titan">
+<span id="titan"></span><h1>titan<a class="headerlink" href="#module-pilot.resource.titan" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt id="pilot.resource.titan.command_fix">
+<code class="sig-prename descclassname"><span class="pre">pilot.resource.titan.</span></code><code class="sig-name descname"><span class="pre">command_fix</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_scratch_dir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/resource/titan.html#command_fix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.resource.titan.command_fix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Modification of payload parameters, to be executed on Titan on RAM disk. Some cleanup.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>command</strong> – payload command (string).</p></li>
+<li><p><strong>job_scratch_dir</strong> – local path to input files (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated/fixed payload command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.resource.titan.get_job">
+<code class="sig-prename descclassname"><span class="pre">pilot.resource.titan.</span></code><code class="sig-name descname"><span class="pre">get_job</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">harvesterpath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/resource/titan.html#get_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.resource.titan.get_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return job description in dictionary and MPI rank (if applicable)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>harvesterpath</strong> – path to config.Harvester.jobs_list_file (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>job object, rank (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.resource.titan.get_setup">
+<code class="sig-prename descclassname"><span class="pre">pilot.resource.titan.</span></code><code class="sig-name descname"><span class="pre">get_setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/resource/titan.html#get_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.resource.titan.get_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the resource specific setup.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – optional job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>setup commands (list).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.resource.titan.postprocess_workdir">
+<code class="sig-prename descclassname"><span class="pre">pilot.resource.titan.</span></code><code class="sig-name descname"><span class="pre">postprocess_workdir</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/resource/titan.html#postprocess_workdir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.resource.titan.postprocess_workdir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Post-processing of working directory. Unlink paths.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>workdir</strong> – path to directory to be processed (string).</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference internal" href="../common/exception.html#pilot.common.exception.FileHandlingFailure" title="pilot.common.exception.FileHandlingFailure"><strong>FileHandlingFailure</strong></a> – in case of IOError.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.resource.titan.process_jobreport">
+<code class="sig-prename descclassname"><span class="pre">pilot.resource.titan.</span></code><code class="sig-name descname"><span class="pre">process_jobreport</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">payload_report_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_scratch_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_communication_point</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/resource/titan.html#process_jobreport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.resource.titan.process_jobreport" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copy job report file to make it accessible by Harvester. Shrink job report file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>payload_report_file</strong> – name of job report (string).</p></li>
+<li><p><strong>job_scratch_path</strong> – path to scratch directory (string).</p></li>
+<li><p><strong>job_communication_point</strong> – path to updated job report accessible by Harvester (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference internal" href="../common/exception.html#pilot.common.exception.FileHandlingFailure" title="pilot.common.exception.FileHandlingFailure"><strong>FileHandlingFailure</strong></a> – in case of IOError.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.resource.titan.set_job_workdir">
+<code class="sig-prename descclassname"><span class="pre">pilot.resource.titan.</span></code><code class="sig-name descname"><span class="pre">set_job_workdir</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/resource/titan.html#set_job_workdir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.resource.titan.set_job_workdir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Point pilot to job working directory (job id).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>path</strong> – local path to Harvester access point (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>job working directory (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.resource.titan.set_scratch_workdir">
+<code class="sig-prename descclassname"><span class="pre">pilot.resource.titan.</span></code><code class="sig-name descname"><span class="pre">set_scratch_workdir</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">work_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/resource/titan.html#set_scratch_workdir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.resource.titan.set_scratch_workdir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copy input files and some db files to RAM disk.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>work_dir</strong> – job working directory (permanent FS) (string).</p></li>
+<li><p><strong>args</strong> – args dictionary to collect timing metrics.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>job working directory in scratch (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../info/index.html">info components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../util/index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">resource components</a><ul>
+      <li>Previous: <a href="summit.html" title="previous chapter">summit</a></li>
+      <li>Next: <a href="../user/index.html" title="next chapter">user components</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/resource/titan.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/resource/titan.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

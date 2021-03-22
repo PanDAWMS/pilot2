@@ -1,0 +1,581 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.user.atlas.setup &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.user.atlas.setup</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+
+<span class="kn">from</span> <span class="nn">pilot.common.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
+<span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">NoSoftwareDir</span>
+<span class="kn">from</span> <span class="nn">pilot.info</span> <span class="kn">import</span> <span class="n">infosys</span>
+<span class="kn">from</span> <span class="nn">pilot.util.container</span> <span class="kn">import</span> <span class="n">execute</span>
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">read_file</span><span class="p">,</span> <span class="n">write_file</span><span class="p">,</span> <span class="n">copy</span>
+
+<span class="kn">from</span> <span class="nn">.metadata</span> <span class="kn">import</span> <span class="n">get_file_info_from_xml</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">errors</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="get_file_system_root_path"><a class="viewcode-back" href="../../../../components/user/atlas/setup.html#pilot.user.atlas.setup.get_file_system_root_path">[docs]</a><span class="k">def</span> <span class="nf">get_file_system_root_path</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the root path of the local file system.</span>
+<span class="sd">    The function returns &quot;/cvmfs&quot; or &quot;/(some path)/cvmfs&quot; in case the expected file system root path is not</span>
+<span class="sd">    where it usually is (e.g. on an HPC). A site can set the base path by exporting ATLAS_SW_BASE.</span>
+
+<span class="sd">    :return: path (string)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ATLAS_SW_BASE&#39;</span><span class="p">,</span> <span class="s1">&#39;/cvmfs&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="should_pilot_prepare_setup"><a class="viewcode-back" href="../../../../components/user/atlas/setup.html#pilot.user.atlas.setup.should_pilot_prepare_setup">[docs]</a><span class="k">def</span> <span class="nf">should_pilot_prepare_setup</span><span class="p">(</span><span class="n">noexecstrcnv</span><span class="p">,</span> <span class="n">jobpars</span><span class="p">,</span> <span class="n">imagename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determine whether the pilot should add the setup to the payload command or not.</span>
+<span class="sd">    The pilot will not add asetup if jobPars already contain the information (i.e. it was set by the payload creator).</span>
+<span class="sd">    If noExecStrCnv is set, then jobPars is expected to contain asetup.sh + options</span>
+<span class="sd">    If a stand-alone container / user defined container is used, pilot should not prepare asetup.</span>
+
+<span class="sd">    :param noexecstrcnv: boolean.</span>
+<span class="sd">    :param jobpars: job parameters (string).</span>
+<span class="sd">    :param imagename: container image (string).</span>
+<span class="sd">    :return: boolean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">imagename</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">noexecstrcnv</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;asetup.sh&quot;</span> <span class="ow">in</span> <span class="n">jobpars</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;asetup will be taken from jobPars&quot;</span><span class="p">)</span>
+            <span class="n">preparesetup</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;noExecStrCnv is set but asetup command was not found in jobPars (pilot will prepare asetup)&quot;</span><span class="p">)</span>
+            <span class="n">preparesetup</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;pilot will prepare the setup&quot;</span><span class="p">)</span>
+        <span class="n">preparesetup</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">preparesetup</span></div>
+
+
+<div class="viewcode-block" id="get_alrb_export"><a class="viewcode-back" href="../../../../components/user/atlas/setup.html#pilot.user.atlas.setup.get_alrb_export">[docs]</a><span class="k">def</span> <span class="nf">get_alrb_export</span><span class="p">(</span><span class="n">add_if</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the export command for the ALRB path if it exists.</span>
+<span class="sd">    If the path does not exist, return empty string.</span>
+
+<span class="sd">    :param add_if: Boolean. True means that an if statement will be placed around the export.</span>
+<span class="sd">    :return: export command</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/atlas.cern.ch/repo&quot;</span> <span class="o">%</span> <span class="n">get_file_system_root_path</span><span class="p">()</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;export ATLAS_LOCAL_ROOT_BASE=</span><span class="si">%s</span><span class="s2">/ATLASLocalRootBase;&quot;</span> <span class="o">%</span> <span class="n">path</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># if [ -z &quot;$ATLAS_LOCAL_ROOT_BASE&quot; ]; then export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase; fi;</span>
+    <span class="k">if</span> <span class="n">cmd</span> <span class="ow">and</span> <span class="n">add_if</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;if [ -z </span><span class="se">\&quot;</span><span class="s1">$ATLAS_LOCAL_ROOT_BASE</span><span class="se">\&quot;</span><span class="s1"> ]; then &#39;</span> <span class="o">+</span> <span class="n">cmd</span> <span class="o">+</span> <span class="s1">&#39; fi;&#39;</span>
+
+    <span class="k">return</span> <span class="n">cmd</span></div>
+
+
+<div class="viewcode-block" id="get_asetup"><a class="viewcode-back" href="../../../../components/user/atlas/setup.html#pilot.user.atlas.setup.get_asetup">[docs]</a><span class="k">def</span> <span class="nf">get_asetup</span><span class="p">(</span><span class="n">asetup</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">alrb</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">add_if</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Define the setup for asetup, i.e. including full path to asetup and setting of ATLAS_LOCAL_ROOT_BASE</span>
+<span class="sd">    Only include the actual asetup script if asetup=True. This is not needed if the jobPars contain the payload command</span>
+<span class="sd">    but the pilot still needs to add the exports and the atlasLocalSetup.</span>
+
+<span class="sd">    :param asetup: Boolean. True value means that the pilot should include the asetup command.</span>
+<span class="sd">    :param alrb: Boolean. True value means that the function should return special setup used with ALRB and containers.</span>
+<span class="sd">    :param add_if: Boolean. True means that an if statement will be placed around the export.</span>
+<span class="sd">    :raises: NoSoftwareDir if appdir does not exist.</span>
+<span class="sd">    :return: source &lt;path&gt;/asetup.sh (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">alrb_cmd</span> <span class="o">=</span> <span class="n">get_alrb_export</span><span class="p">(</span><span class="n">add_if</span><span class="o">=</span><span class="n">add_if</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">alrb_cmd</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">alrb_cmd</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">alrb</span><span class="p">:</span>
+            <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">&quot;source $</span><span class="si">{ATLAS_LOCAL_ROOT_BASE}</span><span class="s2">/user/atlasLocalSetup.sh --quiet;&quot;</span>
+            <span class="k">if</span> <span class="n">asetup</span><span class="p">:</span>
+                <span class="n">cmd</span> <span class="o">+=</span> <span class="s2">&quot;source $AtlasSetup/scripts/asetup.sh&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>  <span class="c1"># use try in case infosys has not been initiated</span>
+            <span class="n">appdir</span> <span class="o">=</span> <span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">appdir</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">appdir</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">appdir</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">appdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;VO_ATLAS_SW_DIR&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">appdir</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="c1"># make sure that the appdir exists</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">appdir</span><span class="p">):</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;appdir does not exist: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">appdir</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">NoSoftwareDir</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">asetup</span><span class="p">:</span>
+                <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;source </span><span class="si">%s</span><span class="s2">/scripts/asetup.sh&quot;</span> <span class="o">%</span> <span class="n">appdir</span>
+
+    <span class="c1"># do not return an empty string</span>
+    <span class="c1">#if not cmd:</span>
+    <span class="c1">#    cmd = &quot;what?&quot;</span>
+
+    <span class="k">return</span> <span class="n">cmd</span></div>
+
+
+<div class="viewcode-block" id="get_asetup_options"><a class="viewcode-back" href="../../../../components/user/atlas/setup.html#pilot.user.atlas.setup.get_asetup_options">[docs]</a><span class="k">def</span> <span class="nf">get_asetup_options</span><span class="p">(</span><span class="n">release</span><span class="p">,</span> <span class="n">homepackage</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determine the proper asetup options.</span>
+<span class="sd">    :param release: ATLAS release string.</span>
+<span class="sd">    :param homepackage: ATLAS homePackage string.</span>
+<span class="sd">    :return: asetup options (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">asetupopt</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">release</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;^Atlas-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">release</span><span class="p">)</span>
+
+    <span class="c1"># is it a user analysis homePackage?</span>
+    <span class="k">if</span> <span class="s1">&#39;AnalysisTransforms&#39;</span> <span class="ow">in</span> <span class="n">homepackage</span><span class="p">:</span>
+
+        <span class="n">_homepackage</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;^AnalysisTransforms-*&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">homepackage</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_homepackage</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="ow">or</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^\d+\.\d+\.\d+$&#39;</span><span class="p">,</span> <span class="n">release</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Python 3 (added r)</span>
+            <span class="k">if</span> <span class="n">release</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="n">asetupopt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">release</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_homepackage</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">asetupopt</span> <span class="o">+=</span> <span class="n">_homepackage</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="n">asetupopt</span> <span class="o">+=</span> <span class="n">homepackage</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">release</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">homepackage</span> <span class="ow">and</span> <span class="n">release</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">asetupopt</span><span class="p">:</span>
+            <span class="n">asetupopt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">release</span><span class="p">)</span>
+
+    <span class="c1"># Add the notest,here for all setups (not necessary for late releases but harmless to add)</span>
+    <span class="n">asetupopt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;notest&#39;</span><span class="p">)</span>
+    <span class="c1"># asetupopt.append(&#39;here&#39;)</span>
+
+    <span class="c1"># Add the fast option if possible (for the moment, check for locally defined env variable)</span>
+    <span class="k">if</span> <span class="s2">&quot;ATLAS_FAST_ASETUP&quot;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+        <span class="n">asetupopt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;fast&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">asetupopt</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="is_standard_atlas_job"><a class="viewcode-back" href="../../../../components/user/atlas/setup.html#pilot.user.atlas.setup.is_standard_atlas_job">[docs]</a><span class="k">def</span> <span class="nf">is_standard_atlas_job</span><span class="p">(</span><span class="n">release</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Is it a standard ATLAS job?</span>
+<span class="sd">    A job is a standard ATLAS job if the release string begins with &#39;Atlas-&#39;.</span>
+
+<span class="sd">    :param release: Release value (string).</span>
+<span class="sd">    :return: Boolean. Returns True if standard ATLAS job.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">release</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;Atlas-&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="set_inds"><a class="viewcode-back" href="../../../../components/user/atlas/setup.html#pilot.user.atlas.setup.set_inds">[docs]</a><span class="k">def</span> <span class="nf">set_inds</span><span class="p">(</span><span class="n">dataset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set the INDS environmental variable used by runAthena.</span>
+
+<span class="sd">    :param dataset: dataset for input files (realDatasetsIn) (string).</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">inds</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">_dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">_dataset</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;DBRelease&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span> <span class="ow">and</span> <span class="s2">&quot;.lib.&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
+            <span class="n">inds</span> <span class="o">=</span> <span class="n">ds</span>
+            <span class="k">break</span>
+    <span class="k">if</span> <span class="n">inds</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;setting INDS environmental variable to: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">inds</span><span class="p">))</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;INDS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">inds</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;INDS unknown&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_analysis_trf"><a class="viewcode-back" href="../../../../components/user/atlas/setup.html#pilot.user.atlas.setup.get_analysis_trf">[docs]</a><span class="k">def</span> <span class="nf">get_analysis_trf</span><span class="p">(</span><span class="n">transform</span><span class="p">,</span> <span class="n">workdir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prepare to download the user analysis transform with curl.</span>
+<span class="sd">    The function will verify the download location from a known list of hosts.</span>
+
+<span class="sd">    :param transform: full trf path (url) (string).</span>
+<span class="sd">    :param workdir: work directory (string).</span>
+<span class="sd">    :return: exit code (int), diagnostics (string), transform_name (string)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># test if $HARVESTER_WORKDIR is set</span>
+    <span class="n">harvester_workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HARVESTER_WORKDIR&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">harvester_workdir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">search_pattern</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/jobO.*.tar.gz&quot;</span> <span class="o">%</span> <span class="n">harvester_workdir</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;search_pattern - </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">search_pattern</span><span class="p">)</span>
+        <span class="n">jobopt_files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">search_pattern</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">jobopt_file</span> <span class="ow">in</span> <span class="n">jobopt_files</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;jobopt_file = </span><span class="si">%s</span><span class="s2"> workdir = </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">jobopt_file</span><span class="p">,</span> <span class="n">workdir</span><span class="p">))</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">copy</span><span class="p">(</span><span class="n">jobopt_file</span><span class="p">,</span> <span class="n">workdir</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;could not copy file </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2"> : </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">jobopt_file</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="s1">&#39;/&#39;</span> <span class="ow">in</span> <span class="n">transform</span><span class="p">:</span>
+        <span class="n">transform_name</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;did not detect any / in </span><span class="si">%s</span><span class="s1"> (using full transform name)&#39;</span> <span class="o">%</span> <span class="n">transform</span><span class="p">)</span>
+        <span class="n">transform_name</span> <span class="o">=</span> <span class="n">transform</span>
+
+    <span class="c1"># is the command already available? (e.g. if already downloaded by a preprocess/main process step)</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">)):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;script </span><span class="si">%s</span><span class="s1"> is already available - no need to download again&#39;</span> <span class="o">%</span> <span class="n">transform_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="n">transform_name</span>
+
+    <span class="n">original_base_url</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># verify the base URL</span>
+    <span class="k">for</span> <span class="n">base_url</span> <span class="ow">in</span> <span class="n">get_valid_base_urls</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">transform</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">base_url</span><span class="p">):</span>
+            <span class="n">original_base_url</span> <span class="o">=</span> <span class="n">base_url</span>
+            <span class="k">break</span>
+
+    <span class="k">if</span> <span class="n">original_base_url</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;invalid base URL: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">transform</span>
+        <span class="k">return</span> <span class="n">errors</span><span class="o">.</span><span class="n">TRFDOWNLOADFAILURE</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># try to download from the required location, if not - switch to backup</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">base_url</span> <span class="ow">in</span> <span class="n">get_valid_base_urls</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">original_base_url</span><span class="p">):</span>
+        <span class="n">trf</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">original_base_url</span><span class="p">,</span> <span class="n">base_url</span><span class="p">,</span> <span class="n">transform</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;attempting to download script: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">trf</span><span class="p">)</span>
+        <span class="n">status</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">download_transform</span><span class="p">(</span><span class="n">trf</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">,</span> <span class="n">workdir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">status</span><span class="p">:</span>
+            <span class="k">break</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">status</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">errors</span><span class="o">.</span><span class="n">TRFDOWNLOADFAILURE</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;successfully downloaded script&quot;</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;changing permission of </span><span class="si">%s</span><span class="s2"> to 0o755&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="mo">0o755</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;failed to chmod </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">transform_name</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">errors</span><span class="o">.</span><span class="n">CHMODTRF</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="n">transform_name</span></div>
+
+
+<div class="viewcode-block" id="download_transform"><a class="viewcode-back" href="../../../../components/user/atlas/setup.html#pilot.user.atlas.setup.download_transform">[docs]</a><span class="k">def</span> <span class="nf">download_transform</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">,</span> <span class="n">workdir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Download the transform from the given url</span>
+<span class="sd">    :param url: download URL with path to transform (string).</span>
+<span class="sd">    :param transform_name: trf name (string).</span>
+<span class="sd">    :param workdir: work directory (string).</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">)</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;curl -sS </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1"> &gt; </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+    <span class="n">trial</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">max_trials</span> <span class="o">=</span> <span class="mi">3</span>
+
+    <span class="c1"># test if $HARVESTER_WORKDIR is set</span>
+    <span class="n">harvester_workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HARVESTER_WORKDIR&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">harvester_workdir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># skip curl by setting max_trials = 0</span>
+        <span class="n">max_trials</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">source_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">harvester_workdir</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">copy</span><span class="p">(</span><span class="n">source_path</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;Failed to copy file </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2"> : </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">source_path</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+
+    <span class="c1"># try to download the trf a maximum of 3 times</span>
+    <span class="k">while</span> <span class="n">trial</span> <span class="o">&lt;=</span> <span class="n">max_trials</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;executing command [trial </span><span class="si">%d</span><span class="s2">/</span><span class="si">%d</span><span class="s2">]: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">max_trials</span><span class="p">,</span> <span class="n">cmd</span><span class="p">))</span>
+
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">stdout</span><span class="p">:</span>
+            <span class="n">stdout</span> <span class="o">=</span> <span class="s2">&quot;(None)&quot;</span>
+        <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Analyze exit code / output</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;curl command failed: </span><span class="si">%d</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">trial</span> <span class="o">==</span> <span class="n">max_trials</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;could not download transform: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">stdout</span><span class="p">)</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;will try again after 60 s&quot;</span><span class="p">)</span>
+                <span class="n">sleep</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;curl command returned: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">stdout</span><span class="p">)</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">break</span>
+        <span class="n">trial</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">status</span><span class="p">,</span> <span class="n">diagnostics</span></div>
+
+
+<div class="viewcode-block" id="get_valid_base_urls"><a class="viewcode-back" href="../../../../components/user/atlas/setup.html#pilot.user.atlas.setup.get_valid_base_urls">[docs]</a><span class="k">def</span> <span class="nf">get_valid_base_urls</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of valid base URLs from where the user analysis transform may be downloaded from.</span>
+<span class="sd">    If order is defined, return given item first.</span>
+<span class="sd">    E.g. order=http://atlpan.web.cern.ch/atlpan -&gt; [&#39;http://atlpan.web.cern.ch/atlpan&#39;, ...]</span>
+<span class="sd">    NOTE: the URL list may be out of date.</span>
+
+<span class="sd">    :param order: order (string).</span>
+<span class="sd">    :return: valid base URLs (list).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">valid_base_urls</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">_valid_base_urls</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;http://www.usatlas.bnl.gov&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;https://www.usatlas.bnl.gov&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;http://pandaserver.cern.ch&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;http://atlpan.web.cern.ch/atlpan&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;https://atlpan.web.cern.ch/atlpan&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;http://classis01.roma1.infn.it&quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;http://atlas-install.roma1.infn.it&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">order</span><span class="p">:</span>
+        <span class="n">valid_base_urls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">url</span> <span class="ow">in</span> <span class="n">_valid_base_urls</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">url</span> <span class="o">!=</span> <span class="n">order</span><span class="p">:</span>
+                <span class="n">valid_base_urls</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">valid_base_urls</span> <span class="o">=</span> <span class="n">_valid_base_urls</span>
+
+    <span class="k">return</span> <span class="n">valid_base_urls</span></div>
+
+
+<div class="viewcode-block" id="get_payload_environment_variables"><a class="viewcode-back" href="../../../../components/user/atlas/setup.html#pilot.user.atlas.setup.get_payload_environment_variables">[docs]</a><span class="k">def</span> <span class="nf">get_payload_environment_variables</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">job_id</span><span class="p">,</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">attempt_nr</span><span class="p">,</span> <span class="n">processing_type</span><span class="p">,</span> <span class="n">site_name</span><span class="p">,</span> <span class="n">analysis_job</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return an array with enviroment variables needed by the payload.</span>
+
+<span class="sd">    :param cmd: payload execution command (string).</span>
+<span class="sd">    :param job_id: PanDA job id (string).</span>
+<span class="sd">    :param task_id: PanDA task id (string).</span>
+<span class="sd">    :param attempt_nr: PanDA job attempt number (int).</span>
+<span class="sd">    :param processing_type: processing type (string).</span>
+<span class="sd">    :param site_name: site name (string).</span>
+<span class="sd">    :param analysis_job: True for user analysis jobs, False otherwise (boolean).</span>
+<span class="sd">    :return: list of environment variables needed by the payload.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">variables</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;export PANDA_RESOURCE=</span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">site_name</span><span class="p">)</span>
+    <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;export FRONTIER_ID=</span><span class="se">\&quot;</span><span class="s1">[</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">]</span><span class="se">\&quot;</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">task_id</span><span class="p">,</span> <span class="n">job_id</span><span class="p">))</span>
+    <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;export CMSSW_VERSION=$FRONTIER_ID;&#39;</span><span class="p">)</span>
+    <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;export PandaID=</span><span class="si">%s</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PANDAID&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">))</span>
+    <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;export PanDA_TaskID=</span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PanDA_TaskID&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">))</span>
+    <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;export PanDA_AttemptNr=</span><span class="se">\&#39;</span><span class="si">%d</span><span class="se">\&#39;</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">attempt_nr</span><span class="p">)</span>
+    <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;export INDS=</span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;INDS&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">))</span>
+
+    <span class="c1"># Unset ATHENA_PROC_NUMBER if set for event service Merge jobs</span>
+    <span class="k">if</span> <span class="s2">&quot;Merge_tf&quot;</span> <span class="ow">in</span> <span class="n">cmd</span> <span class="ow">and</span> <span class="s1">&#39;ATHENA_PROC_NUMBER&#39;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+        <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;unset ATHENA_PROC_NUMBER;&#39;</span><span class="p">)</span>
+        <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;unset ATHENA_CORE_NUMBER;&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">analysis_job</span><span class="p">:</span>
+        <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;export ROOT_TTREECACHE_SIZE=1;&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">core_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ATHENA_PROC_NUMBER&#39;</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">_core_count</span> <span class="o">=</span> <span class="s1">&#39;export ROOTCORE_NCPUS=1;&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_core_count</span> <span class="o">=</span> <span class="s1">&#39;export ROOTCORE_NCPUS=</span><span class="si">%d</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">core_count</span>
+        <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_core_count</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">processing_type</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;RUCIO_APPID needs job.processingType but it is not set!&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;export RUCIO_APPID=</span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">processing_type</span><span class="p">)</span>
+    <span class="n">variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;export RUCIO_ACCOUNT=</span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;RUCIO_ACCOUNT&#39;</span><span class="p">,</span> <span class="s1">&#39;pilot&#39;</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">variables</span></div>
+
+
+<div class="viewcode-block" id="get_writetoinput_filenames"><a class="viewcode-back" href="../../../../components/user/atlas/setup.html#pilot.user.atlas.setup.get_writetoinput_filenames">[docs]</a><span class="k">def</span> <span class="nf">get_writetoinput_filenames</span><span class="p">(</span><span class="n">writetofile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract the writeToFile file name(s).</span>
+<span class="sd">    writeToFile=&#39;tmpin_mc16_13TeV.345935.PhPy8EG_A14_ttbarMET100_200_hdamp258p75_nonallhad.merge.AOD.e6620_e5984_s3126_r10724_r10726_tid15760866_00:AOD.15760866._000002.pool.root.1&#39;</span>
+<span class="sd">    -&gt; return &#39;tmpin_mc16_13TeV.345935.PhPy8EG_A14_ttbarMET100_200_hdamp258p75_nonallhad.merge.AOD.e6620_e5984_s3126_r10724_r10726_tid15760866_00&#39;</span>
+
+<span class="sd">    :param writetofile: string containing file name information.</span>
+<span class="sd">    :return: list of file names</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">filenames</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">entries</span> <span class="o">=</span> <span class="n">writetofile</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;^&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;:&#39;</span> <span class="ow">in</span> <span class="n">entry</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.pool.root.&#39;</span><span class="p">,</span> <span class="s1">&#39;.txt.&#39;</span><span class="p">)</span>  <span class="c1"># not necessary?</span>
+            <span class="n">filenames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">filenames</span></div>
+
+
+<div class="viewcode-block" id="replace_lfns_with_turls"><a class="viewcode-back" href="../../../../components/user/atlas/setup.html#pilot.user.atlas.setup.replace_lfns_with_turls">[docs]</a><span class="k">def</span> <span class="nf">replace_lfns_with_turls</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">infiles</span><span class="p">,</span> <span class="n">writetofile</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Replace all LFNs with full TURLs in the payload execution command.</span>
+
+<span class="sd">    This function is used with direct access in production jobs. Athena requires a full TURL instead of LFN.</span>
+
+<span class="sd">    :param cmd: payload execution command (string).</span>
+<span class="sd">    :param workdir: location of metadata file (string).</span>
+<span class="sd">    :param filename: metadata file name (string).</span>
+<span class="sd">    :param infiles: list of input files.</span>
+<span class="sd">    :param writetofile:</span>
+<span class="sd">    :return: updated cmd (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">turl_dictionary</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># { LFN: TURL, ..}</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">file_info_dictionary</span> <span class="o">=</span> <span class="n">get_file_info_from_xml</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">inputfile</span> <span class="ow">in</span> <span class="n">infiles</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">inputfile</span> <span class="ow">in</span> <span class="n">cmd</span><span class="p">:</span>
+                <span class="n">turl</span> <span class="o">=</span> <span class="n">file_info_dictionary</span><span class="p">[</span><span class="n">inputfile</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">turl_dictionary</span><span class="p">[</span><span class="n">inputfile</span><span class="p">]</span> <span class="o">=</span> <span class="n">turl</span>
+                <span class="c1"># if turl.startswith(&#39;root://&#39;) and turl not in cmd:</span>
+                <span class="k">if</span> <span class="n">turl</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cmd</span><span class="p">:</span>
+                    <span class="n">cmd</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">inputfile</span><span class="p">,</span> <span class="n">turl</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;replaced &#39;</span><span class="si">%s</span><span class="s2">&#39; with &#39;</span><span class="si">%s</span><span class="s2">&#39; in the run command&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">inputfile</span><span class="p">,</span> <span class="n">turl</span><span class="p">))</span>
+
+        <span class="c1"># replace the LFNs with TURLs in the writetofile input file list (if it exists)</span>
+        <span class="k">if</span> <span class="n">writetofile</span> <span class="ow">and</span> <span class="n">turl_dictionary</span><span class="p">:</span>
+            <span class="n">filenames</span> <span class="o">=</span> <span class="n">get_writetoinput_filenames</span><span class="p">(</span><span class="n">writetofile</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;filenames=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">filenames</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
+                <span class="n">new_lines</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+                    <span class="n">f</span> <span class="o">=</span> <span class="n">read_file</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+                        <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">turl_dictionary</span><span class="p">:</span>
+                            <span class="n">turl</span> <span class="o">=</span> <span class="n">turl_dictionary</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span>
+                            <span class="n">new_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">turl</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">line</span><span class="p">:</span>
+                                <span class="n">new_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+                    <span class="n">lines</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_lines</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">lines</span><span class="p">:</span>
+                        <span class="n">write_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">lines</span><span class="p">)</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;lines=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">lines</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;file does not exist: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;could not find file: </span><span class="si">%s</span><span class="s2"> (cannot locate TURLs for direct access)&quot;</span> <span class="o">%</span> <span class="n">filename</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cmd</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

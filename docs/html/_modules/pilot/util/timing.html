@@ -1,0 +1,502 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.util.timing &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.util.timing</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018</span>
+
+<span class="c1"># Note: The Pilot 2 modules that need to record timing measurements, can do so using the add_to_pilot_timing() function.</span>
+<span class="c1"># When the timing measurements need to be recorded, the high-level functions, e.g. get_getjob_time(), can be used.</span>
+
+<span class="c1"># Structure of pilot timing dictionary:</span>
+<span class="c1">#     { job_id: { &lt;timing_constant_1&gt;: &lt;time measurement in seconds since epoch&gt;, .. }</span>
+<span class="c1"># job_id = 0 means timing information from wrapper. Timing constants are defined in pilot.util.constants.</span>
+<span class="c1"># Time measurement are time.time() values. The float value will be converted to an int as a last step.</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">PILOT_START_TIME</span><span class="p">,</span> <span class="n">PILOT_PRE_GETJOB</span><span class="p">,</span> <span class="n">PILOT_POST_GETJOB</span><span class="p">,</span> <span class="n">PILOT_PRE_SETUP</span><span class="p">,</span> \
+    <span class="n">PILOT_POST_SETUP</span><span class="p">,</span> <span class="n">PILOT_PRE_STAGEIN</span><span class="p">,</span> <span class="n">PILOT_POST_STAGEIN</span><span class="p">,</span> <span class="n">PILOT_PRE_PAYLOAD</span><span class="p">,</span> <span class="n">PILOT_POST_PAYLOAD</span><span class="p">,</span> <span class="n">PILOT_PRE_STAGEOUT</span><span class="p">,</span>\
+    <span class="n">PILOT_POST_STAGEOUT</span><span class="p">,</span> <span class="n">PILOT_PRE_FINAL_UPDATE</span><span class="p">,</span> <span class="n">PILOT_POST_FINAL_UPDATE</span><span class="p">,</span> <span class="n">PILOT_END_TIME</span><span class="p">,</span> <span class="n">PILOT_MULTIJOB_START_TIME</span>
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">read_json</span><span class="p">,</span> <span class="n">write_json</span>
+<span class="c1">#from pilot.util.mpi import get_ranks_info</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="read_pilot_timing"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.read_pilot_timing">[docs]</a><span class="k">def</span> <span class="nf">read_pilot_timing</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read the pilot timing dictionary from file.</span>
+
+<span class="sd">    :return: pilot timing dictionary (json dictionary).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pilot_timing_dictionary</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">timing_file</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">pilot_timing_dictionary</span> <span class="o">=</span> <span class="n">read_json</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">pilot_timing_dictionary</span></div>
+
+
+<div class="viewcode-block" id="write_pilot_timing"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.write_pilot_timing">[docs]</a><span class="k">def</span> <span class="nf">write_pilot_timing</span><span class="p">(</span><span class="n">pilot_timing_dictionary</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write the given pilot timing dictionary to file.</span>
+
+<span class="sd">    :param pilot_timing_dictionary:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">timing_file</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">timing_file</span>
+    <span class="c1">#rank, max_ranks = get_ranks_info()</span>
+    <span class="c1">#if rank is not None:</span>
+    <span class="c1">#    timing_file += &#39;_{0}&#39;.format(rank)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="n">timing_file</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">write_json</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">pilot_timing_dictionary</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;updated pilot timing dictionary: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to update pilot timing dictionary: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="add_to_pilot_timing"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.add_to_pilot_timing">[docs]</a><span class="k">def</span> <span class="nf">add_to_pilot_timing</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">timing_constant</span><span class="p">,</span> <span class="n">time_measurement</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add the given timing contant and measurement got job_id to the pilot timing dictionary.</span>
+
+<span class="sd">    :param job_id: PanDA job id (string).</span>
+<span class="sd">    :param timing_constant: timing constant (string).</span>
+<span class="sd">    :param time_measurement: time measurement (float).</span>
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :param store: if True, write timing dictionary to file. False by default.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">timing</span> <span class="o">==</span> <span class="p">{}:</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">timing</span><span class="p">[</span><span class="n">job_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">timing_constant</span><span class="p">:</span> <span class="n">time_measurement</span><span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">job_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">timing</span><span class="p">:</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">timing</span><span class="p">[</span><span class="n">job_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">timing</span><span class="p">[</span><span class="n">job_id</span><span class="p">][</span><span class="n">timing_constant</span><span class="p">]</span> <span class="o">=</span> <span class="n">time_measurement</span>
+
+    <span class="c1"># update the file</span>
+    <span class="k">if</span> <span class="n">store</span><span class="p">:</span>
+        <span class="n">write_pilot_timing</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">timing</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_initial_setup_time"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.get_initial_setup_time">[docs]</a><span class="k">def</span> <span class="nf">get_initial_setup_time</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    High level function that returns the time for the initial setup.</span>
+<span class="sd">    The initial setup time is measured from PILOT_START_TIME to PILOT_PRE_GETJOB.</span>
+
+<span class="sd">    :param job_id: PanDA job id (string).</span>
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :return: time in seconds (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">get_time_difference</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">PILOT_MULTIJOB_START_TIME</span><span class="p">,</span> <span class="n">PILOT_PRE_GETJOB</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_getjob_time"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.get_getjob_time">[docs]</a><span class="k">def</span> <span class="nf">get_getjob_time</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    High level function that returns the time for the getjob operation for the given job_id.</span>
+
+<span class="sd">    :param job_id: PanDA job id (string).</span>
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :return: time in seconds (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">get_time_difference</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">PILOT_PRE_GETJOB</span><span class="p">,</span> <span class="n">PILOT_POST_GETJOB</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_setup_time"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.get_setup_time">[docs]</a><span class="k">def</span> <span class="nf">get_setup_time</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    High level function that returns the time for the setup operation for the given job_id.</span>
+
+<span class="sd">    :param job_id: PanDA job id (string).</span>
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :return: time in seconds (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">get_time_difference</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">PILOT_PRE_SETUP</span><span class="p">,</span> <span class="n">PILOT_POST_SETUP</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_stagein_time"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.get_stagein_time">[docs]</a><span class="k">def</span> <span class="nf">get_stagein_time</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    High level function that returns the time for the stage-in operation for the given job_id.</span>
+
+<span class="sd">    :param job_id: PanDA job id (string).</span>
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :return: time in seconds (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">get_time_difference</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">PILOT_PRE_STAGEIN</span><span class="p">,</span> <span class="n">PILOT_POST_STAGEIN</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_stageout_time"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.get_stageout_time">[docs]</a><span class="k">def</span> <span class="nf">get_stageout_time</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    High level function that returns the time for the stage-out operation for the given job_id.</span>
+
+<span class="sd">    :param job_id: PanDA job id (string).</span>
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :return: time in seconds (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">get_time_difference</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">PILOT_PRE_STAGEOUT</span><span class="p">,</span> <span class="n">PILOT_POST_STAGEOUT</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_payload_execution_time"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.get_payload_execution_time">[docs]</a><span class="k">def</span> <span class="nf">get_payload_execution_time</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    High level function that returns the time for the payload execution for the given job_id.</span>
+
+<span class="sd">    :param job_id: PanDA job id (string).</span>
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :return: time in seconds (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">get_time_difference</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">PILOT_PRE_PAYLOAD</span><span class="p">,</span> <span class="n">PILOT_POST_PAYLOAD</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_final_update_time"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.get_final_update_time">[docs]</a><span class="k">def</span> <span class="nf">get_final_update_time</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    High level function that returns the time for execution the final update for the given job_id.</span>
+
+<span class="sd">    :param job_id: PanDA job id (string).</span>
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :return: time in seconds (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">get_time_difference</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">PILOT_PRE_FINAL_UPDATE</span><span class="p">,</span> <span class="n">PILOT_POST_FINAL_UPDATE</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_total_pilot_time"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.get_total_pilot_time">[docs]</a><span class="k">def</span> <span class="nf">get_total_pilot_time</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    High level function that returns the end time for the given job_id.</span>
+<span class="sd">    This means the wall time that has passed from the start of the pilot until after the last job update.</span>
+
+<span class="sd">    :param job_id: PanDA job id (string).</span>
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :return: time in seconds (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">get_time_difference</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">PILOT_START_TIME</span><span class="p">,</span> <span class="n">PILOT_END_TIME</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_postgetjob_time"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.get_postgetjob_time">[docs]</a><span class="k">def</span> <span class="nf">get_postgetjob_time</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the post getjob time.</span>
+
+<span class="sd">    :param job_id: job object.</span>
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :return: post getjob time measurement (int). In case of failure, return None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">time_measurement</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">timing_constant</span> <span class="o">=</span> <span class="n">PILOT_POST_GETJOB</span>
+
+    <span class="k">if</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">timing</span><span class="p">:</span>
+        <span class="c1"># extract time measurements</span>
+        <span class="n">time_measurement_dictionary</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">timing</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">time_measurement_dictionary</span><span class="p">:</span>
+            <span class="n">time_measurement</span> <span class="o">=</span> <span class="n">time_measurement_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">timing_constant</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">time_measurement</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to extract time measurement </span><span class="si">%s</span><span class="s1"> from </span><span class="si">%s</span><span class="s1"> (no such key)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">timing_constant</span><span class="p">,</span> <span class="n">time_measurement_dictionary</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">time_measurement</span></div>
+
+
+<div class="viewcode-block" id="get_time_measurement"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.get_time_measurement">[docs]</a><span class="k">def</span> <span class="nf">get_time_measurement</span><span class="p">(</span><span class="n">timing_constant</span><span class="p">,</span> <span class="n">time_measurement_dictionary</span><span class="p">,</span> <span class="n">timing_dictionary</span><span class="p">,</span> <span class="n">job_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a requested time measurement from the time measurement dictionary, read from the pilot timing file.</span>
+
+<span class="sd">    :param timing_constant: timing constant (e.g. PILOT_MULTIJOB_START_TIME)</span>
+<span class="sd">    :param time_measurement_dictionary: time measurement dictionary, extracted from pilot timing dictionary.</span>
+<span class="sd">    :param timing_dictionary: full timing dictionary from pilot timing file.</span>
+<span class="sd">    :param job_id: PanDA job id (string).</span>
+<span class="sd">    :return: time measurement (float).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">time_measurement</span> <span class="o">=</span> <span class="n">time_measurement_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">timing_constant</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">time_measurement</span><span class="p">:</span>
+        <span class="c1"># try to get the measurement for the PILOT_MULTIJOB_START_TIME dictionary</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span> <span class="k">if</span> <span class="n">timing_constant</span> <span class="o">==</span> <span class="n">PILOT_START_TIME</span> <span class="k">else</span> <span class="s1">&#39;1&#39;</span>
+        <span class="n">time_measurement_dictionary_0</span> <span class="o">=</span> <span class="n">timing_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">time_measurement_dictionary_0</span><span class="p">:</span>
+            <span class="n">time_measurement</span> <span class="o">=</span> <span class="n">time_measurement_dictionary_0</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">timing_constant</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to extract time measurement </span><span class="si">%s</span><span class="s1"> from </span><span class="si">%s</span><span class="s1"> (no such key)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">timing_constant</span><span class="p">,</span> <span class="n">time_measurement_dictionary</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">time_measurement</span></div>
+
+
+<div class="viewcode-block" id="get_time_since_start"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.get_time_since_start">[docs]</a><span class="k">def</span> <span class="nf">get_time_since_start</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the amount of time that has passed since the pilot was launched.</span>
+
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :return: time in seconds (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">get_time_since</span><span class="p">(</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="n">PILOT_START_TIME</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_time_since_multijob_start"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.get_time_since_multijob_start">[docs]</a><span class="k">def</span> <span class="nf">get_time_since_multijob_start</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the amount of time that has passed since the last multi job was launched.</span>
+
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :return: time in seconds (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">get_time_since</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="n">PILOT_MULTIJOB_START_TIME</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_time_since"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.get_time_since">[docs]</a><span class="k">def</span> <span class="nf">get_time_since</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">timing_constant</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the amount of time that has passed since the time measurement of timing_constant.</span>
+
+<span class="sd">    :param job_id: PanDA job id (string).</span>
+<span class="sd">    :param timing_constant:</span>
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :return: time in seconds (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">diff</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">timing</span><span class="p">:</span>
+
+        <span class="c1"># extract time measurements</span>
+        <span class="n">time_measurement_dictionary</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">timing</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">time_measurement_dictionary</span><span class="p">:</span>
+            <span class="n">time_measurement</span> <span class="o">=</span> <span class="n">get_time_measurement</span><span class="p">(</span><span class="n">timing_constant</span><span class="p">,</span> <span class="n">time_measurement_dictionary</span><span class="p">,</span>
+                                                    <span class="n">args</span><span class="o">.</span><span class="n">timing</span><span class="p">,</span> <span class="n">job_id</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">time_measurement</span><span class="p">:</span>
+                <span class="n">diff</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">time_measurement</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to extract time measurement dictionary from </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">timing</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;job id </span><span class="si">%s</span><span class="s1"> not found in timing dictionary&#39;</span> <span class="o">%</span> <span class="n">job_id</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">diff</span></div>
+
+
+<div class="viewcode-block" id="get_time_difference"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.get_time_difference">[docs]</a><span class="k">def</span> <span class="nf">get_time_difference</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">timing_constant_1</span><span class="p">,</span> <span class="n">timing_constant_2</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the positive time difference between the given constants.</span>
+<span class="sd">    The order is not important and a positive difference is always returned. The function collects the time measurements</span>
+<span class="sd">    corresponding to the given timing constants from the pilot timing file.</span>
+<span class="sd">    The job_id is used internally as a dictionary key. The given timing constants and their timing measurements, belong</span>
+<span class="sd">    to the given job_id.</span>
+<span class="sd">    Structure of pilot timing dictionary:</span>
+<span class="sd">        { job_id: { &lt;timing_constant_1&gt;: &lt;time measurement in seconds since epoch&gt;, .. }</span>
+<span class="sd">    job_id = 0 means timing information from wrapper. Timing constants are defined in pilot.util.constants.</span>
+<span class="sd">    Time measurement are time.time() values. The float value will be converted to an int as a last step.</span>
+
+<span class="sd">    :param job_id: PanDA job id (string).</span>
+<span class="sd">    :param timing_constant_1:</span>
+<span class="sd">    :param timing_constant_2:</span>
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :return: time difference in seconds (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">diff</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">timing</span><span class="p">:</span>
+
+        <span class="c1"># extract time measurements</span>
+        <span class="n">time_measurement_dictionary</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">timing</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">time_measurement_dictionary</span><span class="p">:</span>
+
+            <span class="n">time_measurement_1</span> <span class="o">=</span> <span class="n">get_time_measurement</span><span class="p">(</span><span class="n">timing_constant_1</span><span class="p">,</span> <span class="n">time_measurement_dictionary</span><span class="p">,</span>
+                                                      <span class="n">args</span><span class="o">.</span><span class="n">timing</span><span class="p">,</span> <span class="n">job_id</span><span class="p">)</span>
+            <span class="n">time_measurement_2</span> <span class="o">=</span> <span class="n">get_time_measurement</span><span class="p">(</span><span class="n">timing_constant_2</span><span class="p">,</span> <span class="n">time_measurement_dictionary</span><span class="p">,</span>
+                                                      <span class="n">args</span><span class="o">.</span><span class="n">timing</span><span class="p">,</span> <span class="n">job_id</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">time_measurement_1</span> <span class="ow">and</span> <span class="n">time_measurement_2</span><span class="p">:</span>
+                <span class="n">diff</span> <span class="o">=</span> <span class="n">time_measurement_2</span> <span class="o">-</span> <span class="n">time_measurement_1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to extract time measurement dictionary from </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">timing</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;job id </span><span class="si">%s</span><span class="s1"> not found in timing dictionary&#39;</span> <span class="o">%</span> <span class="n">job_id</span><span class="p">)</span>
+
+    <span class="c1"># always return a positive number</span>
+    <span class="k">if</span> <span class="n">diff</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="o">-</span><span class="n">diff</span>
+
+    <span class="c1"># convert to int as a last step</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert </span><span class="si">%s</span><span class="s1"> to int: </span><span class="si">%s</span><span class="s1"> (will reset to 0)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">diff</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">return</span> <span class="n">diff</span></div>
+
+
+<div class="viewcode-block" id="timing_report"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.timing_report">[docs]</a><span class="k">def</span> <span class="nf">timing_report</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write a timing report to the job log and return relevant timing measurements.</span>
+
+<span class="sd">    :param job_id: job id (string).</span>
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :return: time_getjob, time_stagein, time_payload, time_stageout, time_total_setup (integer strings).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># collect pilot timing data</span>
+    <span class="n">time_getjob</span> <span class="o">=</span> <span class="n">get_getjob_time</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+    <span class="n">time_initial_setup</span> <span class="o">=</span> <span class="n">get_initial_setup_time</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+    <span class="n">time_setup</span> <span class="o">=</span> <span class="n">get_setup_time</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+    <span class="n">time_total_setup</span> <span class="o">=</span> <span class="n">time_initial_setup</span> <span class="o">+</span> <span class="n">time_setup</span>
+    <span class="n">time_stagein</span> <span class="o">=</span> <span class="n">get_stagein_time</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+    <span class="n">time_payload</span> <span class="o">=</span> <span class="n">get_payload_execution_time</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+    <span class="n">time_stageout</span> <span class="o">=</span> <span class="n">get_stageout_time</span><span class="p">(</span><span class="n">job_id</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;.&#39;</span> <span class="o">*</span> <span class="mi">30</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;. Timing measurements:&#39;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;. get job = </span><span class="si">%d</span><span class="s1"> s&#39;</span> <span class="o">%</span> <span class="n">time_getjob</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;. initial setup = </span><span class="si">%d</span><span class="s1"> s&#39;</span> <span class="o">%</span> <span class="n">time_initial_setup</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;. payload setup = </span><span class="si">%d</span><span class="s1"> s&#39;</span> <span class="o">%</span> <span class="n">time_setup</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;. total setup = </span><span class="si">%d</span><span class="s1"> s&#39;</span> <span class="o">%</span> <span class="n">time_total_setup</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;. stage-in = </span><span class="si">%d</span><span class="s1"> s&#39;</span> <span class="o">%</span> <span class="n">time_stagein</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;. payload execution = </span><span class="si">%d</span><span class="s1"> s&#39;</span> <span class="o">%</span> <span class="n">time_payload</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;. stage-out = </span><span class="si">%d</span><span class="s1"> s&#39;</span> <span class="o">%</span> <span class="n">time_stageout</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;.&#39;</span> <span class="o">*</span> <span class="mi">30</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">time_getjob</span><span class="p">,</span> <span class="n">time_stagein</span><span class="p">,</span> <span class="n">time_payload</span><span class="p">,</span> <span class="n">time_stageout</span><span class="p">,</span> <span class="n">time_total_setup</span></div>
+
+
+<div class="viewcode-block" id="time_stamp"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.time_stamp">[docs]</a><span class="k">def</span> <span class="nf">time_stamp</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return ISO-8601 compliant date/time format</span>
+
+<span class="sd">    :return: time information</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">tmptz</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">timezone</span>
+    <span class="n">sign_str</span> <span class="o">=</span> <span class="s1">&#39;+&#39;</span>
+    <span class="k">if</span> <span class="n">tmptz</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">sign_str</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span>
+    <span class="n">tmptz_hours</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tmptz</span> <span class="o">/</span> <span class="mi">3600</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s%s%02d</span><span class="s2">:</span><span class="si">%02d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%S&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">localtime</span><span class="p">()),</span> <span class="n">sign_str</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">tmptz_hours</span><span class="p">),</span>
+                                  <span class="nb">int</span><span class="p">(</span><span class="n">tmptz</span> <span class="o">/</span> <span class="mi">60</span> <span class="o">-</span> <span class="n">tmptz_hours</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)))</span></div>
+
+
+<div class="viewcode-block" id="get_elapsed_real_time"><a class="viewcode-back" href="../../../components/util/timing.html#pilot.util.timing.get_elapsed_real_time">[docs]</a><span class="k">def</span> <span class="nf">get_elapsed_real_time</span><span class="p">(</span><span class="n">t0</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a time stamp corresponding to the elapsed real time (since t0 if requested).</span>
+<span class="sd">    The function uses os.times() to get the current time stamp.</span>
+<span class="sd">    If t0 is provided, the returned time stamp is relative to t0. t0 is assumed to be an os.times() tuple.</span>
+
+<span class="sd">    :param t0: os.times() tuple for the t0 time stamp.</span>
+<span class="sd">    :return: time stamp (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">t0</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">t0</span><span class="p">)</span> <span class="o">==</span> <span class="nb">tuple</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_t0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t0</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;unknown timing format for t0: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="n">_t0</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">_t0</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">t</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">times</span><span class="p">()[</span><span class="mi">4</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">t</span> <span class="o">-</span> <span class="n">_t0</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,244 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>workernode &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="workflow components" href="../workflow/index.html" />
+    <link rel="prev" title="timing" href="timing.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.util.workernode">
+<span id="workernode"></span><h1>workernode<a class="headerlink" href="#module-pilot.util.workernode" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt id="pilot.util.workernode.check_hz">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">check_hz</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#check_hz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.check_hz" title="Permalink to this definition">¶</a></dt>
+<dd><p>Try to read the SC_CLK_TCK and write it to the log.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.workernode.collect_workernode_info">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">collect_workernode_info</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#collect_workernode_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.collect_workernode_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Collect node information (cpu, memory and disk space).
+The disk space (in MB) is return for the disk in the given path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> – path to disk (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>memory (float), cpu (float), disk space (float).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.workernode.get_condor_node_name">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">get_condor_node_name</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nodename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_condor_node_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_condor_node_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>On a condor system, add the SlotID to the nodename</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>nodename</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.workernode.get_cpu_model">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">get_cpu_model</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_cpu_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_cpu_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get cpu model and cache size from /proc/cpuinfo.</p>
+<dl class="simple">
+<dt>Example.</dt><dd><p>model name      : Intel(R) Xeon(TM) CPU 2.40GHz
+cache size      : 512 KB</p>
+</dd>
+</dl>
+<p>gives the return string “Intel(R) Xeon(TM) CPU 2.40GHz 512 KB”.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>cpu model (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.workernode.get_cpuinfo">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">get_cpuinfo</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_cpuinfo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_cpuinfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the CPU frequency (in MHz).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>cpu (float).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.workernode.get_disk_space">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">get_disk_space</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queuedata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_disk_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_disk_space" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the disk space from the queuedata that should be available for running the job;
+either what is actually locally available or the allowed size determined by the site (value from queuedata). This
+value is only to be used internally by the job dispatcher.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>queuedata</strong> – infosys object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>disk space that should be available for running the job (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.workernode.get_local_disk_space">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">get_local_disk_space</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_local_disk_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_local_disk_space" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return remaning disk space for the disk in the given path.
+Unit is MB.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> – path to disk (string). Can be None, if call to collect_workernode_info() doesn’t specify it.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>disk space (float).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.workernode.get_meminfo">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">get_meminfo</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_meminfo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_meminfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the total memory (in MB).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>memory (float).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.workernode.get_node_name">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">get_node_name</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_node_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_node_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the local node name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>node name (string)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">util components</a><ul>
+      <li>Previous: <a href="timing.html" title="previous chapter">timing</a></li>
+      <li>Next: <a href="../workflow/index.html" title="next chapter">workflow components</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/util/workernode.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/util/workernode.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

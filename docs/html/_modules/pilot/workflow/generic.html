@@ -1,0 +1,298 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.workflow.generic &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.workflow.generic</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017</span>
+<span class="c1"># - Daniel Drizhuk, d.drizhuk@gmail.com, 2017</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>  <span class="c1"># Python 2, 2to3 complains about this</span>
+
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">signal</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">time</span><span class="p">,</span> <span class="n">sleep</span>
+<span class="kn">from</span> <span class="nn">sys</span> <span class="kn">import</span> <span class="n">stderr</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">getpid</span>
+<span class="kn">from</span> <span class="nn">shutil</span> <span class="kn">import</span> <span class="n">rmtree</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">Queue</span> <span class="k">as</span> <span class="nn">queue</span>  <span class="c1"># noqa: N813</span>
+<span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">queue</span>  <span class="c1"># Python 3</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+
+<span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">ExcThread</span>
+<span class="kn">from</span> <span class="nn">pilot.control</span> <span class="kn">import</span> <span class="n">job</span><span class="p">,</span> <span class="n">payload</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">monitor</span>
+<span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">SUCCESS</span><span class="p">,</span> <span class="n">PILOT_KILL_SIGNAL</span><span class="p">,</span> <span class="n">MAX_KILL_WAIT_TIME</span>
+<span class="kn">from</span> <span class="nn">pilot.util.processes</span> <span class="kn">import</span> <span class="n">kill_processes</span><span class="p">,</span> <span class="n">threads_aborted</span>
+<span class="kn">from</span> <span class="nn">pilot.util.timing</span> <span class="kn">import</span> <span class="n">add_to_pilot_timing</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="interrupt"><a class="viewcode-back" href="../../../components/workflow/generic.html#pilot.workflow.generic.interrupt">[docs]</a><span class="k">def</span> <span class="nf">interrupt</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Interrupt function on the receiving end of kill signals.</span>
+<span class="sd">    This function is forwarded any incoming signals (SIGINT, SIGTERM, etc) and will set abort_job which instructs</span>
+<span class="sd">    the threads to abort the job.</span>
+
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :param signum: signal.</span>
+<span class="sd">    :param frame: stack/execution frame pointing to the frame that was interrupted by the signal.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">signal</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="n">signum</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">())</span> <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="n">signum</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">args</span><span class="o">.</span><span class="n">signal_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="c1"># keep track of when first kill signal arrived, any stuck loops should abort at a defined cut off time</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">kill_time</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">kill_time</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="p">())</span>
+
+    <span class="n">max_kill_wait_time</span> <span class="o">=</span> <span class="n">MAX_KILL_WAIT_TIME</span> <span class="o">+</span> <span class="mi">60</span>  <span class="c1"># add another minute of grace to let threads finish</span>
+    <span class="n">current_time</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">kill_time</span> <span class="ow">and</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">args</span><span class="o">.</span><span class="n">kill_time</span> <span class="o">&gt;</span> <span class="n">max_kill_wait_time</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;passed maximum waiting time after first kill signal - will commit suicide - farewell&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">rmtree</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">sourcedir</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
+        <span class="n">kill_processes</span><span class="p">(</span><span class="n">getpid</span><span class="p">())</span>
+
+    <span class="n">add_to_pilot_timing</span><span class="p">(</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="n">PILOT_KILL_SIGNAL</span><span class="p">,</span> <span class="n">time</span><span class="p">(),</span> <span class="n">args</span><span class="p">)</span>
+    <span class="n">add_to_pilot_timing</span><span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="n">PILOT_KILL_SIGNAL</span><span class="p">,</span> <span class="n">time</span><span class="p">(),</span> <span class="n">args</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;caught signal: </span><span class="si">%s</span><span class="s1"> in FRAME=</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_stack</span><span class="p">(</span><span class="n">frame</span><span class="p">))))</span>
+
+    <span class="n">args</span><span class="o">.</span><span class="n">signal</span> <span class="o">=</span> <span class="n">sig</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;will instruct threads to abort and update the server&#39;</span><span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">abort_job</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;setting graceful stop (in case it was not set already)&#39;</span><span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;waiting for threads to finish&#39;</span><span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">job_aborted</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="register_signals"><a class="viewcode-back" href="../../../components/workflow/generic.html#pilot.workflow.generic.register_signals">[docs]</a><span class="k">def</span> <span class="nf">register_signals</span><span class="p">(</span><span class="n">signals</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Register kill signals for intercept function.</span>
+
+<span class="sd">    :param signals: list of signals.</span>
+<span class="sd">    :param args: pilot args.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="n">sig</span> <span class="ow">in</span> <span class="n">signals</span><span class="p">:</span>
+        <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">interrupt</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="run"><a class="viewcode-back" href="../../../components/workflow/generic.html#pilot.workflow.generic.run">[docs]</a><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Main execution function for the generic workflow.</span>
+
+<span class="sd">    The function sets up the internal queues which handle the flow of jobs.</span>
+
+<span class="sd">    :param args: pilot arguments.</span>
+<span class="sd">    :returns: traces.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;setting up signal handling&#39;</span><span class="p">)</span>
+    <span class="n">register_signals</span><span class="p">([</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGQUIT</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGSEGV</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGXCPU</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGUSR1</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGBUS</span><span class="p">],</span> <span class="n">args</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;setting up queues&#39;</span><span class="p">)</span>
+    <span class="n">queues</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;queues&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;jobs&#39;</span><span class="p">,</span> <span class="s1">&#39;payloads&#39;</span><span class="p">,</span> <span class="s1">&#39;data_in&#39;</span><span class="p">,</span> <span class="s1">&#39;data_out&#39;</span><span class="p">,</span> <span class="s1">&#39;current_data_in&#39;</span><span class="p">,</span>
+                                   <span class="s1">&#39;validated_jobs&#39;</span><span class="p">,</span> <span class="s1">&#39;validated_payloads&#39;</span><span class="p">,</span> <span class="s1">&#39;monitored_payloads&#39;</span><span class="p">,</span>
+                                   <span class="s1">&#39;finished_jobs&#39;</span><span class="p">,</span> <span class="s1">&#39;finished_payloads&#39;</span><span class="p">,</span> <span class="s1">&#39;finished_data_in&#39;</span><span class="p">,</span> <span class="s1">&#39;finished_data_out&#39;</span><span class="p">,</span>
+                                   <span class="s1">&#39;failed_jobs&#39;</span><span class="p">,</span> <span class="s1">&#39;failed_payloads&#39;</span><span class="p">,</span> <span class="s1">&#39;failed_data_in&#39;</span><span class="p">,</span> <span class="s1">&#39;failed_data_out&#39;</span><span class="p">,</span>
+                                   <span class="s1">&#39;completed_jobs&#39;</span><span class="p">,</span> <span class="s1">&#39;completed_jobids&#39;</span><span class="p">])</span>  <span class="c1">#, &#39;interceptor_messages&#39;])</span>
+
+    <span class="n">queues</span><span class="o">.</span><span class="n">jobs</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+    <span class="n">queues</span><span class="o">.</span><span class="n">payloads</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+    <span class="n">queues</span><span class="o">.</span><span class="n">data_in</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+    <span class="n">queues</span><span class="o">.</span><span class="n">data_out</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+
+    <span class="n">queues</span><span class="o">.</span><span class="n">current_data_in</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+    <span class="n">queues</span><span class="o">.</span><span class="n">validated_jobs</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+    <span class="n">queues</span><span class="o">.</span><span class="n">validated_payloads</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+    <span class="n">queues</span><span class="o">.</span><span class="n">monitored_payloads</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+
+    <span class="n">queues</span><span class="o">.</span><span class="n">finished_jobs</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+    <span class="n">queues</span><span class="o">.</span><span class="n">finished_payloads</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+    <span class="n">queues</span><span class="o">.</span><span class="n">finished_data_in</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+    <span class="n">queues</span><span class="o">.</span><span class="n">finished_data_out</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+
+    <span class="n">queues</span><span class="o">.</span><span class="n">failed_jobs</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+    <span class="n">queues</span><span class="o">.</span><span class="n">failed_payloads</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+    <span class="n">queues</span><span class="o">.</span><span class="n">failed_data_in</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+    <span class="n">queues</span><span class="o">.</span><span class="n">failed_data_out</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+
+    <span class="n">queues</span><span class="o">.</span><span class="n">completed_jobs</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+    <span class="n">queues</span><span class="o">.</span><span class="n">completed_jobids</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+
+    <span class="c1"># queues.interceptor_messages = queue.Queue()</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;setting up tracing&#39;</span><span class="p">)</span>
+    <span class="n">traces</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;traces&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;pilot&#39;</span><span class="p">])</span>
+    <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;state&#39;</span><span class="p">:</span> <span class="n">SUCCESS</span><span class="p">,</span>
+                    <span class="s1">&#39;nr_jobs&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="s1">&#39;error_code&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="s1">&#39;command&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+
+    <span class="c1"># initial sanity check defined by pilot user</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.common&#39;</span> <span class="o">%</span> <span class="n">args</span><span class="o">.</span><span class="n">pilot_user</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span>
+                          <span class="p">[</span><span class="n">args</span><span class="o">.</span><span class="n">pilot_user</span><span class="o">.</span><span class="n">lower</span><span class="p">()],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+        <span class="n">exit_code</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">sanity_check</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;skipping sanity check since: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;aborting workflow since sanity check failed&#39;</span><span class="p">)</span>
+            <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;error_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">exit_code</span>
+            <span class="k">return</span> <span class="n">traces</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;passed sanity check&#39;</span><span class="p">)</span>
+
+    <span class="c1"># define the threads</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;job&#39;</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">control</span><span class="p">,</span> <span class="s1">&#39;payload&#39;</span><span class="p">:</span> <span class="n">payload</span><span class="o">.</span><span class="n">control</span><span class="p">,</span> <span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">control</span><span class="p">,</span> <span class="s1">&#39;monitor&#39;</span><span class="p">:</span> <span class="n">monitor</span><span class="o">.</span><span class="n">control</span><span class="p">}</span>
+    <span class="n">threads</span> <span class="o">=</span> <span class="p">[</span><span class="n">ExcThread</span><span class="p">(</span><span class="n">bucket</span><span class="o">=</span><span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">(),</span> <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;queues&#39;</span><span class="p">:</span> <span class="n">queues</span><span class="p">,</span> <span class="s1">&#39;traces&#39;</span><span class="p">:</span> <span class="n">traces</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">:</span> <span class="n">args</span><span class="p">},</span>
+                         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">items</span><span class="p">())]</span>  <span class="c1"># Python 2/3</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;starting threads&#39;</span><span class="p">)</span>
+    <span class="p">[</span><span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span> <span class="k">for</span> <span class="n">thread</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">]</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;waiting for interrupts&#39;</span><span class="p">)</span>
+
+    <span class="n">thread_count</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">activeCount</span><span class="p">()</span>
+    <span class="k">while</span> <span class="n">threading</span><span class="o">.</span><span class="n">activeCount</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">thread</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">:</span>
+            <span class="n">bucket</span> <span class="o">=</span> <span class="n">thread</span><span class="o">.</span><span class="n">get_bucket</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">exc</span> <span class="o">=</span> <span class="n">bucket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_obj</span><span class="p">,</span> <span class="n">exc_trace</span> <span class="o">=</span> <span class="n">exc</span>
+                <span class="c1"># deal with the exception</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;received exception from bucket queue in generic workflow: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">exc_obj</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">stderr</span><span class="p">)</span>
+                <span class="c1"># logger.fatal(&#39;caught exception: %s&#39; % exc_obj)</span>
+
+            <span class="n">thread</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+
+        <span class="n">abort</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">thread_count</span> <span class="o">!=</span> <span class="n">threading</span><span class="o">.</span><span class="n">activeCount</span><span class="p">():</span>
+            <span class="c1"># has all threads finished?</span>
+            <span class="n">abort</span> <span class="o">=</span> <span class="n">threads_aborted</span><span class="p">(</span><span class="n">abort_at</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">abort</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;end of generic workflow (traces error code: </span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;error_code&#39;</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">traces</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

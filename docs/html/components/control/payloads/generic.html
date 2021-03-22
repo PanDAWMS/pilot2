@@ -1,0 +1,440 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>generic &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="copytool components" href="../../copytool/index.html" />
+    <link rel="prev" title="eventservice" href="eventservice.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.control.payloads.generic">
+<span id="generic"></span><h1>generic<a class="headerlink" href="#module-pilot.control.payloads.generic" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="pilot.control.payloads.generic.Executor">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">pilot.control.payloads.generic.</span></code><code class="sig-name descname"><span class="pre">Executor</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py attribute">
+<dt id="pilot.control.payloads.generic.Executor.__dict__">
+<code class="sig-name descname"><span class="pre">__dict__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">mappingproxy({'__module__':</span> <span class="pre">'pilot.control.payloads.generic',</span> <span class="pre">'__init__':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.__init__&gt;,</span> <span class="pre">'get_job':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.get_job&gt;,</span> <span class="pre">'pre_setup':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.pre_setup&gt;,</span> <span class="pre">'post_setup':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.post_setup&gt;,</span> <span class="pre">'utility_before_payload':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.utility_before_payload&gt;,</span> <span class="pre">'utility_with_payload':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.utility_with_payload&gt;,</span> <span class="pre">'get_utility_command':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.get_utility_command&gt;,</span> <span class="pre">'utility_after_payload_started':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.utility_after_payload_started&gt;,</span> <span class="pre">'utility_after_payload_started_new':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.utility_after_payload_started_new&gt;,</span> <span class="pre">'utility_after_payload_finished':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.utility_after_payload_finished&gt;,</span> <span class="pre">'execute_utility_command':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.execute_utility_command&gt;,</span> <span class="pre">'write_utility_output':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.write_utility_output&gt;,</span> <span class="pre">'pre_payload':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.pre_payload&gt;,</span> <span class="pre">'post_payload':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.post_payload&gt;,</span> <span class="pre">'run_command':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.run_command&gt;,</span> <span class="pre">'run_payload':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.run_payload&gt;,</span> <span class="pre">'extract_setup':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.extract_setup&gt;,</span> <span class="pre">'wait_graceful':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.wait_graceful&gt;,</span> <span class="pre">'get_payload_command':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.get_payload_command&gt;,</span> <span class="pre">'run_preprocess':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.run_preprocess&gt;,</span> <span class="pre">'run':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.run&gt;,</span> <span class="pre">'run_utility_after_payload_finished':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.run_utility_after_payload_finished&gt;,</span> <span class="pre">'stop_utilities':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.stop_utilities&gt;,</span> <span class="pre">'rename_log_files':</span> <span class="pre">&lt;function</span> <span class="pre">Executor.rename_log_files&gt;,</span> <span class="pre">'__dict__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__dict__'</span> <span class="pre">of</span> <span class="pre">'Executor'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__weakref__':</span> <span class="pre">&lt;attribute</span> <span class="pre">'__weakref__'</span> <span class="pre">of</span> <span class="pre">'Executor'</span> <span class="pre">objects&gt;,</span> <span class="pre">'__doc__':</span> <span class="pre">None,</span> <span class="pre">'__annotations__':</span> <span class="pre">{}})</span></em><a class="headerlink" href="#pilot.control.payloads.generic.Executor.__dict__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.__init__">
+<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize self.  See help(type(self)) for accurate signature.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.control.payloads.generic.Executor.__module__">
+<code class="sig-name descname"><span class="pre">__module__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'pilot.control.payloads.generic'</span></em><a class="headerlink" href="#pilot.control.payloads.generic.Executor.__module__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="pilot.control.payloads.generic.Executor.__weakref__">
+<code class="sig-name descname"><span class="pre">__weakref__</span></code><a class="headerlink" href="#pilot.control.payloads.generic.Executor.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.execute_utility_command">
+<code class="sig-name descname"><span class="pre">execute_utility_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.execute_utility_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.execute_utility_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute a utility command (e.g. pre/postprocess commands; label=preprocess etc).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> – full command to be executed (string).</p></li>
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>label</strong> – command label (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>exit code (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.extract_setup">
+<code class="sig-name descname"><span class="pre">extract_setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.extract_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.extract_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the setup from the payload command (cmd).
+E.g. extract the full setup from the payload command will be prepended to the pre/postprocess command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>cmd</strong> – payload command (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated secondary command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.get_job">
+<code class="sig-name descname"><span class="pre">get_job</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.get_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.get_job" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the job object.
+:return: job object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.get_payload_command">
+<code class="sig-name descname"><span class="pre">get_payload_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.get_payload_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.get_payload_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the payload command string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.get_utility_command">
+<code class="sig-name descname"><span class="pre">get_utility_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.get_utility_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.get_utility_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the command for the requested utility command (will be downloaded if necessary).
+Note: the utility itself is defined in the user common code and is defined according to the order,
+e.g. UTILITY_AFTER_PAYLOAD_STARTED means a co-process (see ATLAS user code).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>order</strong> – order constant (const).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>command to be executed (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.post_payload">
+<code class="sig-name descname"><span class="pre">post_payload</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.post_payload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.post_payload" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls to functions to run after payload.
+E.g. write time stamps to timing file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.post_setup">
+<code class="sig-name descname"><span class="pre">post_setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.post_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.post_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Functions to run post setup
+:param job: job object</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.pre_payload">
+<code class="sig-name descname"><span class="pre">pre_payload</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.pre_payload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.pre_payload" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls to functions to run before payload.
+E.g. write time stamps to timing file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.pre_setup">
+<code class="sig-name descname"><span class="pre">pre_setup</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.pre_setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.pre_setup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Functions to run pre setup
+:param job: job object</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.rename_log_files">
+<code class="sig-name descname"><span class="pre">rename_log_files</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iteration</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.rename_log_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.rename_log_files" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>iteration</strong> – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.run">
+<code class="sig-name descname"><span class="pre">run</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run all payload processes (including pre- and post-processes, and utilities).
+In the case of HPO jobs, this function will loop over all processes until the preprocess returns a special
+exit code.
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.run_command">
+<code class="sig-name descname"><span class="pre">run_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.run_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.run_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute the given command and return the process id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>cmd</strong> – command (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>process id (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.run_payload">
+<code class="sig-name descname"><span class="pre">run_payload</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.run_payload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.run_payload" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setup and execute the main payload process.</p>
+<p>REFACTOR using run_command()</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>out</strong> – (currently not used; deprecated)</p></li>
+<li><p><strong>err</strong> – (currently not used; deprecated)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>proc (subprocess returned by Popen())</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.run_preprocess">
+<code class="sig-name descname"><span class="pre">run_preprocess</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.run_preprocess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.run_preprocess" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run any preprocess payloads.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.run_utility_after_payload_finished">
+<code class="sig-name descname"><span class="pre">run_utility_after_payload_finished</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.run_utility_after_payload_finished"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.run_utility_after_payload_finished" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run utility command after the main payload has finished.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>exit code (int).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.stop_utilities">
+<code class="sig-name descname"><span class="pre">stop_utilities</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.stop_utilities"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.stop_utilities" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stop any running utilities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.utility_after_payload_finished">
+<code class="sig-name descname"><span class="pre">utility_after_payload_finished</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.utility_after_payload_finished"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.utility_after_payload_finished" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare commands/utilities to run after payload has finished.</p>
+<p>This command will be executed later.</p>
+<p>REFACTOR</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.utility_after_payload_started">
+<code class="sig-name descname"><span class="pre">utility_after_payload_started</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.utility_after_payload_started"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.utility_after_payload_started" title="Permalink to this definition">¶</a></dt>
+<dd><p>Functions to run after payload started
+:param job: job object</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.utility_after_payload_started_new">
+<code class="sig-name descname"><span class="pre">utility_after_payload_started_new</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.utility_after_payload_started_new"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.utility_after_payload_started_new" title="Permalink to this definition">¶</a></dt>
+<dd><p>Functions to run after payload started</p>
+<p>REFACTOR</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.utility_before_payload">
+<code class="sig-name descname"><span class="pre">utility_before_payload</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.utility_before_payload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.utility_before_payload" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare commands/utilities to run before payload.
+These commands will be executed later (as eg the payload command setup is unknown at this point, which is
+needed for the preprocessing. Preprocessing is prepared here).</p>
+<p>REFACTOR</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.utility_with_payload">
+<code class="sig-name descname"><span class="pre">utility_with_payload</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.utility_with_payload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.utility_with_payload" title="Permalink to this definition">¶</a></dt>
+<dd><p>Functions to run with payload.</p>
+<p>REFACTOR</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.wait_graceful">
+<code class="sig-name descname"><span class="pre">wait_graceful</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.wait_graceful"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.wait_graceful" title="Permalink to this definition">¶</a></dt>
+<dd><p>(add description)
+:param args:
+:param proc:
+:param job:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="pilot.control.payloads.generic.Executor.write_utility_output">
+<code class="sig-name descname"><span class="pre">write_utility_output</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stdout</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.write_utility_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.write_utility_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the utility command output to stdout, stderr files to the job.workdir for the current step.
+-&gt; &lt;step&gt;_stdout.txt, &lt;step&gt;_stderr.txt
+Example of step: preprocess, postprocess.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>workdir</strong> – job workdir (string).</p></li>
+<li><p><strong>step</strong> – utility step (string).</p></li>
+<li><p><strong>stdout</strong> – command stdout (string).</p></li>
+<li><p><strong>stderr</strong> – command stderr (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../common/index.html">common components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../user/index.html">user components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../util/index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Components</a><ul>
+  <li><a href="../index.html">control components</a><ul>
+  <li><a href="index.html">payloads components</a><ul>
+      <li>Previous: <a href="eventservice.html" title="previous chapter">eventservice</a></li>
+      <li>Next: <a href="../../copytool/index.html" title="next chapter">copytool components</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/components/control/payloads/generic.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../../_sources/components/control/payloads/generic.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
