@@ -1,0 +1,310 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.copytool.common &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.copytool.common</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Tobias Wegner, tobias.wegner@cern.ch, 2017</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019</span>
+<span class="c1"># - Mario Lassnig, mario.lassnig@cern.ch, 2020</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">from</span> <span class="nn">pilot.common.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">calculate_checksum</span><span class="p">,</span> <span class="n">get_checksum_type</span><span class="p">,</span> <span class="n">get_checksum_value</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_timeout"><a class="viewcode-back" href="../../../components/copytool/common.html#pilot.copytool.common.get_timeout">[docs]</a><span class="k">def</span> <span class="nf">get_timeout</span><span class="p">(</span><span class="n">filesize</span><span class="p">,</span> <span class="n">add</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get a proper time-out limit based on the file size.</span>
+
+<span class="sd">    :param filesize: file size (int).</span>
+<span class="sd">    :param add: optional additional time to be added [s] (int)</span>
+<span class="sd">    :return: time-out in seconds (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">timeout_max</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">3600</span>  <span class="c1"># 3 hours</span>
+    <span class="n">timeout_min</span> <span class="o">=</span> <span class="mi">300</span>  <span class="c1"># self.timeout</span>
+
+    <span class="n">timeout</span> <span class="o">=</span> <span class="n">timeout_min</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">filesize</span> <span class="o">/</span> <span class="mf">0.1e7</span><span class="p">)</span> <span class="o">+</span> <span class="n">add</span>  <span class="c1"># approx &lt; 1 Mb/sec</span>
+
+    <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">timeout</span><span class="p">,</span> <span class="n">timeout_max</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="verify_catalog_checksum"><a class="viewcode-back" href="../../../components/copytool/common.html#pilot.copytool.common.verify_catalog_checksum">[docs]</a><span class="k">def</span> <span class="nf">verify_catalog_checksum</span><span class="p">(</span><span class="n">fspec</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Verify that the local and remote (fspec) checksum values are the same.</span>
+<span class="sd">    The function will update the fspec object.</span>
+
+<span class="sd">    :param fspec: FileSpec object for a given file.</span>
+<span class="sd">    :param path: path to local file (string).</span>
+<span class="sd">    :return: state (string), diagnostics (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">checksum_type</span> <span class="o">=</span> <span class="n">get_checksum_type</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">checksum</span><span class="p">)</span>
+    <span class="n">checksum_catalog</span> <span class="o">=</span> <span class="n">get_checksum_value</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">checksum</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">checksum_type</span> <span class="o">==</span> <span class="s1">&#39;unknown&#39;</span><span class="p">:</span>
+        <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;unknown checksum type for checksum(catalog): </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">fspec</span><span class="o">.</span><span class="n">checksum</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+        <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">UNKNOWNCHECKSUMTYPE</span>
+        <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;failed&#39;</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;UNKNOWN_CHECKSUM_TYPE&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">checksum_local</span> <span class="o">=</span> <span class="n">calculate_checksum</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="n">checksum_type</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">checksum_type</span> <span class="o">==</span> <span class="s1">&#39;ad32&#39;</span><span class="p">:</span>
+            <span class="n">checksum_type</span> <span class="o">=</span> <span class="s1">&#39;adler32&#39;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;checksum (catalog): </span><span class="si">%s</span><span class="s1"> (type: </span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">checksum_catalog</span><span class="p">,</span> <span class="n">checksum_type</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;checksum (local): </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">checksum_local</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">checksum_local</span> <span class="ow">and</span> <span class="n">checksum_local</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="ow">and</span> <span class="n">checksum_local</span> <span class="o">!=</span> <span class="n">checksum_catalog</span><span class="p">:</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;checksum verification failed for LFN=</span><span class="si">%s</span><span class="s1">: checksum (catalog)=</span><span class="si">%s</span><span class="s1"> != checksum (local)=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> \
+                          <span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">checksum_catalog</span><span class="p">,</span> <span class="n">checksum_local</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">GETADMISMATCH</span> <span class="k">if</span> <span class="n">checksum_type</span> <span class="o">==</span> <span class="s1">&#39;adler32&#39;</span> <span class="k">else</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">GETMD5MISMATCH</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;failed&#39;</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;AD_MISMATCH&#39;</span> <span class="k">if</span> <span class="n">checksum_type</span> <span class="o">==</span> <span class="s1">&#39;ad32&#39;</span> <span class="k">else</span> <span class="s1">&#39;MD_MISMATCH&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;catalog and local checksum values are the same&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">state</span><span class="p">,</span> <span class="n">diagnostics</span></div>
+
+
+<div class="viewcode-block" id="merge_destinations"><a class="viewcode-back" href="../../../components/copytool/common.html#pilot.copytool.common.merge_destinations">[docs]</a><span class="k">def</span> <span class="nf">merge_destinations</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts the file-with-destination dict to a destination-with-files dict</span>
+
+<span class="sd">    :param files Files to merge</span>
+
+<span class="sd">    :returns destination-with-files dictionary</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">destinations</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="c1"># ensure type(files) == list</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="c1"># ensure destination in f</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">]):</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;failed&#39;</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errmsg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Destination directory does not exist: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">]</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># ensure scope, name in f</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;running&#39;</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errmsg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;File not yet successfully downloaded.&#39;</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;errno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="n">lfn</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;scope&#39;</span><span class="p">],</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
+            <span class="n">dst</span> <span class="o">=</span> <span class="n">destinations</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s1">&#39;destination&#39;</span><span class="p">],</span> <span class="p">{</span><span class="s1">&#39;lfns&#39;</span><span class="p">:</span> <span class="nb">set</span><span class="p">(),</span> <span class="s1">&#39;files&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">()})</span>
+            <span class="n">dst</span><span class="p">[</span><span class="s1">&#39;lfns&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">lfn</span><span class="p">)</span>
+            <span class="n">dst</span><span class="p">[</span><span class="s1">&#39;files&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">destinations</span></div>
+
+
+<div class="viewcode-block" id="get_copysetup"><a class="viewcode-back" href="../../../components/copytool/common.html#pilot.copytool.common.get_copysetup">[docs]</a><span class="k">def</span> <span class="nf">get_copysetup</span><span class="p">(</span><span class="n">copytools</span><span class="p">,</span> <span class="n">copytool_name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the copysetup for the given copytool.</span>
+
+<span class="sd">    :param copytools: copytools list from infosys.</span>
+<span class="sd">    :param copytool name: name of copytool (string).</span>
+<span class="sd">    :return: copysetup (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">copysetup</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">copytools</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="n">ct</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">copytools</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>  <span class="c1"># Python 2/3</span>
+        <span class="k">if</span> <span class="n">copytool_name</span> <span class="o">==</span> <span class="n">ct</span><span class="p">:</span>
+            <span class="n">copysetup</span> <span class="o">=</span> <span class="n">copytools</span><span class="p">[</span><span class="n">ct</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;setup&#39;</span><span class="p">)</span>
+            <span class="k">break</span>
+
+    <span class="k">return</span> <span class="n">copysetup</span></div>
+
+
+<div class="viewcode-block" id="get_error_info"><a class="viewcode-back" href="../../../components/copytool/common.html#pilot.copytool.common.get_error_info">[docs]</a><span class="k">def</span> <span class="nf">get_error_info</span><span class="p">(</span><span class="n">rcode</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">error_msg</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return an error info dictionary specific to transfer errors.</span>
+<span class="sd">    Helper function to resolve_common_transfer_errors().</span>
+
+<span class="sd">    :param rcode: return code (int).</span>
+<span class="sd">    :param state: state string used in Rucio traces.</span>
+<span class="sd">    :param error_msg: transfer command stdout (string).</span>
+<span class="sd">    :return: dictionary with format {&#39;rcode&#39;: rcode, &#39;state&#39;: state, &#39;error&#39;: error_msg}.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;rcode&#39;</span><span class="p">:</span> <span class="n">rcode</span><span class="p">,</span> <span class="s1">&#39;state&#39;</span><span class="p">:</span> <span class="n">state</span><span class="p">,</span> <span class="s1">&#39;error&#39;</span><span class="p">:</span> <span class="n">error_msg</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="output_line_scan"><a class="viewcode-back" href="../../../components/copytool/common.html#pilot.copytool.common.output_line_scan">[docs]</a><span class="k">def</span> <span class="nf">output_line_scan</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Do some reg exp on the transfer command output to search for special errors.</span>
+<span class="sd">    Helper function to resolve_common_transfer_errors().</span>
+
+<span class="sd">    :param ret: pre-filled error info dictionary with format {&#39;rcode&#39;: rcode, &#39;state&#39;: state, &#39;error&#39;: error_msg}</span>
+<span class="sd">    :param output: transfer command stdout (string).</span>
+<span class="sd">    :return: updated error info dictionary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">output</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;[Dd]etails\s*:\s*(?P&lt;error&gt;.*)&quot;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>  <span class="c1"># Python 3 (added r)</span>
+        <span class="k">if</span> <span class="n">m</span><span class="p">:</span>
+            <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;error&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="s1">&#39;service_unavailable&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;error&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;service_unavailable&#39;</span>
+            <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;rcode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">RUCIOSERVICEUNAVAILABLE</span>
+
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="resolve_common_transfer_errors"><a class="viewcode-back" href="../../../components/copytool/common.html#pilot.copytool.common.resolve_common_transfer_errors">[docs]</a><span class="k">def</span> <span class="nf">resolve_common_transfer_errors</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">is_stagein</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>  <span class="c1"># noqa: C901</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Resolve any common transfer related errors.</span>
+
+<span class="sd">    :param output: stdout from transfer command (string).</span>
+<span class="sd">    :param is_stagein: optional (boolean).</span>
+<span class="sd">    :return: dict {&#39;rcode&#39;: rcode, &#39;state&#39;: state, &#39;error&#39;: error_msg}.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># default to make sure dictionary exists and all fields are populated (some of which might be overwritten below)</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">STAGEINFAILED</span> <span class="k">if</span> <span class="n">is_stagein</span> <span class="k">else</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">STAGEOUTFAILED</span><span class="p">,</span> <span class="s1">&#39;COPY_ERROR&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">output</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">if</span> <span class="s2">&quot;timeout&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">STAGEINTIMEOUT</span> <span class="k">if</span> <span class="n">is_stagein</span> <span class="k">else</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">STAGEOUTTIMEOUT</span><span class="p">,</span>
+                             <span class="s1">&#39;CP_TIMEOUT&#39;</span><span class="p">,</span> <span class="s1">&#39;copy command timed out: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;failed xrdadler32&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">GETADMISMATCH</span> <span class="k">if</span> <span class="n">is_stagein</span> <span class="k">else</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">PUTADMISMATCH</span><span class="p">,</span>
+                             <span class="s1">&#39;AD_MISMATCH&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;does not match the checksum&quot;</span> <span class="ow">in</span> <span class="n">output</span> <span class="ow">and</span> <span class="s1">&#39;adler32&#39;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">GETADMISMATCH</span> <span class="k">if</span> <span class="n">is_stagein</span> <span class="k">else</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">PUTADMISMATCH</span><span class="p">,</span>
+                             <span class="s1">&#39;AD_MISMATCH&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;does not match the checksum&quot;</span> <span class="ow">in</span> <span class="n">output</span> <span class="ow">and</span> <span class="s1">&#39;adler32&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">GETMD5MISMATCH</span> <span class="k">if</span> <span class="n">is_stagein</span> <span class="k">else</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">PUTMD5MISMATCH</span><span class="p">,</span>
+                             <span class="s1">&#39;MD5_MISMATCH&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;globus_xio:&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">GETGLOBUSSYSERR</span> <span class="k">if</span> <span class="n">is_stagein</span> <span class="k">else</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">PUTGLOBUSSYSERR</span><span class="p">,</span>
+                             <span class="s1">&#39;GLOBUS_FAIL&#39;</span><span class="p">,</span> <span class="s2">&quot;Globus system error: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;File exists&quot;</span> <span class="ow">in</span> <span class="n">output</span> <span class="ow">or</span> <span class="s1">&#39;SRM_FILE_BUSY&#39;</span> <span class="ow">in</span> <span class="n">output</span> <span class="ow">or</span> <span class="s1">&#39;file already exists&#39;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">FILEEXISTS</span><span class="p">,</span> <span class="s1">&#39;FILE_EXISTS&#39;</span><span class="p">,</span>
+                             <span class="s2">&quot;File already exists in the destination: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;No such file or directory&quot;</span> <span class="ow">in</span> <span class="n">output</span> <span class="ow">and</span> <span class="n">is_stagein</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">MISSINGINPUTFILE</span><span class="p">,</span> <span class="s1">&#39;MISSING_INPUT&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;query chksum is not supported&quot;</span> <span class="ow">in</span> <span class="n">output</span> <span class="ow">or</span> <span class="s2">&quot;Unable to checksum&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">CHKSUMNOTSUP</span><span class="p">,</span> <span class="s1">&#39;CHKSUM_NOTSUP&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;Could not establish context&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="s2">&quot;Could not establish context: Proxy / VO extension of proxy has probably expired: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">output</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">NOPROXY</span><span class="p">,</span> <span class="s1">&#39;CONTEXT_FAIL&#39;</span><span class="p">,</span> <span class="n">error_msg</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;No space left on device&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">NOLOCALSPACE</span> <span class="k">if</span> <span class="n">is_stagein</span> <span class="k">else</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">NOREMOTESPACE</span><span class="p">,</span>
+                             <span class="s1">&#39;NO_SPACE&#39;</span><span class="p">,</span> <span class="s2">&quot;No available space left on disk: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;No such file or directory&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">NOSUCHFILE</span><span class="p">,</span> <span class="s1">&#39;NO_FILE&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;service is not available at the moment&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">SERVICENOTAVAILABLE</span><span class="p">,</span> <span class="s1">&#39;SERVICE_ERROR&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;Network is unreachable&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">UNREACHABLENETWORK</span><span class="p">,</span> <span class="s1">&#39;NETWORK_UNREACHABLE&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;Run: [ERROR] Server responded with an error&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">XRDCPERROR</span><span class="p">,</span> <span class="s1">&#39;XRDCP_ERROR&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+
+    <span class="c1"># reg exp the output to get real error message</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">output_line_scan</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ret</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

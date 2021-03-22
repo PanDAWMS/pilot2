@@ -1,0 +1,257 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.util.queuehandling &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.util.queuehandling</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019</span>
+
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">from</span> <span class="nn">pilot.common.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
+<span class="kn">from</span> <span class="nn">pilot.info</span> <span class="kn">import</span> <span class="n">JobData</span>
+<span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">set_pilot_state</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">errors</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="declare_failed_by_kill"><a class="viewcode-back" href="../../../components/util/queuehandling.html#pilot.util.queuehandling.declare_failed_by_kill">[docs]</a><span class="k">def</span> <span class="nf">declare_failed_by_kill</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queue</span><span class="p">,</span> <span class="n">sig</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Declare the job failed by a kill signal and put it in a suitable failed queue.</span>
+<span class="sd">    E.g. queue=queues.failed_data_in, if the kill signal was received during stage-in.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :param queue: queue object.</span>
+<span class="sd">    :param sig: signal.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s2">&quot;failed&quot;</span><span class="p">)</span>
+    <span class="n">error_code</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">get_kill_signal_error_code</span><span class="p">(</span><span class="n">sig</span><span class="p">)</span>
+    <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">error_code</span><span class="p">)</span>
+
+    <span class="c1">#queue.put(job)</span>
+    <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queue</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="scan_for_jobs"><a class="viewcode-back" href="../../../components/util/queuehandling.html#pilot.util.queuehandling.scan_for_jobs">[docs]</a><span class="k">def</span> <span class="nf">scan_for_jobs</span><span class="p">(</span><span class="n">queues</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Scan queues until at least one queue has a job object. abort if it takes too long time</span>
+
+<span class="sd">    :param queues:</span>
+<span class="sd">    :return: found jobs (list of job objects).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">found_job</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">jobs</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">while</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span> <span class="o">&lt;</span> <span class="mi">30</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">queues</span><span class="o">.</span><span class="n">_fields</span><span class="p">:</span>
+            <span class="n">_q</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+            <span class="n">jobs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">_q</span><span class="o">.</span><span class="n">queue</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">jobs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;found </span><span class="si">%d</span><span class="s1"> job(s) in queue </span><span class="si">%s</span><span class="s1"> after </span><span class="si">%d</span><span class="s1"> s - will begin queue monitoring&#39;</span> <span class="o">%</span>
+                            <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">jobs</span><span class="p">),</span> <span class="n">q</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span><span class="p">))</span>
+                <span class="n">found_job</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="n">found_job</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">jobs</span></div>
+
+
+<div class="viewcode-block" id="get_queuedata_from_job"><a class="viewcode-back" href="../../../components/util/queuehandling.html#pilot.util.queuehandling.get_queuedata_from_job">[docs]</a><span class="k">def</span> <span class="nf">get_queuedata_from_job</span><span class="p">(</span><span class="n">queues</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the queuedata object from a job in the given queues object.</span>
+<span class="sd">    This function is useful if queuedata is needed from a function that does not know about the job object.</span>
+<span class="sd">    E.g. the pilot monitor does not know about the job object, but still knows</span>
+<span class="sd">    about the queues from which a job object can be extracted and therefore the queuedata.</span>
+
+<span class="sd">    :param queues: queues object.</span>
+<span class="sd">    :return: queuedata object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">queuedata</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># extract jobs from the queues</span>
+    <span class="n">jobs</span> <span class="o">=</span> <span class="n">scan_for_jobs</span><span class="p">(</span><span class="n">queues</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">jobs</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">:</span>
+            <span class="n">queuedata</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span>
+            <span class="k">break</span>
+
+    <span class="k">return</span> <span class="n">queuedata</span></div>
+
+
+<div class="viewcode-block" id="abort_jobs_in_queues"><a class="viewcode-back" href="../../../components/util/queuehandling.html#pilot.util.queuehandling.abort_jobs_in_queues">[docs]</a><span class="k">def</span> <span class="nf">abort_jobs_in_queues</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">sig</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find all jobs in the queues and abort them.</span>
+
+<span class="sd">    :param queues: queues object.</span>
+<span class="sd">    :param sig: detected kill signal.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">jobs_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># loop over all queues and find all jobs</span>
+    <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">queues</span><span class="o">.</span><span class="n">_fields</span><span class="p">:</span>
+        <span class="n">_q</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+        <span class="n">jobs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">_q</span><span class="o">.</span><span class="n">queue</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">jobs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">job</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">jobs_list</span><span class="p">:</span>
+                <span class="n">jobs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;found </span><span class="si">%d</span><span class="s1"> job(s) in </span><span class="si">%d</span><span class="s1"> queues&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">jobs_list</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">queues</span><span class="o">.</span><span class="n">_fields</span><span class="p">)))</span>
+    <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">jobs_list</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;aborting job </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">)</span>
+            <span class="n">declare_failed_by_kill</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_jobs</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to declare job as failed: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="queue_report"><a class="viewcode-back" href="../../../components/util/queuehandling.html#pilot.util.queuehandling.queue_report">[docs]</a><span class="k">def</span> <span class="nf">queue_report</span><span class="p">(</span><span class="n">queues</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    :param queues:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">queues</span><span class="o">.</span><span class="n">_fields</span><span class="p">:</span>
+        <span class="n">_q</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+        <span class="n">jobs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">_q</span><span class="o">.</span><span class="n">queue</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;queue </span><span class="si">%s</span><span class="s1"> has </span><span class="si">%d</span><span class="s1"> job(s)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">jobs</span><span class="p">)))</span></div>
+
+
+<div class="viewcode-block" id="put_in_queue"><a class="viewcode-back" href="../../../components/util/queuehandling.html#pilot.util.queuehandling.put_in_queue">[docs]</a><span class="k">def</span> <span class="nf">put_in_queue</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">queue</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Put the given object in the given queue.</span>
+
+<span class="sd">    :param obj: object.</span>
+<span class="sd">    :param queue: queue object.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># update job object size (currently not used)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">JobData</span><span class="p">):</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">add_size</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">get_size</span><span class="p">())</span>
+
+    <span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="purge_queue"><a class="viewcode-back" href="../../../components/util/queuehandling.html#pilot.util.queuehandling.purge_queue">[docs]</a><span class="k">def</span> <span class="nf">purge_queue</span><span class="p">(</span><span class="n">queue</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Empty given queue.</span>
+
+<span class="sd">    :param queue:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">queue</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">queue</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">queue</span><span class="o">.</span><span class="n">task_done</span><span class="p">()</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;queue purged&#39;</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

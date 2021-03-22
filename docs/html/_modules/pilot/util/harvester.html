@@ -1,0 +1,447 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.util.harvester &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.util.harvester</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+
+<span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">FileHandlingFailure</span>
+<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">write_json</span><span class="p">,</span> <span class="n">touch</span><span class="p">,</span> <span class="n">remove</span><span class="p">,</span> <span class="n">read_json</span><span class="p">,</span> <span class="n">get_checksum_value</span>
+<span class="kn">from</span> <span class="nn">pilot.util.timing</span> <span class="kn">import</span> <span class="n">time_stamp</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="dump"><a class="viewcode-back" href="../../../components/util/harvester.html#pilot.util.harvester.dump">[docs]</a><span class="k">def</span> <span class="nf">dump</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    function for debugging - dumps object to sysout</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;obj.</span><span class="si">%s</span><span class="s2"> = </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">attr</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attr</span><span class="p">)))</span></div>
+
+
+<div class="viewcode-block" id="is_harvester_mode"><a class="viewcode-back" href="../../../components/util/harvester.html#pilot.util.harvester.is_harvester_mode">[docs]</a><span class="k">def</span> <span class="nf">is_harvester_mode</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determine if the pilot is running in Harvester mode.</span>
+<span class="sd">    :param args: Pilot arguments object.</span>
+<span class="sd">    :return: Boolean.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">harvester_workdir</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="ow">or</span> <span class="n">args</span><span class="o">.</span><span class="n">harvester_datadir</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">update_server</span><span class="p">:</span>
+        <span class="n">harvester</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">harvester_eventstatusdump</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="ow">or</span> <span class="n">args</span><span class="o">.</span><span class="n">harvester_workerattributes</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">update_server</span><span class="p">:</span>
+        <span class="n">harvester</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="s1">&#39;HARVESTER_ID&#39;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span> <span class="ow">or</span> <span class="s1">&#39;HARVESTER_WORKER_ID&#39;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">)</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">harvester_submitmode</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;push&#39;</span><span class="p">:</span>
+        <span class="n">harvester</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">harvester</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">return</span> <span class="n">harvester</span></div>
+
+
+<div class="viewcode-block" id="get_job_request_file_name"><a class="viewcode-back" href="../../../components/util/harvester.html#pilot.util.harvester.get_job_request_file_name">[docs]</a><span class="k">def</span> <span class="nf">get_job_request_file_name</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the name of the job request file as defined in the pilot config file.</span>
+
+<span class="sd">    :return: job request file name.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#logger.debug(&#39;config.Harvester.__dict__ : {0}&#39;.format(config.Harvester.__dict__))</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">],</span> <span class="n">config</span><span class="o">.</span><span class="n">Harvester</span><span class="o">.</span><span class="n">job_request_file</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="remove_job_request_file"><a class="viewcode-back" href="../../../components/util/harvester.html#pilot.util.harvester.remove_job_request_file">[docs]</a><span class="k">def</span> <span class="nf">remove_job_request_file</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove an old job request file when it is no longer needed.</span>
+
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">get_job_request_file_name</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">remove</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;removed </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;there is no job request file&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="request_new_jobs"><a class="viewcode-back" href="../../../components/util/harvester.html#pilot.util.harvester.request_new_jobs">[docs]</a><span class="k">def</span> <span class="nf">request_new_jobs</span><span class="p">(</span><span class="n">njobs</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Inform Harvester that the pilot is ready to process new jobs by creating a job request file with the desired</span>
+<span class="sd">    number of jobs.</span>
+
+<span class="sd">    :param njobs: Number of jobs. Default is 1 since on grids and clouds the pilot does not know how many jobs it can</span>
+<span class="sd">    process before it runs out of time.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">get_job_request_file_name</span><span class="p">()</span>
+    <span class="n">dictionary</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;nJobs&#39;</span><span class="p">:</span> <span class="n">njobs</span><span class="p">}</span>
+
+    <span class="c1"># write it to file</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">write_json</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">dictionary</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">FileHandlingFailure</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">FileHandlingFailure</span></div>
+
+
+<div class="viewcode-block" id="kill_worker"><a class="viewcode-back" href="../../../components/util/harvester.html#pilot.util.harvester.kill_worker">[docs]</a><span class="k">def</span> <span class="nf">kill_worker</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create (touch) a kill_worker file in the pilot launch directory.</span>
+<span class="sd">    This file will let Harverster know that the pilot has finished.</span>
+
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">touch</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">],</span> <span class="n">config</span><span class="o">.</span><span class="n">Harvester</span><span class="o">.</span><span class="n">kill_worker_file</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="get_initial_work_report"><a class="viewcode-back" href="../../../components/util/harvester.html#pilot.util.harvester.get_initial_work_report">[docs]</a><span class="k">def</span> <span class="nf">get_initial_work_report</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prepare the work report dictionary.</span>
+<span class="sd">    Note: the work_report should also contain all fields defined in parse_jobreport_data().</span>
+
+<span class="sd">    :return: work report dictionary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">work_report</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;jobStatus&#39;</span><span class="p">:</span> <span class="s1">&#39;starting&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;messageLevel&#39;</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLevelName</span><span class="p">(</span><span class="n">logger</span><span class="o">.</span><span class="n">getEffectiveLevel</span><span class="p">()),</span>
+                   <span class="s1">&#39;cpuConversionFactor&#39;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+                   <span class="s1">&#39;cpuConsumptionTime&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;node&#39;</span><span class="p">:</span> <span class="n">socket</span><span class="o">.</span><span class="n">gethostname</span><span class="p">(),</span>
+                   <span class="s1">&#39;workdir&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;timestamp&#39;</span><span class="p">:</span> <span class="n">time_stamp</span><span class="p">(),</span>
+                   <span class="s1">&#39;endTime&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                   <span class="s1">&#39;transExitCode&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                   <span class="s1">&#39;pilotErrorCode&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>  <span class="c1"># only add this in case of failure?</span>
+                   <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">work_report</span></div>
+
+
+<div class="viewcode-block" id="get_event_status_file"><a class="viewcode-back" href="../../../components/util/harvester.html#pilot.util.harvester.get_event_status_file">[docs]</a><span class="k">def</span> <span class="nf">get_event_status_file</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the name of the event_status.dump file as defined in the pilot config file</span>
+<span class="sd">    and from the pilot arguments.</span>
+
+<span class="sd">    :param args: Pilot arguments object.</span>
+<span class="sd">    :return: event staus file name.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;config.Harvester.__dict__ : </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Harvester</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">harvester_workdir</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+        <span class="n">work_dir</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">harvester_workdir</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">work_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">]</span>
+    <span class="n">event_status_file</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Harvester</span><span class="o">.</span><span class="n">stageoutnfile</span>
+    <span class="n">event_status_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">work_dir</span><span class="p">,</span> <span class="n">event_status_file</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;event_status_file = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">event_status_file</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">event_status_file</span></div>
+
+
+<div class="viewcode-block" id="get_worker_attributes_file"><a class="viewcode-back" href="../../../components/util/harvester.html#pilot.util.harvester.get_worker_attributes_file">[docs]</a><span class="k">def</span> <span class="nf">get_worker_attributes_file</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the name of the worker attributes file as defined in the pilot config file</span>
+<span class="sd">    and from the pilot arguments.</span>
+
+<span class="sd">    :param args: Pilot arguments object.</span>
+<span class="sd">    :return: worker attributes file name.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;config.Harvester.__dict__ : </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Harvester</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">harvester_workdir</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+        <span class="n">work_dir</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">harvester_workdir</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">work_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">]</span>
+    <span class="n">worker_attributes_file</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Harvester</span><span class="o">.</span><span class="n">workerattributesfile</span>
+    <span class="n">worker_attributes_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">work_dir</span><span class="p">,</span> <span class="n">worker_attributes_file</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;worker_attributes_file = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">worker_attributes_file</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">worker_attributes_file</span></div>
+
+
+<div class="viewcode-block" id="findfile"><a class="viewcode-back" href="../../../components/util/harvester.html#pilot.util.harvester.findfile">[docs]</a><span class="k">def</span> <span class="nf">findfile</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    find the first instance of file in the directory tree</span>
+
+<span class="sd">    :param path: directory tree to search</span>
+<span class="sd">    :param name: name of the file to search</span>
+
+<span class="sd">    :return: the path to the first instance of the file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">dirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span></div>
+
+
+<div class="viewcode-block" id="publish_stageout_files"><a class="viewcode-back" href="../../../components/util/harvester.html#pilot.util.harvester.publish_stageout_files">[docs]</a><span class="k">def</span> <span class="nf">publish_stageout_files</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">event_status_file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Publishing of work report to file.</span>
+<span class="sd">    The work report dictionary should contain the fields defined in get_initial_work_report().</span>
+
+<span class="sd">    :param args: Pilot arguments object.</span>
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :param event status file name:</span>
+
+<span class="sd">    :return: Boolean. status of writing the file information to a json</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># get the harvester workdir from the event_status_file</span>
+    <span class="n">work_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">event_status_file</span><span class="p">)</span>
+
+    <span class="n">out_file_report</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">out_file_report</span><span class="p">[</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># first look at the logfile information (logdata) from the FileSpec objects</span>
+    <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">logdata</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;File </span><span class="si">{}</span><span class="s2"> will be checked and declared for stage out&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">))</span>
+        <span class="c1"># find the first instance of the file</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">surl</span><span class="p">)</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">findfile</span><span class="p">(</span><span class="n">work_dir</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Found File </span><span class="si">{}</span><span class="s2"> at path - </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">path</span><span class="p">))</span>
+        <span class="c1">#</span>
+        <span class="n">file_desc</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">file_desc</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">filetype</span>
+        <span class="n">file_desc</span><span class="p">[</span><span class="s1">&#39;path&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="n">file_desc</span><span class="p">[</span><span class="s1">&#39;guid&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">guid</span>
+        <span class="n">file_desc</span><span class="p">[</span><span class="s1">&#39;fsize&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">filesize</span>
+        <span class="n">file_desc</span><span class="p">[</span><span class="s1">&#39;chksum&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_checksum_value</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">checksum</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;File description - </span><span class="si">{}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_desc</span><span class="p">))</span>
+        <span class="n">out_file_report</span><span class="p">[</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file_desc</span><span class="p">)</span>
+
+    <span class="c1"># Now look at the output file(s) information (outdata) from the FileSpec objects</span>
+    <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">outdata</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;File </span><span class="si">{}</span><span class="s2"> will be checked and declared for stage out&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="s1">&#39;transferred&#39;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;will not add the output file to the json since it was not produced or transferred&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># find the first instance of the file</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">surl</span><span class="p">)</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">findfile</span><span class="p">(</span><span class="n">work_dir</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;file </span><span class="si">%s</span><span class="s1"> was not found - will not be added to json&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Found File </span><span class="si">{}</span><span class="s2"> at path - </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">path</span><span class="p">))</span>
+                <span class="c1">#</span>
+                <span class="n">file_desc</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">file_desc</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">filetype</span>
+                <span class="n">file_desc</span><span class="p">[</span><span class="s1">&#39;path&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span>
+                <span class="n">file_desc</span><span class="p">[</span><span class="s1">&#39;guid&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">guid</span>
+                <span class="n">file_desc</span><span class="p">[</span><span class="s1">&#39;fsize&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">filesize</span>
+                <span class="n">file_desc</span><span class="p">[</span><span class="s1">&#39;chksum&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_checksum_value</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">checksum</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;File description - </span><span class="si">{}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_desc</span><span class="p">))</span>
+                <span class="n">out_file_report</span><span class="p">[</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file_desc</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">out_file_report</span><span class="p">[</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">write_json</span><span class="p">(</span><span class="n">event_status_file</span><span class="p">,</span> <span class="n">out_file_report</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Stagout declared in: </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">event_status_file</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Report for stageout: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">out_file_report</span><span class="p">))</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Failed to declare stagout in: </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">event_status_file</span><span class="p">))</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;No Report for stageout&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="publish_work_report"><a class="viewcode-back" href="../../../components/util/harvester.html#pilot.util.harvester.publish_work_report">[docs]</a><span class="k">def</span> <span class="nf">publish_work_report</span><span class="p">(</span><span class="n">work_report</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">worker_attributes_file</span><span class="o">=</span><span class="s2">&quot;worker_attributes.json&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Publishing of work report to file.</span>
+<span class="sd">    The work report dictionary should contain the fields defined in get_initial_work_report().</span>
+
+<span class="sd">    :param work_report: work report dictionary.</span>
+<span class="sd">    :param worker_attributes_file:</span>
+<span class="sd">    :raises FileHandlingFailure: in case of IOError.</span>
+<span class="sd">    :return: True or False</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">work_report</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">work_report</span><span class="p">[</span><span class="s1">&#39;timestamp&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">time_stamp</span><span class="p">()</span>
+            <span class="k">if</span> <span class="s2">&quot;outputfiles&quot;</span> <span class="ow">in</span> <span class="n">work_report</span><span class="p">:</span>
+                <span class="k">del</span><span class="p">(</span><span class="n">work_report</span><span class="p">[</span><span class="s2">&quot;outputfiles&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s2">&quot;inputfiles&quot;</span> <span class="ow">in</span> <span class="n">work_report</span><span class="p">:</span>
+                <span class="k">del</span> <span class="p">(</span><span class="n">work_report</span><span class="p">[</span><span class="s2">&quot;inputfiles&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s2">&quot;xml&quot;</span> <span class="ow">in</span> <span class="n">work_report</span><span class="p">:</span>
+                <span class="k">del</span> <span class="p">(</span><span class="n">work_report</span><span class="p">[</span><span class="s2">&quot;xml&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">write_json</span><span class="p">(</span><span class="n">worker_attributes_file</span><span class="p">,</span> <span class="n">work_report</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;work report published: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">work_report</span><span class="p">))</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;work report publish failed: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">work_report</span><span class="p">))</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;job report copy failed&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;write json file failed: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># No work_report return False</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="publish_job_report"><a class="viewcode-back" href="../../../components/util/harvester.html#pilot.util.harvester.publish_job_report">[docs]</a><span class="k">def</span> <span class="nf">publish_job_report</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">job_report_file</span><span class="o">=</span><span class="s2">&quot;jobReport.json&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Copy job report file to make it accessible by Harvester. Shrink job report file.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :param args: Pilot arguments object.</span>
+<span class="sd">    :param job_report_file: name of job report (string).</span>
+<span class="sd">    :raises FileHandlingFailure: in case of IOError.</span>
+<span class="sd">    :return True or False</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">src_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">job_report_file</span><span class="p">)</span>
+    <span class="n">dst_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">harvester_workdir</span><span class="p">,</span> <span class="n">job_report_file</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;copy of payload report [</span><span class="si">{0}</span><span class="s2">] to access point: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">job_report_file</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">harvester_workdir</span><span class="p">))</span>
+        <span class="c1"># shrink jobReport</span>
+        <span class="n">job_report</span> <span class="o">=</span> <span class="n">read_json</span><span class="p">(</span><span class="n">src_file</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;executor&#39;</span> <span class="ow">in</span> <span class="n">job_report</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">executor</span> <span class="ow">in</span> <span class="n">job_report</span><span class="p">[</span><span class="s1">&#39;executor&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="s1">&#39;logfileReport&#39;</span> <span class="ow">in</span> <span class="n">executor</span><span class="p">:</span>
+                    <span class="n">executor</span><span class="p">[</span><span class="s1">&#39;logfileReport&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">write_json</span><span class="p">(</span><span class="n">dst_file</span><span class="p">,</span> <span class="n">job_report</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;job report copy failed&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="parse_job_definition_file"><a class="viewcode-back" href="../../../components/util/harvester.html#pilot.util.harvester.parse_job_definition_file">[docs]</a><span class="k">def</span> <span class="nf">parse_job_definition_file</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function parses the Harvester job definition file and re-packages the job definition dictionaries.</span>
+<span class="sd">    The format of the Harvester job definition dictionary is:</span>
+<span class="sd">    dict = { job_id: { key: value, .. }, .. }</span>
+<span class="sd">    The function returns a list of these dictionaries each re-packaged as</span>
+<span class="sd">    dict = { key: value } (where the job_id is now one of the key-value pairs: &#39;jobid&#39;: job_id)</span>
+
+<span class="sd">    :param filename: file name (string).</span>
+<span class="sd">    :return: list of job definition dictionaries.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">job_definitions_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># re-package dictionaries</span>
+    <span class="n">job_definitions_dict</span> <span class="o">=</span> <span class="n">read_json</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">job_definitions_dict</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">job_id</span> <span class="ow">in</span> <span class="n">job_definitions_dict</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;jobid&#39;</span><span class="p">:</span> <span class="n">job_id</span><span class="p">}</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">job_definitions_dict</span><span class="p">[</span><span class="n">job_id</span><span class="p">])</span>
+            <span class="n">job_definitions_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">job_definitions_list</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,351 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.resource.titan &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.resource.titan</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019</span>
+<span class="c1"># - Danila Oleynik danila.oleynik@cern.ch, 2018</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">from</span> <span class="nn">.jobdescription</span> <span class="kn">import</span> <span class="n">JobDescription</span>  <span class="c1"># Python 2/3</span>
+<span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">FileHandlingFailure</span>
+<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">PILOT_PRE_STAGEIN</span><span class="p">,</span> <span class="n">PILOT_POST_STAGEIN</span>
+<span class="kn">from</span> <span class="nn">pilot.util.disk</span> <span class="kn">import</span> <span class="n">disk_usage</span>
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">read_json</span><span class="p">,</span> <span class="n">write_json</span><span class="p">,</span> <span class="n">remove</span>
+<span class="c1">#from pilot.util.mpi import get_ranks_info</span>
+<span class="kn">from</span> <span class="nn">pilot.util.timing</span> <span class="kn">import</span> <span class="n">add_to_pilot_timing</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_job"><a class="viewcode-back" href="../../../components/resource/titan.html#pilot.resource.titan.get_job">[docs]</a><span class="k">def</span> <span class="nf">get_job</span><span class="p">(</span><span class="n">harvesterpath</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return job description in dictionary and MPI rank (if applicable)</span>
+
+<span class="sd">    :param harvesterpath: path to config.Harvester.jobs_list_file (string).</span>
+<span class="sd">    :return: job object, rank (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">rank</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">job</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Going to read job definition from file&quot;</span><span class="p">)</span>
+
+    <span class="n">pandaids_list_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">harvesterpath</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Harvester</span><span class="o">.</span><span class="n">jobs_list_file</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">pandaids_list_filename</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;File with PanDA IDs are missing. Nothing to execute.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">job</span><span class="p">,</span> <span class="n">rank</span>
+
+    <span class="n">harvesterpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">harvesterpath</span><span class="p">)</span>
+    <span class="c1">#rank, max_ranks = get_ranks_info()</span>
+
+    <span class="n">pandaids</span> <span class="o">=</span> <span class="n">read_json</span><span class="p">(</span><span class="n">pandaids_list_filename</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Got </span><span class="si">{0}</span><span class="s1"> job ids&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pandaids</span><span class="p">)))</span>
+    <span class="n">pandaid</span> <span class="o">=</span> <span class="n">pandaids</span><span class="p">[</span><span class="n">rank</span><span class="p">]</span>
+    <span class="n">job_workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">harvesterpath</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">pandaid</span><span class="p">))</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Rank: </span><span class="si">{2}</span><span class="s1"> with job </span><span class="si">{0}</span><span class="s1"> will have work directory </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pandaid</span><span class="p">,</span> <span class="n">job_workdir</span><span class="p">,</span> <span class="n">rank</span><span class="p">))</span>
+
+    <span class="n">job_def_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job_workdir</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Harvester</span><span class="o">.</span><span class="n">pandajob_file</span><span class="p">)</span>
+    <span class="n">jobs_dict</span> <span class="o">=</span> <span class="n">read_json</span><span class="p">(</span><span class="n">job_def_filename</span><span class="p">)</span>
+    <span class="n">job_dict</span> <span class="o">=</span> <span class="n">jobs_dict</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">pandaid</span><span class="p">)]</span>
+    <span class="n">job</span> <span class="o">=</span> <span class="n">JobDescription</span><span class="p">()</span>
+    <span class="n">job</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">job_dict</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">job</span><span class="p">,</span> <span class="n">rank</span></div>
+
+
+<div class="viewcode-block" id="get_setup"><a class="viewcode-back" href="../../../components/resource/titan.html#pilot.resource.titan.get_setup">[docs]</a><span class="k">def</span> <span class="nf">get_setup</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the resource specific setup.</span>
+
+<span class="sd">    :param job: optional job object.</span>
+<span class="sd">    :return: setup commands (list).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">setup_commands</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;source /ccs/proj/csc108/athena_grid_env/setup.sh&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;source $MODULESHOME/init/bash&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;tmp_dirname=/tmp/scratch&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;tmp_dirname+=&quot;/tmp&quot;&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;export TEMP=$tmp_dirname&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;export TMPDIR=$TEMP&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;export TMP=$TEMP&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;export LD_LIBRARY_PATH=/ccs/proj/csc108/AtlasReleases/ldpatch:$LD_LIBRARY_PATH&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;export ATHENA_PROC_NUMBER=16&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;export G4ATLAS_SKIPFILEPEEK=1&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;export PANDA_RESOURCE=</span><span class="se">\&quot;</span><span class="s1">ORNL_Titan_MCORE</span><span class="se">\&quot;</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;export ROOT_TTREECACHE_SIZE=1&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;export RUCIO_APPID=</span><span class="se">\&quot;</span><span class="s1">simul</span><span class="se">\&quot;</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;export RUCIO_ACCOUNT=</span><span class="se">\&quot;</span><span class="s1">pilot</span><span class="se">\&quot;</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;export CORAL_DBLOOKUP_PATH=/ccs/proj/csc108/AtlasReleases/21.0.15/nfs_db_files&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;export CORAL_AUTH_PATH=$SW_INSTALL_AREA/DBRelease/current/XMLConfig&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;export DATAPATH=$SW_INSTALL_AREA/DBRelease/current:$DATAPATH&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;unset FRONTIER_SERVER&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39; &#39;</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">setup_commands</span></div>
+
+
+<div class="viewcode-block" id="set_job_workdir"><a class="viewcode-back" href="../../../components/resource/titan.html#pilot.resource.titan.set_job_workdir">[docs]</a><span class="k">def</span> <span class="nf">set_job_workdir</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Point pilot to job working directory (job id).</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :param path: local path to Harvester access point (string).</span>
+<span class="sd">    :return: job working directory (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">work_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">))</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">work_dir</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">work_dir</span></div>
+
+
+<div class="viewcode-block" id="set_scratch_workdir"><a class="viewcode-back" href="../../../components/resource/titan.html#pilot.resource.titan.set_scratch_workdir">[docs]</a><span class="k">def</span> <span class="nf">set_scratch_workdir</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">work_dir</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Copy input files and some db files to RAM disk.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :param work_dir: job working directory (permanent FS) (string).</span>
+<span class="sd">    :param args: args dictionary to collect timing metrics.</span>
+<span class="sd">    :return: job working directory in scratch (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">scratch_path</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">HPC</span><span class="o">.</span><span class="n">scratch</span>
+    <span class="n">du</span> <span class="o">=</span> <span class="n">disk_usage</span><span class="p">(</span><span class="n">scratch_path</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Scratch dir available space: </span><span class="si">{0}</span><span class="s2"> used: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">du</span><span class="o">.</span><span class="n">free</span><span class="p">,</span> <span class="n">du</span><span class="o">.</span><span class="n">used</span><span class="p">))</span>
+    <span class="n">job_scratch_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">scratch_path</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">inp_file</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">input_files</span><span class="p">:</span>
+        <span class="n">job</span><span class="o">.</span><span class="n">input_files</span><span class="p">[</span><span class="n">inp_file</span><span class="p">][</span><span class="s2">&quot;scratch_path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">job_scratch_dir</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Job scratch path: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">job_scratch_dir</span><span class="p">))</span>
+    <span class="c1"># special data, that should be preplaced in RAM disk</span>
+    <span class="n">dst_db_path</span> <span class="o">=</span> <span class="s1">&#39;sqlite200/&#39;</span>
+    <span class="n">dst_db_filename</span> <span class="o">=</span> <span class="s1">&#39;ALLP200.db&#39;</span>
+    <span class="n">dst_db_path_2</span> <span class="o">=</span> <span class="s1">&#39;geomDB/&#39;</span>
+    <span class="n">dst_db_filename_2</span> <span class="o">=</span> <span class="s1">&#39;geomDB_sqlite&#39;</span>
+    <span class="n">tmp_path</span> <span class="o">=</span> <span class="s1">&#39;tmp/&#39;</span>
+    <span class="n">src_file</span> <span class="o">=</span> <span class="s1">&#39;/ccs/proj/csc108/AtlasReleases/21.0.15/DBRelease/current/sqlite200/ALLP200.db&#39;</span>
+    <span class="n">src_file_2</span> <span class="o">=</span> <span class="s1">&#39;/ccs/proj/csc108/AtlasReleases/21.0.15/DBRelease/current/geomDB/geomDB_sqlite&#39;</span>
+
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">scratch_path</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">add_to_pilot_timing</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">,</span> <span class="n">PILOT_PRE_STAGEIN</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span> <span class="n">args</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Prepare </span><span class="se">\&#39;</span><span class="s2">tmp</span><span class="se">\&#39;</span><span class="s2"> dir in scratch &quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">scratch_path</span> <span class="o">+</span> <span class="n">tmp_path</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">scratch_path</span> <span class="o">+</span> <span class="n">tmp_path</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Prepare dst and copy sqlite db files&quot;</span><span class="p">)</span>
+            <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">scratch_path</span> <span class="o">+</span> <span class="n">dst_db_path</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">scratch_path</span> <span class="o">+</span> <span class="n">dst_db_path</span><span class="p">)</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">src_file</span><span class="p">,</span> <span class="n">scratch_path</span> <span class="o">+</span> <span class="n">dst_db_path</span> <span class="o">+</span> <span class="n">dst_db_filename</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">sql_cp_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Copy of sqlite files took: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql_cp_time</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Prepare dst and copy geomDB files&quot;</span><span class="p">)</span>
+            <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">scratch_path</span> <span class="o">+</span> <span class="n">dst_db_path_2</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">scratch_path</span> <span class="o">+</span> <span class="n">dst_db_path_2</span><span class="p">)</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">src_file_2</span><span class="p">,</span> <span class="n">scratch_path</span> <span class="o">+</span> <span class="n">dst_db_path_2</span> <span class="o">+</span> <span class="n">dst_db_filename_2</span><span class="p">)</span>
+            <span class="n">geomdb_cp_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Copy of geomDB files took: </span><span class="si">{0}</span><span class="s2"> s&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">geomdb_cp_time</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Prepare job scratch dir&quot;</span><span class="p">)</span>
+            <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">job_scratch_dir</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">job_scratch_dir</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Copy input file&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">inp_file</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">input_files</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Copy: </span><span class="si">{0}</span><span class="s2"> to </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">work_dir</span><span class="p">,</span> <span class="n">inp_file</span><span class="p">),</span>
+                                                       <span class="n">job</span><span class="o">.</span><span class="n">input_files</span><span class="p">[</span><span class="n">inp_file</span><span class="p">][</span><span class="s2">&quot;scratch_path&quot;</span><span class="p">]))</span>
+                <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">work_dir</span><span class="p">,</span> <span class="n">inp_file</span><span class="p">),</span>
+                                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">input_files</span><span class="p">[</span><span class="n">inp_file</span><span class="p">][</span><span class="s2">&quot;scratch_path&quot;</span><span class="p">],</span> <span class="n">inp_file</span><span class="p">))</span>
+            <span class="n">input_cp_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Copy of input files took: </span><span class="si">{0}</span><span class="s2"> s&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">input_cp_time</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;I/O error(</span><span class="si">{0}</span><span class="s2">): </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">errno</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">strerror</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Copy to scratch failed, execution terminated&#39;: </span><span class="se">\n</span><span class="s2"> </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="k">raise</span> <span class="n">FileHandlingFailure</span><span class="p">(</span><span class="s2">&quot;Copy to RAM disk failed&quot;</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">add_to_pilot_timing</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">,</span> <span class="n">PILOT_POST_STAGEIN</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span> <span class="n">args</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Scratch directory (</span><span class="si">%s</span><span class="s1">) dos not exist&#39;</span> <span class="o">%</span> <span class="n">scratch_path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">work_dir</span>
+
+    <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">job_scratch_dir</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Current directory: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()))</span>
+    <span class="n">true_dir</span> <span class="o">=</span> <span class="s1">&#39;/ccs/proj/csc108/AtlasReleases/21.0.15/nfs_db_files&#39;</span>
+    <span class="n">pseudo_dir</span> <span class="o">=</span> <span class="s2">&quot;./poolcond&quot;</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">symlink</span><span class="p">(</span><span class="n">true_dir</span><span class="p">,</span> <span class="n">pseudo_dir</span><span class="p">)</span>
+    <span class="n">du</span> <span class="o">=</span> <span class="n">disk_usage</span><span class="p">(</span><span class="n">scratch_path</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Scratch dir available space for job: </span><span class="si">{0}</span><span class="s2"> used: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">du</span><span class="o">.</span><span class="n">free</span><span class="p">,</span> <span class="n">du</span><span class="o">.</span><span class="n">used</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">job_scratch_dir</span></div>
+
+
+<div class="viewcode-block" id="process_jobreport"><a class="viewcode-back" href="../../../components/resource/titan.html#pilot.resource.titan.process_jobreport">[docs]</a><span class="k">def</span> <span class="nf">process_jobreport</span><span class="p">(</span><span class="n">payload_report_file</span><span class="p">,</span> <span class="n">job_scratch_path</span><span class="p">,</span> <span class="n">job_communication_point</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Copy job report file to make it accessible by Harvester. Shrink job report file.</span>
+
+<span class="sd">    :param payload_report_file: name of job report (string).</span>
+<span class="sd">    :param job_scratch_path: path to scratch directory (string).</span>
+<span class="sd">    :param job_communication_point: path to updated job report accessible by Harvester (string).</span>
+<span class="sd">    :raises FileHandlingFailure: in case of IOError.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">src_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job_scratch_path</span><span class="p">,</span> <span class="n">payload_report_file</span><span class="p">)</span>
+    <span class="n">dst_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job_communication_point</span><span class="p">,</span> <span class="n">payload_report_file</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Copy of payload report [</span><span class="si">{0}</span><span class="s2">] to access point: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">payload_report_file</span><span class="p">,</span> <span class="n">job_communication_point</span><span class="p">))</span>
+        <span class="c1"># shrink jobReport</span>
+        <span class="n">job_report</span> <span class="o">=</span> <span class="n">read_json</span><span class="p">(</span><span class="n">src_file</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;executor&#39;</span> <span class="ow">in</span> <span class="n">job_report</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">executor</span> <span class="ow">in</span> <span class="n">job_report</span><span class="p">[</span><span class="s1">&#39;executor&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="s1">&#39;logfileReport&#39;</span> <span class="ow">in</span> <span class="n">executor</span><span class="p">:</span>
+                    <span class="n">executor</span><span class="p">[</span><span class="s1">&#39;logfileReport&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">write_json</span><span class="p">(</span><span class="n">dst_file</span><span class="p">,</span> <span class="n">job_report</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Job report copy failed, execution terminated&#39;:  </span><span class="se">\n</span><span class="s2"> </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="k">raise</span> <span class="n">FileHandlingFailure</span><span class="p">(</span><span class="s2">&quot;Job report copy from RAM failed&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="postprocess_workdir"><a class="viewcode-back" href="../../../components/resource/titan.html#pilot.resource.titan.postprocess_workdir">[docs]</a><span class="k">def</span> <span class="nf">postprocess_workdir</span><span class="p">(</span><span class="n">workdir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Post-processing of working directory. Unlink paths.</span>
+
+<span class="sd">    :param workdir: path to directory to be processed (string).</span>
+<span class="sd">    :raises FileHandlingFailure: in case of IOError.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pseudo_dir</span> <span class="o">=</span> <span class="s2">&quot;poolcond&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">pseudo_dir</span><span class="p">):</span>
+            <span class="n">remove</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">pseudo_dir</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">FileHandlingFailure</span><span class="p">(</span><span class="s2">&quot;Post processing of working directory failed&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="command_fix"><a class="viewcode-back" href="../../../components/resource/titan.html#pilot.resource.titan.command_fix">[docs]</a><span class="k">def</span> <span class="nf">command_fix</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">job_scratch_dir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Modification of payload parameters, to be executed on Titan on RAM disk. Some cleanup.</span>
+
+<span class="sd">    :param command: payload command (string).</span>
+<span class="sd">    :param job_scratch_dir: local path to input files (string).</span>
+<span class="sd">    :return: updated/fixed payload command (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">subs_a</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">subs_a</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;(&#39;</span> <span class="ow">in</span> <span class="n">subs_a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">subs_a</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">:</span>
+                <span class="n">subs_a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&quot;&#39;</span> <span class="o">+</span> <span class="n">subs_a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;&quot;&#39;</span>
+            <span class="k">if</span> <span class="n">subs_a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;--inputEVNTFile&quot;</span><span class="p">):</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="n">subs_a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">subs_a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">subs_a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job_scratch_dir</span><span class="p">,</span> <span class="n">filename</span><span class="p">))</span>
+
+    <span class="n">fixed_command</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">subs_a</span><span class="p">)</span>
+    <span class="n">fixed_command</span> <span class="o">=</span> <span class="n">fixed_command</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">fixed_command</span> <span class="o">=</span> <span class="n">fixed_command</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;--DBRelease=&quot;all:current&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>  <span class="c1"># avoid Frontier reading</span>
+
+    <span class="k">return</span> <span class="n">fixed_command</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

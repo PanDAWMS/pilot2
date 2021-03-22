@@ -1,0 +1,321 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>harvester &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="https" href="https.html" />
+    <link rel="prev" title="filehandling" href="filehandling.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-pilot.util.harvester">
+<span id="harvester"></span><h1>harvester<a class="headerlink" href="#module-pilot.util.harvester" title="Permalink to this headline">¶</a></h1>
+<dl class="py function">
+<dt id="pilot.util.harvester.dump">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.harvester.</span></code><code class="sig-name descname"><span class="pre">dump</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/harvester.html#dump"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.harvester.dump" title="Permalink to this definition">¶</a></dt>
+<dd><p>function for debugging - dumps object to sysout</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.harvester.findfile">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.harvester.</span></code><code class="sig-name descname"><span class="pre">findfile</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/harvester.html#findfile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.harvester.findfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>find the first instance of file in the directory tree</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – directory tree to search</p></li>
+<li><p><strong>name</strong> – name of the file to search</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the path to the first instance of the file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.harvester.get_event_status_file">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.harvester.</span></code><code class="sig-name descname"><span class="pre">get_event_status_file</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/harvester.html#get_event_status_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.harvester.get_event_status_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the name of the event_status.dump file as defined in the pilot config file
+and from the pilot arguments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args</strong> – Pilot arguments object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>event staus file name.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.harvester.get_initial_work_report">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.harvester.</span></code><code class="sig-name descname"><span class="pre">get_initial_work_report</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/harvester.html#get_initial_work_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.harvester.get_initial_work_report" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare the work report dictionary.
+Note: the work_report should also contain all fields defined in parse_jobreport_data().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>work report dictionary.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.harvester.get_job_request_file_name">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.harvester.</span></code><code class="sig-name descname"><span class="pre">get_job_request_file_name</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/harvester.html#get_job_request_file_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.harvester.get_job_request_file_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the name of the job request file as defined in the pilot config file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>job request file name.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.harvester.get_worker_attributes_file">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.harvester.</span></code><code class="sig-name descname"><span class="pre">get_worker_attributes_file</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/harvester.html#get_worker_attributes_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.harvester.get_worker_attributes_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the name of the worker attributes file as defined in the pilot config file
+and from the pilot arguments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args</strong> – Pilot arguments object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>worker attributes file name.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.harvester.is_harvester_mode">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.harvester.</span></code><code class="sig-name descname"><span class="pre">is_harvester_mode</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/harvester.html#is_harvester_mode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.harvester.is_harvester_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine if the pilot is running in Harvester mode.
+:param args: Pilot arguments object.
+:return: Boolean.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.harvester.kill_worker">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.harvester.</span></code><code class="sig-name descname"><span class="pre">kill_worker</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/harvester.html#kill_worker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.harvester.kill_worker" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create (touch) a kill_worker file in the pilot launch directory.
+This file will let Harverster know that the pilot has finished.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.harvester.parse_job_definition_file">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.harvester.</span></code><code class="sig-name descname"><span class="pre">parse_job_definition_file</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/harvester.html#parse_job_definition_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.harvester.parse_job_definition_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function parses the Harvester job definition file and re-packages the job definition dictionaries.
+The format of the Harvester job definition dictionary is:
+dict = { job_id: { key: value, .. }, .. }
+The function returns a list of these dictionaries each re-packaged as
+dict = { key: value } (where the job_id is now one of the key-value pairs: ‘jobid’: job_id)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>filename</strong> – file name (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of job definition dictionaries.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.harvester.publish_job_report">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.harvester.</span></code><code class="sig-name descname"><span class="pre">publish_job_report</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_report_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'jobReport.json'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/harvester.html#publish_job_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.harvester.publish_job_report" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copy job report file to make it accessible by Harvester. Shrink job report file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>args</strong> – Pilot arguments object.</p></li>
+<li><p><strong>job_report_file</strong> – name of job report (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference internal" href="../common/exception.html#pilot.common.exception.FileHandlingFailure" title="pilot.common.exception.FileHandlingFailure"><strong>FileHandlingFailure</strong></a> – in case of IOError.</p>
+</dd>
+</dl>
+<p>:return True or False</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.harvester.publish_stageout_files">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.harvester.</span></code><code class="sig-name descname"><span class="pre">publish_stageout_files</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_status_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/harvester.html#publish_stageout_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.harvester.publish_stageout_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Publishing of work report to file.
+The work report dictionary should contain the fields defined in get_initial_work_report().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – Pilot arguments object.</p></li>
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>status file name</strong> (<em>event</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Boolean. status of writing the file information to a json</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.harvester.publish_work_report">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.harvester.</span></code><code class="sig-name descname"><span class="pre">publish_work_report</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">work_report</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">worker_attributes_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'worker_attributes.json'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/harvester.html#publish_work_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.harvester.publish_work_report" title="Permalink to this definition">¶</a></dt>
+<dd><p>Publishing of work report to file.
+The work report dictionary should contain the fields defined in get_initial_work_report().</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>work_report</strong> – work report dictionary.</p></li>
+<li><p><strong>worker_attributes_file</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference internal" href="../common/exception.html#pilot.common.exception.FileHandlingFailure" title="pilot.common.exception.FileHandlingFailure"><strong>FileHandlingFailure</strong></a> – in case of IOError.</p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True or False</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.harvester.remove_job_request_file">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.harvester.</span></code><code class="sig-name descname"><span class="pre">remove_job_request_file</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/harvester.html#remove_job_request_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.harvester.remove_job_request_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove an old job request file when it is no longer needed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.harvester.request_new_jobs">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.harvester.</span></code><code class="sig-name descname"><span class="pre">request_new_jobs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">njobs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/harvester.html#request_new_jobs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.harvester.request_new_jobs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inform Harvester that the pilot is ready to process new jobs by creating a job request file with the desired
+number of jobs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>njobs</strong> – Number of jobs. Default is 1 since on grids and clouds the pilot does not know how many jobs it can</p>
+</dd>
+</dl>
+<p>process before it runs out of time.
+:return:</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Components</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api/index.html">api components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/index.html">common components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../control/index.html">control components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../copytool/index.html">copytool components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../eventservice/index.html">eventservice components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../info/index.html">info components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../resource/index.html">resource components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../user/index.html">user components</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">util components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../workflow/index.html">workflow components</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Components</a><ul>
+  <li><a href="index.html">util components</a><ul>
+      <li>Previous: <a href="filehandling.html" title="previous chapter">filehandling</a></li>
+      <li>Next: <a href="https.html" title="next chapter">https</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/components/util/harvester.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/components/util/harvester.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

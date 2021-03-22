@@ -1,0 +1,144 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Launch pilot 2 &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Components" href="../components/index.html" />
+    <link rel="prev" title="Getting started" href="index.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="launch-pilot-2">
+<h1>Launch pilot 2<a class="headerlink" href="#launch-pilot-2" title="Permalink to this headline">¶</a></h1>
+<p>The pilot is a dependency-less Python application and relies on <code class="docutils literal notranslate"><span class="pre">/usr/bin/env</span> <span class="pre">python</span></code>. The minimum pilot can be
+called like:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./pilot.py -d -q &lt;QUEUE_NAME&gt;
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">QUEUE_NAME</span></code> correspond to the ATLAS PandaQueue as defined in <a class="reference external" href="http://atlas-agis.cern.ch/agis/">AGIS</a>. This will launch the default <code class="docutils literal notranslate"><span class="pre">generic</span></code>
+workflow with lifetime default lifetime of 10 seconds.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">-d</span></code> argument changes the logger to produce debug output.</p>
+<p>The current range of implemented pilot options is:</p>
+<p><code class="docutils literal notranslate"><span class="pre">-a</span></code>: Pilot work directory (string; full path). This is the main work directory for the pilot. In this directory, the
+work directory of the payload will be created (<code class="docutils literal notranslate"><span class="pre">./PanDA_Pilot2_%d_%s&quot;</span> <span class="pre">%</span> <span class="pre">(os.getpid(),</span> <span class="pre">str(int(time.time())))</span></code>).</p>
+<p><code class="docutils literal notranslate"><span class="pre">-d</span></code>: Enable debug mode for logging messages. No value should be specified.</p>
+<p><code class="docutils literal notranslate"><span class="pre">-w</span></code>: Desired workflow (string). Default is <code class="docutils literal notranslate"><span class="pre">generic</span></code>, which currently means stage-in, payload execution and
+stage-out will be performed. Other workflows to be defined. The workflow name should match an existing module in the
+<code class="docutils literal notranslate"><span class="pre">workflow</span></code> Pilot 2 directory.</p>
+<p><code class="docutils literal notranslate"><span class="pre">-l</span></code>: Lifetime in seconds (integer). Default during Pilot 2 testing and implementation stage is currently 3600 s. It
+will be increased at a later time.</p>
+<p><code class="docutils literal notranslate"><span class="pre">-q</span></code>: PanDA queue name (string). E.g. AGLT2_TEST-condor.</p>
+<p><code class="docutils literal notranslate"><span class="pre">-s</span></code>: PanDA site name (string). E.g. AGLT2_TEST. Note: the site name is only necessary for the dispatcher. The pilot
+will send it to the dispatcher with the getJob command.</p>
+<p><code class="docutils literal notranslate"><span class="pre">-j</span></code>: Job label (string). A prod/source label which currently has default value <code class="xref any docutils literal notranslate"><span class="pre">ptest</span></code>. For production jobs, set
+this to <code class="xref any docutils literal notranslate"><span class="pre">managed</span></code> while <a class="reference internal" href="../components/api/memorymonitor.html#pilot.api.memorymonitor.MemoryMonitoring.user" title="pilot.api.memorymonitor.MemoryMonitoring.user"><code class="xref any py py-attr docutils literal notranslate"><span class="pre">user</span></code></a> is the value for user jobs. Setting it to <a class="reference external" href="https://docs.python.org/3/library/test.html#module-test" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">test</span></code></a> will result in a test job.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--cacert</span></code>: CA certificate to use with HTTPS calls to server, commonly X509 proxy (string). Not needed on the grid.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--capath</span></code>: CA certificates path (string). Not needed on the grid.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--url</span></code>: PanDA server URL (string). Default is <code class="xref any docutils literal notranslate"><span class="pre">https://pandaserver.cern.ch</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">-p</span></code>: PanDA server port (integer). Default is <code class="xref any docutils literal notranslate"><span class="pre">25443</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--config</span></code>: Config file path (string). Path to <code class="xref any docutils literal notranslate"><span class="pre">pilot_config.cfg</span></code> file.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--country_group</span></code>: Country group option for getjob request (string).</p>
+<p><code class="docutils literal notranslate"><span class="pre">--working_group</span></code>: Working group option for getjob request (string).</p>
+<p><code class="docutils literal notranslate"><span class="pre">--allow_other_country</span></code>: Is the resource allowed to be used outside the privileged group (boolean)?</p>
+<p><code class="docutils literal notranslate"><span class="pre">--allow_same_user</span></code>: Multi-jobs will only come from same taskID and thus same user (boolean).</p>
+<p><code class="docutils literal notranslate"><span class="pre">--pilot_user</span></code>: Pilot user (string). E.g. name of experiment.</p>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Getting started</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Launch pilot 2</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Getting started</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Getting started</a></li>
+      <li>Next: <a href="../components/index.html" title="next chapter">Components</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/getting_started/launch.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/getting_started/launch.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

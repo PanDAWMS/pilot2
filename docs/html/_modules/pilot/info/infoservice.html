@@ -1,0 +1,358 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.info.infoservice &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.info.infoservice</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Alexey Anisenkov, anisyonk@cern.ch, 2018</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2019</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">The implmemtation of high-level Info Service module,</span>
+<span class="sd">which includes a set of low-level information providers to aggregate, prioritize (overwrite),</span>
+<span class="sd">hide dependency to external storages and expose (queue, site, storage, etc) details</span>
+<span class="sd">in a unified structured way via provided high-level API</span>
+
+<span class="sd">:author: Alexey Anisenkov</span>
+<span class="sd">:contact: anisyonk@cern.ch</span>
+<span class="sd">:date: January 2018</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">inspect</span>
+
+<span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">PilotException</span><span class="p">,</span> <span class="n">NotDefined</span><span class="p">,</span> <span class="n">QueuedataFailure</span>
+
+<span class="kn">from</span> <span class="nn">.configinfo</span> <span class="kn">import</span> <span class="n">PilotConfigProvider</span>
+<span class="kn">from</span> <span class="nn">.extinfo</span> <span class="kn">import</span> <span class="n">ExtInfoProvider</span>
+<span class="c1"># from .jobinfo import JobInfoProvider</span>
+
+<span class="kn">from</span> <span class="nn">.dataloader</span> <span class="kn">import</span> <span class="n">merge_dict_data</span>
+<span class="kn">from</span> <span class="nn">.queuedata</span> <span class="kn">import</span> <span class="n">QueueData</span>
+<span class="kn">from</span> <span class="nn">.storagedata</span> <span class="kn">import</span> <span class="n">StorageData</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="InfoService"><a class="viewcode-back" href="../../../components/info/infoservice.html#pilot.info.infoservice.InfoService">[docs]</a><span class="k">class</span> <span class="nc">InfoService</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        High-level Information Service</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">cache_time</span> <span class="o">=</span> <span class="mi">60</span>  <span class="c1"># default cache time in seconds</span>
+
+<div class="viewcode-block" id="InfoService.require_init"><a class="viewcode-back" href="../../../components/info/infoservice.html#pilot.info.infoservice.InfoService.require_init">[docs]</a>    <span class="k">def</span> <span class="nf">require_init</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>  <span class="c1"># noqa</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Method decorator to check if object is initialized</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;pandaqueue&#39;</span>
+
+        <span class="k">def</span> <span class="nf">inner</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="s2">&quot;failed to call </span><span class="si">%s</span><span class="s2">(): InfoService instance is not initialized. Call init() first!&quot;</span> <span class="o">%</span> <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">inner</span></div>
+
+<div class="viewcode-block" id="InfoService.__init__"><a class="viewcode-back" href="../../../components/info/infoservice.html#pilot.info.infoservice.InfoService.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pandaqueue</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">queuedata</span> <span class="o">=</span> <span class="kc">None</span>   <span class="c1">## cache instance of QueueData for PandaQueue settings</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">queues_info</span> <span class="o">=</span> <span class="p">{}</span>    <span class="c1">## cache of QueueData objects for PandaQueue settings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">storages_info</span> <span class="o">=</span> <span class="p">{}</span>   <span class="c1">## cache of QueueData objects for DDMEndpoint settings</span>
+        <span class="c1">#self.sites_info = {}     ## cache for Site settings</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">confinfo</span> <span class="o">=</span> <span class="kc">None</span>   <span class="c1">## by default (when non initalized) ignore overwrites/settings from Config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">jobinfo</span> <span class="o">=</span> <span class="kc">None</span>    <span class="c1">## by default (when non initalized) ignore overwrites/settings from Job</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extinfo</span> <span class="o">=</span> <span class="n">ExtInfoProvider</span><span class="p">(</span><span class="n">cache_time</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_time</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">storage_id2ddmendpoint</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ddmendpoint2storage_id</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="InfoService.init"><a class="viewcode-back" href="../../../components/info/infoservice.html#pilot.info.infoservice.InfoService.init">[docs]</a>    <span class="k">def</span> <span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pandaqueue</span><span class="p">,</span> <span class="n">confinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">jobinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">confinfo</span> <span class="o">=</span> <span class="n">confinfo</span> <span class="ow">or</span> <span class="n">PilotConfigProvider</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">jobinfo</span> <span class="o">=</span> <span class="n">jobinfo</span>  <span class="c1"># or JobInfoProvider()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extinfo</span> <span class="o">=</span> <span class="n">extinfo</span> <span class="ow">or</span> <span class="n">ExtInfoProvider</span><span class="p">(</span><span class="n">cache_time</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_time</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pandaqueue</span> <span class="o">=</span> <span class="n">pandaqueue</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">pandaqueue</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="s1">&#39;Failed to initialize InfoService: panda queue name is not set&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">queues_info</span> <span class="o">=</span> <span class="p">{}</span>     <span class="c1">##  reset cache data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">storages_info</span> <span class="o">=</span> <span class="p">{}</span>   <span class="c1">##  reset cache data</span>
+        <span class="c1">#self.sites_info = {}     ##  reset cache data</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">queuedata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_queuedata</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pandaqueue</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">queuedata</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">QueuedataFailure</span><span class="p">(</span><span class="s2">&quot;Failed to resolve queuedata for queue=</span><span class="si">%s</span><span class="s2">, wrong PandaQueue name?&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">pandaqueue</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">resolve_storage_data</span><span class="p">()</span>  <span class="c1">## prefetch details for all storages</span></div>
+
+<div class="viewcode-block" id="InfoService.whoami"><a class="viewcode-back" href="../../../components/info/infoservice.html#pilot.info.infoservice.InfoService.whoami">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">whoami</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            :return: Current function name being executed</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="InfoService._resolve_data"><a class="viewcode-back" href="../../../components/info/infoservice.html#pilot.info.infoservice.InfoService._resolve_data">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_resolve_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="n">providers</span><span class="o">=</span><span class="p">[],</span> <span class="n">args</span><span class="o">=</span><span class="p">[],</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{},</span> <span class="n">merge</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Resolve data by calling function `fname` of passed provider objects.</span>
+
+<span class="sd">            Iterate over `providers`, merge data from all providers if merge is True,</span>
+<span class="sd">            (consider 1st success result from prioritized list if `merge` mode is False)</span>
+<span class="sd">            and resolve data by execution function `fname` with passed arguments `args` and `kwargs`</span>
+
+<span class="sd">            :return: The result of first successfull execution will be returned</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">ret</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">merge</span><span class="p">:</span>
+            <span class="n">providers</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">providers</span><span class="p">)</span>
+            <span class="n">providers</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">provider</span> <span class="ow">in</span> <span class="n">providers</span><span class="p">:</span>
+            <span class="n">fcall</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">provider</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">fcall</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">r</span> <span class="o">=</span> <span class="n">fcall</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">args</span> <span class="ow">or</span> <span class="p">[]),</span> <span class="o">**</span><span class="p">(</span><span class="n">kwargs</span> <span class="ow">or</span> <span class="p">{}))</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">merge</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="n">r</span>
+                    <span class="n">ret</span> <span class="o">=</span> <span class="n">merge_dict_data</span><span class="p">(</span><span class="n">ret</span> <span class="ow">or</span> <span class="p">{},</span> <span class="n">r</span> <span class="ow">or</span> <span class="p">{})</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;failed to resolve data (</span><span class="si">%s</span><span class="s2">) from provider=</span><span class="si">%s</span><span class="s2"> .. skipped, error=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fcall</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">provider</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+                    <span class="kn">import</span> <span class="nn">traceback</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="InfoService.resolve_queuedata"><a class="viewcode-back" href="../../../components/info/infoservice.html#pilot.info.infoservice.InfoService.resolve_queuedata">[docs]</a>    <span class="nd">@require_init</span>
+    <span class="k">def</span> <span class="nf">resolve_queuedata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pandaqueue</span><span class="p">):</span>  <span class="c1">## high level API</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Resolve final full queue data details</span>
+
+<span class="sd">            :param pandaqueue: name of PandaQueue</span>
+<span class="sd">            :return: `QueueData` object or None if not exist</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">queues_info</span>
+
+        <span class="k">if</span> <span class="n">pandaqueue</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cache</span><span class="p">:</span>  <span class="c1"># not found in cache: do load and initialize data</span>
+
+            <span class="c1"># the order of providers makes the priority</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">whoami</span><span class="p">(),</span> <span class="n">providers</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">confinfo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">jobinfo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">extinfo</span><span class="p">),</span> <span class="n">args</span><span class="o">=</span><span class="p">[</span><span class="n">pandaqueue</span><span class="p">],</span>
+                                   <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;schedconf_priority&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_schedconf_sources</span><span class="p">()},</span>
+                                   <span class="n">merge</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">queuedata</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pandaqueue</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">queuedata</span><span class="p">:</span>
+                <span class="n">cache</span><span class="p">[</span><span class="n">pandaqueue</span><span class="p">]</span> <span class="o">=</span> <span class="n">QueueData</span><span class="p">(</span><span class="n">queuedata</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pandaqueue</span><span class="p">)</span></div>
+
+    <span class="c1">#@require_init</span>
+<div class="viewcode-block" id="InfoService.resolve_storage_data"><a class="viewcode-back" href="../../../components/info/infoservice.html#pilot.info.infoservice.InfoService.resolve_storage_data">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_storage_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ddmendpoints</span><span class="o">=</span><span class="p">[]):</span>  <span class="c1">## high level API</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            :return: dict of DDMEndpoint settings by DDMEndpoint name as a key</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ddmendpoints</span><span class="p">,</span> <span class="n">basestring</span><span class="p">):</span>  <span class="c1"># Python 2  # noqa: F821</span>
+                <span class="n">ddmendpoints</span> <span class="o">=</span> <span class="p">[</span><span class="n">ddmendpoints</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ddmendpoints</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>  <span class="c1"># Python 3</span>
+                <span class="n">ddmendpoints</span> <span class="o">=</span> <span class="p">[</span><span class="n">ddmendpoints</span><span class="p">]</span>
+
+        <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storages_info</span>
+
+        <span class="n">miss_objs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ddmendpoints</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">cache</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ddmendpoints</span> <span class="ow">or</span> <span class="n">miss_objs</span><span class="p">:</span>  <span class="c1"># not found in cache: do load and initialize data</span>
+            <span class="c1"># the order of providers makes the priority</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">whoami</span><span class="p">(),</span> <span class="n">providers</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">confinfo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">jobinfo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">extinfo</span><span class="p">),</span>
+                                   <span class="n">args</span><span class="o">=</span><span class="p">[</span><span class="n">miss_objs</span><span class="p">],</span> <span class="n">merge</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ddmendpoints</span><span class="p">:</span>
+                <span class="n">not_resolved</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ddmendpoints</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">not_resolved</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="s2">&quot;internal error: Failed to load storage details for ddms=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">not_resolved</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">ddm</span> <span class="ow">in</span> <span class="n">r</span><span class="p">:</span>
+                <span class="n">cache</span><span class="p">[</span><span class="n">ddm</span><span class="p">]</span> <span class="o">=</span> <span class="n">StorageData</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="n">ddm</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">cache</span></div>
+
+<div class="viewcode-block" id="InfoService.resolve_schedconf_sources"><a class="viewcode-back" href="../../../components/info/infoservice.html#pilot.info.infoservice.InfoService.resolve_schedconf_sources">[docs]</a>    <span class="nd">@require_init</span>
+    <span class="k">def</span> <span class="nf">resolve_schedconf_sources</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1">## high level API</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Resolve prioritized list of source names for Schedconfig data load</span>
+<span class="sd">            Consider first the config settings of pilot instance (via `confinfo`)</span>
+<span class="sd">            and then Job specific settings (via `jobinfo` instance),</span>
+<span class="sd">            and failover to default value (LOCAL, CVMFS, AGIS, PANDA)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">defval</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;LOCAL&#39;</span><span class="p">,</span> <span class="s1">&#39;CVMFS&#39;</span><span class="p">,</span> <span class="s1">&#39;CRIC&#39;</span><span class="p">,</span> <span class="s1">&#39;PANDA&#39;</span><span class="p">]</span>
+
+        <span class="c1"># look up priority order: either from job, local config or hardcoded in the logic</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">whoami</span><span class="p">(),</span> <span class="n">providers</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">confinfo</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">jobinfo</span><span class="p">))</span> <span class="ow">or</span> <span class="n">defval</span></div>
+
+    <span class="c1">#@require_init</span>
+    <span class="c1">#def resolve_field_value(self, name): ## high level API</span>
+    <span class="c1">#</span>
+    <span class="c1">#    &quot;&quot;&quot;</span>
+    <span class="c1">#        Return the value from the given schedconfig field</span>
+    <span class="c1">#</span>
+    <span class="c1">#        :param field: schedconfig field (string, e.g. catchall)</span>
+    <span class="c1">#        :return: schedconfig field value (string)</span>
+    <span class="c1">#    &quot;&quot;&quot;</span>
+    <span class="c1">#</span>
+    <span class="c1">#    # look up priority order: either from job, local config, extinfo provider</span>
+    <span class="c1">#    return self._resolve_data(self.whoami(), providers=(self.confinfo, self.jobinfo, self.extinfo), args=[name])</span>
+
+<div class="viewcode-block" id="InfoService.resolve_ddmendpoint_storageid"><a class="viewcode-back" href="../../../components/info/infoservice.html#pilot.info.infoservice.InfoService.resolve_ddmendpoint_storageid">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_ddmendpoint_storageid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ddmendpoint</span><span class="o">=</span><span class="p">[]):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resolve the map between ddmendpoint and storage_id</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ddmendpoint</span> <span class="ow">or</span> <span class="n">ddmendpoint</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddmendpoint2storage_id</span><span class="p">:</span>
+            <span class="n">storages</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_storage_data</span><span class="p">(</span><span class="n">ddmendpoint</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">storage_name</span> <span class="ow">in</span> <span class="n">storages</span><span class="p">:</span>
+                <span class="n">storage</span> <span class="o">=</span> <span class="n">storages</span><span class="p">[</span><span class="n">storage_name</span><span class="p">]</span>
+                <span class="n">storage_id</span> <span class="o">=</span> <span class="n">storage</span><span class="o">.</span><span class="n">pk</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ddmendpoint2storage_id</span><span class="p">[</span><span class="n">storage_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">storage_id</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">storage_id2ddmendpoint</span><span class="p">[</span><span class="n">storage_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">storage_name</span>
+                <span class="k">if</span> <span class="n">storage</span><span class="o">.</span><span class="n">resource</span><span class="p">:</span>
+                    <span class="n">bucket_id</span> <span class="o">=</span> <span class="n">storage</span><span class="o">.</span><span class="n">resource</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;bucket_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">bucket_id</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">storage_id2ddmendpoint</span><span class="p">[</span><span class="n">bucket_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">storage_name</span></div>
+
+<div class="viewcode-block" id="InfoService.get_storage_id"><a class="viewcode-back" href="../../../components/info/infoservice.html#pilot.info.infoservice.InfoService.get_storage_id">[docs]</a>    <span class="k">def</span> <span class="nf">get_storage_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ddmendpoint</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the storage_id of a ddmendpoint.</span>
+
+<span class="sd">        :param ddmendpoint: ddmendpoint name.</span>
+<span class="sd">        :returns storage_id: storage_id of the ddmendpoint.</span>
+<span class="sd">        :raises NotDefined:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">ddmendpoint</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddmendpoint2storage_id</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">resolve_ddmendpoint_storageid</span><span class="p">(</span><span class="n">ddmendpoint</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">ddmendpoint</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddmendpoint2storage_id</span><span class="p">:</span>
+            <span class="n">storage_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ddmendpoint2storage_id</span><span class="p">[</span><span class="n">ddmendpoint</span><span class="p">]</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Found storage id for ddmendpoint(</span><span class="si">%s</span><span class="s2">): </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ddmendpoint</span><span class="p">,</span> <span class="n">storage_id</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">storage_id</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">NotDefined</span><span class="p">(</span><span class="s2">&quot;Cannot find the storage id for ddmendpoint: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ddmendpoint</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="InfoService.get_ddmendpoint"><a class="viewcode-back" href="../../../components/info/infoservice.html#pilot.info.infoservice.InfoService.get_ddmendpoint">[docs]</a>    <span class="k">def</span> <span class="nf">get_ddmendpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">storage_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the ddmendpoint name from a storage id.</span>
+
+<span class="sd">        :param storage_id: storage_id as an int.</span>
+<span class="sd">        :returns ddmendpoint: ddmendpoint name.</span>
+<span class="sd">        :raises NotDefined:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">storage_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">storage_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">storage_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_id2ddmendpoint</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">resolve_ddmendpoint_storageid</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">storage_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_id2ddmendpoint</span><span class="p">:</span>
+            <span class="n">ddmendpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_id2ddmendpoint</span><span class="p">[</span><span class="n">storage_id</span><span class="p">]</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Found ddmendpoint for storage id(</span><span class="si">%s</span><span class="s2">): </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">storage_id</span><span class="p">,</span> <span class="n">ddmendpoint</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">ddmendpoint</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">resolve_storage_data</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="n">NotDefined</span><span class="p">(</span><span class="s2">&quot;Cannot find ddmendpoint for storage id: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">storage_id</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,703 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pilot.copytool.rucio &#8212; Pilot 2  documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pilot.copytool.rucio</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Authors:</span>
+<span class="c1"># - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018</span>
+<span class="c1"># - Alexey Anisenkov, anisyonk@cern.ch, 2018</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018</span>
+<span class="c1"># - Tomas Javurek, tomas.javurek@cern.ch, 2019</span>
+<span class="c1"># - David Cameron, david.cameron@cern.ch, 2019</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>  <span class="c1"># Python 2 (2to3 complains about this)</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">time</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+
+<span class="kn">from</span> <span class="nn">.common</span> <span class="kn">import</span> <span class="n">resolve_common_transfer_errors</span><span class="p">,</span> <span class="n">verify_catalog_checksum</span><span class="p">,</span> <span class="n">get_timeout</span>
+<span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">PilotException</span><span class="p">,</span> <span class="n">StageOutFailure</span><span class="p">,</span> <span class="n">ErrorCodes</span>
+<span class="kn">from</span> <span class="nn">pilot.util.timer</span> <span class="kn">import</span> <span class="n">timeout</span><span class="p">,</span> <span class="n">TimedThread</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+
+<span class="c1"># can be disabled for Rucio if allowed to use all RSE for input</span>
+<span class="n">require_replicas</span> <span class="o">=</span> <span class="kc">True</span>    <span class="c1">## indicates if given copytool requires input replicas to be resolved</span>
+<span class="n">require_protocols</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1">## indicates if given copytool requires protocols to be resolved first for stage-out</span>
+<span class="n">tracing_rucio</span> <span class="o">=</span> <span class="kc">False</span>      <span class="c1">## should Rucio send the trace?</span>
+
+
+<div class="viewcode-block" id="is_valid_for_copy_in"><a class="viewcode-back" href="../../../components/copytool/rucio.html#pilot.copytool.rucio.is_valid_for_copy_in">[docs]</a><span class="k">def</span> <span class="nf">is_valid_for_copy_in</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+    <span class="k">return</span> <span class="kc">True</span>  <span class="c1">## FIX ME LATER</span></div>
+
+
+<div class="viewcode-block" id="is_valid_for_copy_out"><a class="viewcode-back" href="../../../components/copytool/rucio.html#pilot.copytool.rucio.is_valid_for_copy_out">[docs]</a><span class="k">def</span> <span class="nf">is_valid_for_copy_out</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+    <span class="k">return</span> <span class="kc">True</span>  <span class="c1">## FIX ME LATER</span></div>
+
+
+<div class="viewcode-block" id="verify_stage_out"><a class="viewcode-back" href="../../../components/copytool/rucio.html#pilot.copytool.rucio.verify_stage_out">[docs]</a><span class="k">def</span> <span class="nf">verify_stage_out</span><span class="p">(</span><span class="n">fspec</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Checks that the uploaded file is physically at the destination.</span>
+<span class="sd">    :param fspec: file specifications</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">rucio.rse</span> <span class="kn">import</span> <span class="n">rsemanager</span> <span class="k">as</span> <span class="n">rsemgr</span>
+    <span class="n">rse_settings</span> <span class="o">=</span> <span class="n">rsemgr</span><span class="o">.</span><span class="n">get_rse_info</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">)</span>
+    <span class="n">uploaded_file</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="s1">&#39;scope&#39;</span><span class="p">:</span> <span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">}</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Checking file: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">rsemgr</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">rse_settings</span><span class="p">,</span> <span class="p">[</span><span class="n">uploaded_file</span><span class="p">])</span></div>
+
+
+<span class="c1">#@timeout(seconds=10800)</span>
+<div class="viewcode-block" id="copy_in"><a class="viewcode-back" href="../../../components/copytool/rucio.html#pilot.copytool.rucio.copy_in">[docs]</a><span class="k">def</span> <span class="nf">copy_in</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download given files using rucio copytool.</span>
+
+<span class="sd">        :param files: list of `FileSpec` objects</span>
+<span class="sd">        :param ignore_errors: boolean, if specified then transfer failures will be ignored</span>
+<span class="sd">        :raise: PilotException in case of controlled error</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ignore_errors</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ignore_errors&#39;</span><span class="p">)</span>
+    <span class="n">trace_report</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;trace_report&#39;</span><span class="p">)</span>
+    <span class="n">use_pcache</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;use_pcache&#39;</span><span class="p">)</span>
+    <span class="c1">#job = kwargs.get(&#39;job&#39;)</span>
+    <span class="c1">#use_pcache = job.infosys.queuedata.use_pcache if job else False</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;use_pcache=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">use_pcache</span><span class="p">)</span>
+
+    <span class="c1"># don&#39;t spoil the output, we depend on stderr parsing</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;RUCIO_LOGGING_FORMAT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> </span><span class="si">%(levelname)s</span><span class="s1"> [</span><span class="si">%(message)s</span><span class="s1">]&#39;</span>
+
+    <span class="n">localsite</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;RUCIO_LOCAL_SITE_ID&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;rucio copytool, downloading file with scope:</span><span class="si">%s</span><span class="s1"> lfn:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">)))</span>
+        <span class="c1"># update the trace report</span>
+        <span class="n">localsite</span> <span class="o">=</span> <span class="n">localsite</span> <span class="k">if</span> <span class="n">localsite</span> <span class="k">else</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">localSite</span><span class="o">=</span><span class="n">localsite</span><span class="p">,</span> <span class="n">remoteSite</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">,</span> <span class="n">filesize</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">filesize</span><span class="p">)</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">guid</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">guid</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">turl</span> <span class="k">if</span> <span class="n">fspec</span><span class="o">.</span><span class="n">turl</span> <span class="k">else</span> <span class="n">fspec</span><span class="o">.</span><span class="n">surl</span><span class="p">)</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">catStart</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>  <span class="c1">## is this metric still needed? LFC catalog</span>
+        <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">dst</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">workdir</span> <span class="ow">or</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;workdir&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;.&#39;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;the file will be stored in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">dst</span><span class="p">))</span>
+
+        <span class="n">trace_report_out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">transfer_timeout</span> <span class="o">=</span> <span class="n">get_timeout</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">filesize</span><span class="p">)</span>
+        <span class="n">ctimeout</span> <span class="o">=</span> <span class="n">transfer_timeout</span> <span class="o">+</span> <span class="mi">10</span>  <span class="c1"># give the API a chance to do the time-out first</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;overall transfer timeout=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">ctimeout</span><span class="p">)</span>
+
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ec</span><span class="p">,</span> <span class="n">trace_report_out</span> <span class="o">=</span> <span class="n">timeout</span><span class="p">(</span><span class="n">ctimeout</span><span class="p">,</span> <span class="n">timer</span><span class="o">=</span><span class="n">TimedThread</span><span class="p">)(</span><span class="n">_stage_in_api</span><span class="p">)(</span><span class="n">dst</span><span class="p">,</span> <span class="n">fspec</span><span class="p">,</span> <span class="n">trace_report</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">,</span> <span class="n">transfer_timeout</span><span class="p">,</span> <span class="n">use_pcache</span><span class="p">)</span>
+            <span class="c1">#_stage_in_api(dst, fspec, trace_report, trace_report_out)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">error_msg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="n">error_details</span> <span class="o">=</span> <span class="n">handle_rucio_error</span><span class="p">(</span><span class="n">error_msg</span><span class="p">,</span> <span class="n">trace_report</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">,</span> <span class="n">fspec</span><span class="p">,</span> <span class="n">stagein</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39; </span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1"> from </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">,</span> <span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rcode&#39;</span><span class="p">),</span> <span class="n">state</span><span class="o">=</span><span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">))</span>
+
+        <span class="c1"># make sure there was no missed failure (only way to deal with this until rucio API has been fixed)</span>
+        <span class="c1"># (using the timeout decorator prevents the trace_report_out from being updated - rucio API should return</span>
+        <span class="c1"># the proper error immediately instead of encoding it into a dictionary)</span>
+        <span class="n">state_reason</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">trace_report_out</span> <span class="k">else</span> <span class="n">trace_report_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;stateReason&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ec</span> <span class="ow">and</span> <span class="n">state_reason</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">error_msg</span><span class="p">:</span>
+            <span class="n">error_details</span> <span class="o">=</span> <span class="n">handle_rucio_error</span><span class="p">(</span><span class="n">state_reason</span><span class="p">,</span> <span class="n">trace_report</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">,</span> <span class="n">fspec</span><span class="p">,</span> <span class="n">stagein</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39; </span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1"> from </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">,</span> <span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rcode&#39;</span><span class="p">),</span> <span class="n">state</span><span class="o">=</span><span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">))</span>
+
+        <span class="c1"># verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type</span>
+        <span class="n">destination</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">destination</span><span class="p">):</span>
+            <span class="n">state</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">verify_catalog_checksum</span><span class="p">(</span><span class="n">fspec</span><span class="p">,</span> <span class="n">destination</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">diagnostics</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">clientState</span><span class="o">=</span><span class="n">state</span> <span class="ow">or</span> <span class="s1">&#39;STAGEIN_ATTEMPT_FAILED&#39;</span><span class="p">,</span> <span class="n">stateReason</span><span class="o">=</span><span class="n">diagnostics</span><span class="p">,</span>
+                                    <span class="n">timeEnd</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+                <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;file does not exist: </span><span class="si">%s</span><span class="s1"> (cannot verify catalog checksum)&#39;</span> <span class="o">%</span> <span class="n">destination</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;STAGEIN_ATTEMPT_FAILED&#39;</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">STAGEINFAILED</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">clientState</span><span class="o">=</span><span class="n">state</span><span class="p">,</span> <span class="n">stateReason</span><span class="o">=</span><span class="n">diagnostics</span><span class="p">,</span>
+                                <span class="n">timeEnd</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span><span class="p">:</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;transferred&#39;</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">clientState</span><span class="o">=</span><span class="s1">&#39;DONE&#39;</span><span class="p">,</span> <span class="n">stateReason</span><span class="o">=</span><span class="s1">&#39;OK&#39;</span><span class="p">,</span> <span class="n">timeEnd</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">files</span></div>
+
+
+<div class="viewcode-block" id="handle_rucio_error"><a class="viewcode-back" href="../../../components/copytool/rucio.html#pilot.copytool.rucio.handle_rucio_error">[docs]</a><span class="k">def</span> <span class="nf">handle_rucio_error</span><span class="p">(</span><span class="n">error_msg</span><span class="p">,</span> <span class="n">trace_report</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">,</span> <span class="n">fspec</span><span class="p">,</span> <span class="n">stagein</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    :param error_msg:</span>
+<span class="sd">    :param trace_report:</span>
+<span class="sd">    :param trace_report_out:</span>
+<span class="sd">    :param fspec:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># try to get a better error message from the traces</span>
+    <span class="n">error_msg_org</span> <span class="o">=</span> <span class="n">error_msg</span>
+    <span class="k">if</span> <span class="n">trace_report_out</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;reading stateReason from trace_report_out: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">trace_report_out</span><span class="p">)</span>
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="n">trace_report_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;stateReason&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">error_msg</span> <span class="ow">or</span> <span class="n">error_msg</span> <span class="o">==</span> <span class="s1">&#39;OK&#39;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;could not extract error message from trace report - reverting to original error message&#39;</span><span class="p">)</span>
+            <span class="n">error_msg</span> <span class="o">=</span> <span class="n">error_msg_org</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;no trace_report_out&#39;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;rucio returned an error: </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">error_msg</span><span class="p">)</span>
+
+    <span class="n">error_details</span> <span class="o">=</span> <span class="n">resolve_common_transfer_errors</span><span class="p">(</span><span class="n">error_msg</span><span class="p">,</span> <span class="n">is_stagein</span><span class="o">=</span><span class="n">stagein</span><span class="p">)</span>
+    <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;failed&#39;</span>
+    <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rcode&#39;</span><span class="p">)</span>
+
+    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;STAGEIN_ATTEMPT_FAILED&#39;</span> <span class="k">if</span> <span class="n">stagein</span> <span class="k">else</span> <span class="s1">&#39;STAGEOUT_ATTEMPT_FAILED&#39;</span>
+    <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">clientState</span><span class="o">=</span><span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="n">msg</span><span class="p">),</span>
+                        <span class="n">stateReason</span><span class="o">=</span><span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">),</span> <span class="n">timeEnd</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="n">error_details</span></div>
+
+
+<div class="viewcode-block" id="copy_in_bulk"><a class="viewcode-back" href="../../../components/copytool/rucio.html#pilot.copytool.rucio.copy_in_bulk">[docs]</a><span class="k">def</span> <span class="nf">copy_in_bulk</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download given files using rucio copytool.</span>
+
+<span class="sd">        :param files: list of `FileSpec` objects</span>
+<span class="sd">        :param ignore_errors: boolean, if specified then transfer failures will be ignored</span>
+<span class="sd">        :raise: PilotException in case of controlled error</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#allow_direct_access = kwargs.get(&#39;allow_direct_access&#39;)</span>
+    <span class="n">ignore_errors</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ignore_errors&#39;</span><span class="p">)</span>
+    <span class="n">trace_common_fields</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;trace_report&#39;</span><span class="p">)</span>
+
+    <span class="c1"># don&#39;t spoil the output, we depend on stderr parsing</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;RUCIO_LOGGING_FORMAT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> </span><span class="si">%(levelname)s</span><span class="s1"> [</span><span class="si">%(message)s</span><span class="s1">]&#39;</span>
+
+    <span class="n">dst</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;workdir&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;.&#39;</span>
+
+    <span class="c1"># THE DOWNLOAD</span>
+    <span class="n">trace_report_out</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># transfer_timeout = get_timeout(fspec.filesize, add=10)  # give the API a chance to do the time-out first</span>
+        <span class="c1"># timeout(transfer_timeout)(_stage_in_api)(dst, fspec, trace_report, trace_report_out)</span>
+        <span class="n">_stage_in_bulk</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">files</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">,</span> <span class="n">trace_common_fields</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+        <span class="c1"># Fill and sned the traces, if they are not received from Rucio, abortion of the download process</span>
+        <span class="c1"># If there was Exception from Rucio, but still some traces returned, we continue to VALIDATION section</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">trace_report_out</span><span class="p">:</span>
+            <span class="n">trace_report</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">trace_common_fields</span><span class="p">)</span>
+            <span class="n">localsite</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;RUCIO_LOCAL_SITE_ID&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;None of the traces received from Rucio. Response from Rucio: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">error_msg</span>
+            <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+                <span class="n">localsite</span> <span class="o">=</span> <span class="n">localsite</span> <span class="k">if</span> <span class="n">localsite</span> <span class="k">else</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">localSite</span><span class="o">=</span><span class="n">localsite</span><span class="p">,</span> <span class="n">remoteSite</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">,</span> <span class="n">filesize</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">filesize</span><span class="p">)</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">guid</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">guid</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="s1">&#39;STAGEIN_ATTEMPT_FAILED&#39;</span><span class="p">,</span> <span class="n">stateReason</span><span class="o">=</span><span class="n">diagnostics</span><span class="p">,</span> <span class="n">timeEnd</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;STAGEIN_ATTEMPT_FAILED&#39;</span><span class="p">)</span>
+
+    <span class="c1"># VALIDATION AND TERMINATION</span>
+    <span class="n">files_done</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+
+        <span class="c1"># getting the trace for given file</span>
+        <span class="c1"># if one trace is missing, the whould stagin gets failed</span>
+        <span class="n">trace_candidates</span> <span class="o">=</span> <span class="n">_get_trace</span><span class="p">(</span><span class="n">fspec</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">)</span>
+        <span class="n">trace_report</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;unknown&#39;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">trace_candidates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;No trace retrieved for given file.&#39;</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;No trace retrieved for given file. </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">trace_candidates</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;Too many traces for given file.&#39;</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Rucio returned too many traces for given file. </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">trace_report</span> <span class="o">=</span> <span class="n">trace_candidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># verify checksum; compare local checksum with catalog value (fspec.checksum), use same checksum type</span>
+        <span class="n">destination</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">destination</span><span class="p">):</span>
+            <span class="n">state</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">verify_catalog_checksum</span><span class="p">(</span><span class="n">fspec</span><span class="p">,</span> <span class="n">destination</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">diagnostics</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ignore_errors</span> <span class="ow">and</span> <span class="n">trace_report</span><span class="p">:</span>  <span class="c1"># caution, validation against empty string</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">clientState</span><span class="o">=</span><span class="n">state</span> <span class="ow">or</span> <span class="s1">&#39;STAGEIN_ATTEMPT_FAILED&#39;</span><span class="p">,</span> <span class="n">stateReason</span><span class="o">=</span><span class="n">diagnostics</span><span class="p">,</span>
+                                    <span class="n">timeEnd</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">trace_report</span><span class="p">:</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;file does not exist: </span><span class="si">%s</span><span class="s1"> (cannot verify catalog checksum)&#39;</span> <span class="o">%</span> <span class="n">destination</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;STAGEIN_ATTEMPT_FAILED&#39;</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">STAGEINFAILED</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">clientState</span><span class="o">=</span><span class="n">state</span><span class="p">,</span> <span class="n">stateReason</span><span class="o">=</span><span class="n">diagnostics</span><span class="p">,</span> <span class="n">timeEnd</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">STAGEINFAILED</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span><span class="p">:</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;transferred&#39;</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">clientState</span><span class="o">=</span><span class="s1">&#39;DONE&#39;</span><span class="p">,</span> <span class="n">stateReason</span><span class="o">=</span><span class="s1">&#39;OK&#39;</span><span class="p">,</span> <span class="n">timeEnd</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+            <span class="n">files_done</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fspec</span><span class="p">)</span>
+
+        <span class="c1"># updating the trace and sending it</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">trace_report</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;An unknown error occurred when handling the traces. </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;No trace sent!!!&#39;</span><span class="p">)</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">guid</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">guid</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files_done</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="s1">&#39;Not all files downloaded.&#39;</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">STAGEINFAILED</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;STAGEIN_ATTEMPT_FAILED&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">files_done</span></div>
+
+
+<div class="viewcode-block" id="_get_trace"><a class="viewcode-back" href="../../../components/copytool/rucio.html#pilot.copytool.rucio._get_trace">[docs]</a><span class="k">def</span> <span class="nf">_get_trace</span><span class="p">(</span><span class="n">fspec</span><span class="p">,</span> <span class="n">traces</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Traces returned by Rucio are not orderred the same as input files from pilot.</span>
+<span class="sd">    This method finds the proper trace.</span>
+
+<span class="sd">    :param: fspec: the file that is seeked</span>
+<span class="sd">    :param: traces: all traces that are received by Rucio</span>
+
+<span class="sd">    :return: trace_candiates that correspond to the given file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">trace_candidates</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span> <span class="ow">and</span> <span class="n">t</span><span class="p">[</span><span class="s1">&#39;scope&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">traces</span><span class="p">))</span>  <span class="c1"># Python 2</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">trace_candidates</span> <span class="o">=</span> <span class="nb">list</span><span class="p">([</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">traces</span> <span class="k">if</span> <span class="n">t</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span> <span class="ow">and</span> <span class="n">t</span><span class="p">[</span><span class="s1">&#39;scope&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">])</span>  <span class="c1"># Python 3</span>
+        <span class="k">if</span> <span class="n">trace_candidates</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">trace_candidates</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;File does not match to any trace received from Rucio: </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Traces from pilot and rucio could not be merged: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">))</span>
+        <span class="k">return</span> <span class="p">[]</span></div>
+
+
+<span class="c1">#@timeout(seconds=10800)</span>
+<div class="viewcode-block" id="copy_out"><a class="viewcode-back" href="../../../components/copytool/rucio.html#pilot.copytool.rucio.copy_out">[docs]</a><span class="k">def</span> <span class="nf">copy_out</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># noqa: C901</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Upload given files using rucio copytool.</span>
+
+<span class="sd">        :param files: list of `FileSpec` objects</span>
+<span class="sd">        :param ignore_errors: boolean, if specified then transfer failures will be ignored</span>
+<span class="sd">        :raise: PilotException in case of controlled error</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># don&#39;t spoil the output, we depend on stderr parsing</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;RUCIO_LOGGING_FORMAT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> </span><span class="si">%(levelname)s</span><span class="s1"> [</span><span class="si">%(message)s</span><span class="s1">]&#39;</span>
+
+    <span class="n">summary</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;summary&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="n">ignore_errors</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;ignore_errors&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">trace_report</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;trace_report&#39;</span><span class="p">)</span>
+
+    <span class="n">localsite</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;RUCIO_LOCAL_SITE_ID&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;rucio copytool, uploading file with scope: </span><span class="si">%s</span><span class="s1"> and lfn: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">)))</span>
+        <span class="n">localsite</span> <span class="o">=</span> <span class="n">localsite</span> <span class="k">if</span> <span class="n">localsite</span> <span class="k">else</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">localSite</span><span class="o">=</span><span class="n">localsite</span><span class="p">,</span> <span class="n">remoteSite</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">)</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">scope</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">surl</span><span class="p">,</span> <span class="n">filesize</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">filesize</span><span class="p">)</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">catStart</span><span class="o">=</span><span class="n">time</span><span class="p">(),</span> <span class="n">filename</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">guid</span><span class="o">=</span><span class="n">fspec</span><span class="o">.</span><span class="n">guid</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+        <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">summary_file_path</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">cwd</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">workdir</span> <span class="ow">or</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;workdir&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;.&#39;</span>
+        <span class="k">if</span> <span class="n">summary</span><span class="p">:</span>
+            <span class="n">summary_file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cwd</span><span class="p">,</span> <span class="s1">&#39;rucio_upload.json&#39;</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;the file will be uploaded to </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">))</span>
+        <span class="n">trace_report_out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">transfer_timeout</span> <span class="o">=</span> <span class="n">get_timeout</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">filesize</span><span class="p">)</span>
+        <span class="n">ctimeout</span> <span class="o">=</span> <span class="n">transfer_timeout</span> <span class="o">+</span> <span class="mi">10</span>  <span class="c1"># give the API a chance to do the time-out first</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;overall transfer timeout=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">ctimeout</span><span class="p">)</span>
+
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ec</span><span class="p">,</span> <span class="n">trace_report_out</span> <span class="o">=</span> <span class="n">timeout</span><span class="p">(</span><span class="n">ctimeout</span><span class="p">,</span> <span class="n">TimedThread</span><span class="p">)(</span><span class="n">_stage_out_api</span><span class="p">)(</span><span class="n">fspec</span><span class="p">,</span> <span class="n">summary_file_path</span><span class="p">,</span> <span class="n">trace_report</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">,</span> <span class="n">transfer_timeout</span><span class="p">)</span>
+            <span class="c1">#_stage_out_api(fspec, summary_file_path, trace_report, trace_report_out)</span>
+        <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">error_msg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="n">error_details</span> <span class="o">=</span> <span class="n">handle_rucio_error</span><span class="p">(</span><span class="n">error_msg</span><span class="p">,</span> <span class="n">trace_report</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">,</span> <span class="n">fspec</span><span class="p">,</span> <span class="n">stagein</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39; </span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1"> to </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">,</span> <span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rcode&#39;</span><span class="p">),</span> <span class="n">state</span><span class="o">=</span><span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">error_msg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="n">error_details</span> <span class="o">=</span> <span class="n">handle_rucio_error</span><span class="p">(</span><span class="n">error_msg</span><span class="p">,</span> <span class="n">trace_report</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">,</span> <span class="n">fspec</span><span class="p">,</span> <span class="n">stagein</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39; </span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1"> to </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">,</span> <span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rcode&#39;</span><span class="p">),</span> <span class="n">state</span><span class="o">=</span><span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">))</span>
+
+        <span class="c1"># make sure there was no missed failure (only way to deal with this until rucio API has been fixed)</span>
+        <span class="c1"># (using the timeout decorator prevents the trace_report_out from being updated - rucio API should return</span>
+        <span class="c1"># the proper error immediately instead of encoding it into a dictionary)</span>
+        <span class="n">state_reason</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">trace_report_out</span> <span class="k">else</span> <span class="n">trace_report_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;stateReason&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ec</span> <span class="ow">and</span> <span class="n">state_reason</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">error_msg</span><span class="p">:</span>
+            <span class="n">error_details</span> <span class="o">=</span> <span class="n">handle_rucio_error</span><span class="p">(</span><span class="n">state_reason</span><span class="p">,</span> <span class="n">trace_report</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">,</span> <span class="n">fspec</span><span class="p">,</span> <span class="n">stagein</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39; </span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1"> from </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">,</span> <span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rcode&#39;</span><span class="p">),</span> <span class="n">state</span><span class="o">=</span><span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">summary</span><span class="p">:</span>  <span class="c1"># resolve final pfn (turl) from the summary JSON</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">summary_file_path</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Failed to resolve Rucio summary JSON, wrong path? file=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">summary_file_path</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">summary_file_path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">summary_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                    <span class="n">dat</span> <span class="o">=</span> <span class="n">summary_json</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">:</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">))</span> <span class="ow">or</span> <span class="p">{}</span>
+                    <span class="n">fspec</span><span class="o">.</span><span class="n">turl</span> <span class="o">=</span> <span class="n">dat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pfn&#39;</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;set turl=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">fspec</span><span class="o">.</span><span class="n">turl</span><span class="p">)</span>
+                    <span class="c1"># quick transfer verification:</span>
+                    <span class="c1"># the logic should be unified and moved to base layer shared for all the movers</span>
+                    <span class="n">adler32</span> <span class="o">=</span> <span class="n">dat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;adler32&#39;</span><span class="p">)</span>
+                    <span class="n">local_checksum</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">checksum</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;adler32&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">local_checksum</span> <span class="ow">and</span> <span class="n">adler32</span> <span class="ow">and</span> <span class="n">local_checksum</span> <span class="o">!=</span> <span class="n">adler32</span><span class="p">:</span>
+                        <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;checksum verification failed: local </span><span class="si">%s</span><span class="s1"> != remote </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> \
+                              <span class="p">(</span><span class="n">local_checksum</span><span class="p">,</span> <span class="n">adler32</span><span class="p">)</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                        <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;failed&#39;</span>
+                        <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">PUTADMISMATCH</span>
+                        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">clientState</span><span class="o">=</span><span class="s1">&#39;AD_MISMATCH&#39;</span><span class="p">,</span> <span class="n">stateReason</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span> <span class="n">timeEnd</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+                        <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">ignore_errors</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="s2">&quot;Failed to stageout: CRC mismatched&quot;</span><span class="p">,</span>
+                                                 <span class="n">code</span><span class="o">=</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">PUTADMISMATCH</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s1">&#39;AD_MISMATCH&#39;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">local_checksum</span> <span class="ow">and</span> <span class="n">adler32</span> <span class="ow">and</span> <span class="n">local_checksum</span> <span class="o">==</span> <span class="n">adler32</span><span class="p">:</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;local checksum (</span><span class="si">%s</span><span class="s1">) = remote checksum (</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">local_checksum</span><span class="p">,</span> <span class="n">adler32</span><span class="p">))</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;checksum could not be verified: local checksum (</span><span class="si">%s</span><span class="s1">), remote checksum (</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span>
+                                           <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">local_checksum</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">adler32</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span><span class="p">:</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;transferred&#39;</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">clientState</span><span class="o">=</span><span class="s1">&#39;DONE&#39;</span><span class="p">,</span> <span class="n">stateReason</span><span class="o">=</span><span class="s1">&#39;OK&#39;</span><span class="p">,</span> <span class="n">timeEnd</span><span class="o">=</span><span class="n">time</span><span class="p">())</span>
+
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">files</span></div>
+
+
+<span class="c1"># stageIn using rucio api.</span>
+<div class="viewcode-block" id="_stage_in_api"><a class="viewcode-back" href="../../../components/copytool/rucio.html#pilot.copytool.rucio._stage_in_api">[docs]</a><span class="k">def</span> <span class="nf">_stage_in_api</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">fspec</span><span class="p">,</span> <span class="n">trace_report</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">,</span> <span class="n">transfer_timeout</span><span class="p">,</span> <span class="n">use_pcache</span><span class="p">):</span>
+
+    <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># init. download client</span>
+    <span class="kn">from</span> <span class="nn">rucio.client.downloadclient</span> <span class="kn">import</span> <span class="n">DownloadClient</span>
+    <span class="n">download_client</span> <span class="o">=</span> <span class="n">DownloadClient</span><span class="p">(</span><span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">use_pcache</span><span class="p">:</span>
+        <span class="n">download_client</span><span class="o">.</span><span class="n">check_pcache</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># traces are switched off</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">download_client</span><span class="p">,</span> <span class="s1">&#39;tracing&#39;</span><span class="p">):</span>
+        <span class="n">download_client</span><span class="o">.</span><span class="n">tracing</span> <span class="o">=</span> <span class="n">tracing_rucio</span>
+
+    <span class="c1"># file specifications before the actual download</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;did_scope&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">scope</span>
+    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;did_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span>
+    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;did&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">)</span>
+    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;rse&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span>
+    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;base_dir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dst</span>
+    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;no_subdir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="n">fspec</span><span class="o">.</span><span class="n">turl</span><span class="p">:</span>
+        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;pfn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">turl</span>
+
+    <span class="k">if</span> <span class="n">transfer_timeout</span><span class="p">:</span>
+        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;transfer_timeout&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">transfer_timeout</span>
+    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;connection_timeout&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span>
+
+    <span class="c1"># proceed with the download</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;rucio API stage-in dictionary: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">f</span><span class="p">)</span>
+    <span class="n">trace_pattern</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">trace_report</span><span class="p">:</span>
+        <span class="n">trace_pattern</span> <span class="o">=</span> <span class="n">trace_report</span>
+
+    <span class="c1"># download client raises an exception if any file failed</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;*** rucio API downloading file (taking over logging) ***&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fspec</span><span class="o">.</span><span class="n">turl</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">download_client</span><span class="o">.</span><span class="n">download_pfns</span><span class="p">([</span><span class="n">f</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="n">trace_custom_fields</span><span class="o">=</span><span class="n">trace_pattern</span><span class="p">,</span> <span class="n">traces_copy_out</span><span class="o">=</span><span class="n">trace_report_out</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">download_client</span><span class="o">.</span><span class="n">download_dids</span><span class="p">([</span><span class="n">f</span><span class="p">],</span> <span class="n">trace_custom_fields</span><span class="o">=</span><span class="n">trace_pattern</span><span class="p">,</span> <span class="n">traces_copy_out</span><span class="o">=</span><span class="n">trace_report_out</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;*** rucio API download client failed ***&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;caught exception: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;trace_report_out=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">trace_report_out</span><span class="p">)</span>
+        <span class="c1"># only raise an exception if the error info cannot be extracted</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">trace_report_out</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">trace_report_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;stateReason&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;*** rucio API download client finished ***&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;client returned </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">result</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;trace_report_out=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">trace_report_out</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">trace_report_out</span></div>
+
+
+<div class="viewcode-block" id="_stage_in_bulk"><a class="viewcode-back" href="../../../components/copytool/rucio.html#pilot.copytool.rucio._stage_in_bulk">[docs]</a><span class="k">def</span> <span class="nf">_stage_in_bulk</span><span class="p">(</span><span class="n">dst</span><span class="p">,</span> <span class="n">files</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trace_common_fields</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Stage-in files in bulk using the Rucio API.</span>
+
+<span class="sd">    :param dst: destination (string).</span>
+<span class="sd">    :param files: list of fspec objects.</span>
+<span class="sd">    :param trace_report:</span>
+<span class="sd">    :param trace_report_out:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># init. download client</span>
+    <span class="kn">from</span> <span class="nn">rucio.client.downloadclient</span> <span class="kn">import</span> <span class="n">DownloadClient</span>
+    <span class="n">download_client</span> <span class="o">=</span> <span class="n">DownloadClient</span><span class="p">(</span><span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+
+    <span class="c1"># traces are switched off</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">download_client</span><span class="p">,</span> <span class="s1">&#39;tracing&#39;</span><span class="p">):</span>
+        <span class="n">download_client</span><span class="o">.</span><span class="n">tracing</span> <span class="o">=</span> <span class="n">tracing_rucio</span>
+
+    <span class="c1"># build the list of file dictionaries before calling the download function</span>
+    <span class="n">file_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+        <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># file specifications before the actual download</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;did_scope&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">scope</span>
+        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;did_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span>
+        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;did&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">)</span>
+        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;rse&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span>
+        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;base_dir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">workdir</span> <span class="ow">or</span> <span class="n">dst</span>
+        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;no_subdir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">fspec</span><span class="o">.</span><span class="n">turl</span><span class="p">:</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;pfn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">turl</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;cannot perform bulk download since fspec.turl is not set (required by download_pfns()&#39;</span><span class="p">)</span>
+            <span class="c1"># fail somehow</span>
+
+        <span class="k">if</span> <span class="n">fspec</span><span class="o">.</span><span class="n">filesize</span><span class="p">:</span>
+            <span class="n">f</span><span class="p">[</span><span class="s1">&#39;transfer_timeout&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_timeout</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">filesize</span><span class="p">)</span>
+        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;connection_timeout&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span>
+
+        <span class="n">file_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="c1"># proceed with the download</span>
+    <span class="n">trace_pattern</span> <span class="o">=</span> <span class="n">trace_common_fields</span> <span class="k">if</span> <span class="n">trace_common_fields</span> <span class="k">else</span> <span class="p">{}</span>
+
+    <span class="c1"># download client raises an exception if any file failed</span>
+    <span class="n">num_threads</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">file_list</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;*** rucio API downloading files (taking over logging) ***&#39;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">download_client</span><span class="o">.</span><span class="n">download_pfns</span><span class="p">(</span><span class="n">file_list</span><span class="p">,</span> <span class="n">num_threads</span><span class="p">,</span> <span class="n">trace_custom_fields</span><span class="o">=</span><span class="n">trace_pattern</span><span class="p">,</span> <span class="n">traces_copy_out</span><span class="o">=</span><span class="n">trace_report_out</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;*** rucio API download client failed ***&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;caught exception: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;trace_report_out=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">trace_report_out</span><span class="p">)</span>
+        <span class="c1"># only raise an exception if the error info cannot be extracted</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">trace_report_out</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">trace_report_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;stateReason&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">e</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;*** rucio API download client finished ***&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;client returned </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">result</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_stage_out_api"><a class="viewcode-back" href="../../../components/copytool/rucio.html#pilot.copytool.rucio._stage_out_api">[docs]</a><span class="k">def</span> <span class="nf">_stage_out_api</span><span class="p">(</span><span class="n">fspec</span><span class="p">,</span> <span class="n">summary_file_path</span><span class="p">,</span> <span class="n">trace_report</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">,</span> <span class="n">transfer_timeout</span><span class="p">):</span>
+
+    <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># init. download client</span>
+    <span class="kn">from</span> <span class="nn">rucio.client.uploadclient</span> <span class="kn">import</span> <span class="n">UploadClient</span>
+    <span class="n">upload_client</span> <span class="o">=</span> <span class="n">UploadClient</span><span class="p">(</span><span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+
+    <span class="c1"># traces are turned off</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">upload_client</span><span class="p">,</span> <span class="s1">&#39;tracing&#39;</span><span class="p">):</span>
+        <span class="n">upload_client</span><span class="o">.</span><span class="n">tracing</span> <span class="o">=</span> <span class="n">tracing_rucio</span>
+    <span class="k">if</span> <span class="n">tracing_rucio</span><span class="p">:</span>
+        <span class="n">upload_client</span><span class="o">.</span><span class="n">trace</span> <span class="o">=</span> <span class="n">trace_report</span>
+
+    <span class="c1"># file specifications before the upload</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;path&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">surl</span> <span class="ow">or</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fspec</span><span class="p">,</span> <span class="s1">&#39;pfn&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">)</span>
+    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;rse&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span>
+    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;did_scope&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">scope</span>
+    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;no_register&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="n">transfer_timeout</span><span class="p">:</span>
+        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;transfer_timeout&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">transfer_timeout</span>
+    <span class="n">f</span><span class="p">[</span><span class="s1">&#39;connection_timeout&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span>
+
+    <span class="c1"># if fspec.storageId and int(fspec.storageId) &gt; 0:</span>
+    <span class="c1">#     if fspec.turl and fspec.is_nondeterministic:</span>
+    <span class="c1">#         f[&#39;pfn&#39;] = fspec.turl</span>
+    <span class="c1"># elif fspec.lfn and &#39;.root&#39; in fspec.lfn:</span>
+    <span class="c1">#     f[&#39;guid&#39;] = fspec.guid</span>
+    <span class="k">if</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span> <span class="ow">and</span> <span class="s1">&#39;.root&#39;</span> <span class="ow">in</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">:</span>
+        <span class="n">f</span><span class="p">[</span><span class="s1">&#39;guid&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fspec</span><span class="o">.</span><span class="n">guid</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;rucio API stage-out dictionary: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">f</span><span class="p">)</span>
+
+    <span class="c1"># upload client raises an exception if any file failed</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;*** rucio API uploading file (taking over logging) ***&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;summary_file_path=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">summary_file_path</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;trace_report_out=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">trace_report_out</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">upload_client</span><span class="o">.</span><span class="n">upload</span><span class="p">([</span><span class="n">f</span><span class="p">],</span> <span class="n">summary_file_path</span><span class="o">=</span><span class="n">summary_file_path</span><span class="p">,</span> <span class="n">traces_copy_out</span><span class="o">=</span><span class="n">trace_report_out</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;*** rucio API upload client failed ***&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;caught exception: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="kn">import</span> <span class="nn">traceback</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;trace_report_out=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">trace_report_out</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">trace_report_out</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">trace_report_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;stateReason&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">e</span>
+        <span class="n">ec</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">except</span> <span class="ne">UnboundLocalError</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;*** rucio API upload client failed ***&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;rucio still needs a bug fix of the summary in the uploadclient&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;*** rucio API upload client finished ***&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;client returned </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">result</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">file_exists</span> <span class="o">=</span> <span class="n">verify_stage_out</span><span class="p">(</span><span class="n">fspec</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;file exists at the storage: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">file_exists</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">file_exists</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">StageOutFailure</span><span class="p">(</span><span class="s1">&#39;physical check after upload failed&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;file existence verification failed with: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">StageOutFailure</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">trace_report_out</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Pilot 2</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/index.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../components/index.html">Components</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
