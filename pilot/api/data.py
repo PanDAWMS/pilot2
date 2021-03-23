@@ -262,13 +262,20 @@ class StagingClient(object):
             query['schemes'] = ['root']
             query['rse_expression'] = 'istape=False\\type=SPECIAL'
 
+        # add signature lifetime for signed URL storages
+        query.update(signature_lifetime=24 * 3600)  # note: default is otherwise 1h
+
         logger.info('calling rucio.list_replicas() with query=%s' % query)
 
         try:
-            #query.update(signature_lifetime=24 * 3600)
             replicas = c.list_replicas(**query)
         except Exception as e:
-            raise PilotException("Failed to get replicas from Rucio: %s" % e, code=ErrorCodes.RUCIOLISTREPLICASFAILED)
+            # re-attempt without the new signature lifetime
+            del query['signature_lifetime']
+            try:
+                replicas = c.list_replicas(**query)
+            except Exception as e:
+                raise PilotException("Failed to get replicas from Rucio: %s" % e, code=ErrorCodes.RUCIOLISTREPLICASFAILED)
 
         show_memory_usage()
 
