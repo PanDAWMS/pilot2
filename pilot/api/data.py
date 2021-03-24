@@ -270,12 +270,7 @@ class StagingClient(object):
         try:
             replicas = c.list_replicas(**query)
         except Exception as e:
-            # re-attempt without the new signature lifetime
-            del query['signature_lifetime']
-            try:
-                replicas = c.list_replicas(**query)
-            except Exception as e:
-                raise PilotException("Failed to get replicas from Rucio: %s" % e, code=ErrorCodes.RUCIOLISTREPLICASFAILED)
+            raise PilotException("Failed to get replicas from Rucio: %s" % e, code=ErrorCodes.RUCIOLISTREPLICASFAILED)
 
         show_memory_usage()
 
