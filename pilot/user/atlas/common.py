@@ -1072,9 +1072,11 @@ def verify_output_files(job):
     else:
         verified, nevents = verify_extracted_output_files(output, lfns_jobdef, job)
         failed = True if not verified else False
-        if nevents > 0 and not failed:
+        if nevents > 0 and not failed and job.nevents == 0:
             job.nevents = nevents
             logger.info('number of events from summed up output files: %d' % nevents)
+        else:
+            logger.info('number of events previously set to %d' % job.nevents)
 
     status = True if not failed else False
 
