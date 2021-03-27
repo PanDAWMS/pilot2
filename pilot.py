@@ -441,7 +441,7 @@ def set_environment_variables(args, mainworkdir):
 
     # proxy verifications
     environ['PILOT_PROXY_VERIFICATION'] = '%s' % args.verify_proxy
-#    environ['PAYLOAD_PROXY_VERIFICATION'] = '%s' % args.verify_payload_proxy
+#    environ['PILOT_PAYLOAD_PROXY_VERIFICATION'] = '%s' % args.verify_payload_proxy
 
     # keep track of the server updates, if any
     environ['SERVER_UPDATE'] = SERVER_UPDATE_NOT_DONE
