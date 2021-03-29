@@ -1522,7 +1522,7 @@ def cleanup_looping_payload(workdir):
 
     for (p, d, f) in os.walk(workdir):
         for filename in f:
-            if 'pool.root' in filename or 'tmp.' in filename:
+            if 'pool.root' in filename:
                 path = os.path.join(p, filename)
                 path = os.path.abspath(path)
                 remove(path)
@@ -1789,7 +1789,7 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):
     # remove any present user workDir
     path = os.path.join(workdir, 'workDir')
     if os.path.exists(path):
-        # remove at least root and tmp files from workDir (ie also in the case of looping job)
+        # remove at least root files from workDir (ie also in the case of looping job)
         cleanup_looping_payload(path)
         if not islooping:
             logger.debug('removing \'workDir\' from workdir=%s' % workdir)
