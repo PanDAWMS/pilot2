@@ -439,8 +439,9 @@ def set_environment_variables(args, mainworkdir):
     # set the default wrap-up/finish instruction
     environ['PILOT_WRAP_UP'] = 'NORMAL'
 
-    # proxy verification
+    # proxy verifications
     environ['PILOT_PROXY_VERIFICATION'] = '%s' % args.verify_proxy
+#    environ['PILOT_PAYLOAD_PROXY_VERIFICATION'] = '%s' % args.verify_payload_proxy
 
     # keep track of the server updates, if any
     environ['SERVER_UPDATE'] = SERVER_UPDATE_NOT_DONE

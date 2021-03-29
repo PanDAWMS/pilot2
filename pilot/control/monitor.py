@@ -236,8 +236,6 @@ def get_max_running_time(lifetime, queuedata):
     :return: max running time in seconds (int).
     """
 
-    #return 40
-
     max_running_time = lifetime
 
     # use the schedconfig value if set, otherwise use the pilot option lifetime value

@@ -73,7 +73,7 @@ class DataLoader(object):
         return lastupdate
 
     @classmethod  # noqa: C901
-    def load_url_data(self, url, fname=None, cache_time=0, nretry=3, sleep_time=60):
+    def load_url_data(self, url, fname=None, cache_time=0, nretry=3, sleep_time=60):  # noqa: C901
         """
         Download data from url or file resource and optionally save it into cache file fname.
         The file will not be (re-)loaded again if cache age from last file modification does not exceed cache_time
