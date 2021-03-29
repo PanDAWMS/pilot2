@@ -1511,6 +1511,23 @@ def get_exit_info(jobreport_dictionary):
     return jobreport_dictionary['exitCode'], jobreport_dictionary['exitMsg']
 
 
+def cleanup_looping_payload(workdir):
+    """
+    Run a special cleanup for looping payloads.
+    Remove any root and tmp files.
+
+    :param workdir: working directory (string)
+    :return:
+    """
+
+    for (p, d, f) in os.walk(workdir):
+        for filename in f:
+            if 'pool.root' in filename or 'tmp.' in filename:
+                path = os.path.join(p, filename)
+                path = os.path.abspath(path)
+                remove(path)
+
+
 def cleanup_payload(workdir, outputfiles=[]):
     """
     Cleanup of payload (specifically AthenaMP) sub directories prior to log file creation.
@@ -1771,9 +1788,12 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):
 
     # remove any present user workDir
     path = os.path.join(workdir, 'workDir')
-    if os.path.exists(path) and not islooping:
-        logger.debug('removing \'workDir\' from workdir=%s' % workdir)
-        remove_dir_tree(path)
+    if os.path.exists(path):
+        # remove at least root and tmp files from workDir (ie also in the case of looping job)
+        cleanup_looping_payload(path)
+        if not islooping:
+            logger.debug('removing \'workDir\' from workdir=%s' % workdir)
+            remove_dir_tree(path)
 
     # remove additional dirs
     additionals = ['singularity', 'pilot', 'cores']
