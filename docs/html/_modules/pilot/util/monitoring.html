@@ -457,12 +457,9 @@
         <span class="k">else</span><span class="p">:</span>  <span class="c1"># check the utility output (the selector option adds a substring to the output file name)</span>
             <span class="n">filename</span> <span class="o">=</span> <span class="n">usercommon</span><span class="o">.</span><span class="n">get_utility_command_output_filename</span><span class="p">(</span><span class="n">utcmd</span><span class="p">,</span> <span class="n">selector</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;file: </span><span class="si">%s</span><span class="s1"> exists&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;file: </span><span class="si">%s</span><span class="s1"> does not exist&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
 
-            <span class="c1"># rest</span>
             <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span></div>
 
 

@@ -1105,9 +1105,11 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">verified</span><span class="p">,</span> <span class="n">nevents</span> <span class="o">=</span> <span class="n">verify_extracted_output_files</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">lfns_jobdef</span><span class="p">,</span> <span class="n">job</span><span class="p">)</span>
         <span class="n">failed</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">verified</span> <span class="k">else</span> <span class="kc">False</span>
-        <span class="k">if</span> <span class="n">nevents</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">failed</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">nevents</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">failed</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">nevents</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">job</span><span class="o">.</span><span class="n">nevents</span> <span class="o">=</span> <span class="n">nevents</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;number of events from summed up output files: </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">nevents</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;number of events previously set to </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">nevents</span><span class="p">)</span>
 
     <span class="n">status</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">failed</span> <span class="k">else</span> <span class="kc">False</span>
 
@@ -1542,6 +1544,23 @@
     <span class="k">return</span> <span class="n">jobreport_dictionary</span><span class="p">[</span><span class="s1">&#39;exitCode&#39;</span><span class="p">],</span> <span class="n">jobreport_dictionary</span><span class="p">[</span><span class="s1">&#39;exitMsg&#39;</span><span class="p">]</span></div>
 
 
+<div class="viewcode-block" id="cleanup_looping_payload"><a class="viewcode-back" href="../../../../components/user/atlas/common.html#pilot.user.atlas.common.cleanup_looping_payload">[docs]</a><span class="k">def</span> <span class="nf">cleanup_looping_payload</span><span class="p">(</span><span class="n">workdir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run a special cleanup for looping payloads.</span>
+<span class="sd">    Remove any root and tmp files.</span>
+
+<span class="sd">    :param workdir: working directory (string)</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">workdir</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;pool.root&#39;</span> <span class="ow">in</span> <span class="n">filename</span><span class="p">:</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+                <span class="n">remove</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="cleanup_payload"><a class="viewcode-back" href="../../../../components/user/atlas/common.html#pilot.user.atlas.common.cleanup_payload">[docs]</a><span class="k">def</span> <span class="nf">cleanup_payload</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">outputfiles</span><span class="o">=</span><span class="p">[]):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Cleanup of payload (specifically AthenaMP) sub directories prior to log file creation.</span>
@@ -1802,9 +1821,12 @@
 
     <span class="c1"># remove any present user workDir</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="s1">&#39;workDir&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">islooping</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;removing </span><span class="se">\&#39;</span><span class="s1">workDir</span><span class="se">\&#39;</span><span class="s1"> from workdir=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">workdir</span><span class="p">)</span>
-        <span class="n">remove_dir_tree</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="c1"># remove at least root files from workDir (ie also in the case of looping job)</span>
+        <span class="n">cleanup_looping_payload</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">islooping</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;removing </span><span class="se">\&#39;</span><span class="s1">workDir</span><span class="se">\&#39;</span><span class="s1"> from workdir=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">workdir</span><span class="p">)</span>
+            <span class="n">remove_dir_tree</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
     <span class="c1"># remove additional dirs</span>
     <span class="n">additionals</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;singularity&#39;</span><span class="p">,</span> <span class="s1">&#39;pilot&#39;</span><span class="p">,</span> <span class="s1">&#39;cores&#39;</span><span class="p">]</span>

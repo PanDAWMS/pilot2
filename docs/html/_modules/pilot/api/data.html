@@ -295,10 +295,12 @@
             <span class="n">query</span><span class="p">[</span><span class="s1">&#39;schemes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;root&#39;</span><span class="p">]</span>
             <span class="n">query</span><span class="p">[</span><span class="s1">&#39;rse_expression&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;istape=False</span><span class="se">\\</span><span class="s1">type=SPECIAL&#39;</span>
 
+        <span class="c1"># add signature lifetime for signed URL storages</span>
+        <span class="n">query</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">signature_lifetime</span><span class="o">=</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3600</span><span class="p">)</span>  <span class="c1"># note: default is otherwise 1h</span>
+
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;calling rucio.list_replicas() with query=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">query</span><span class="p">)</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="c1">#query.update(signature_lifetime=24 * 3600)</span>
             <span class="n">replicas</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">list_replicas</span><span class="p">(</span><span class="o">**</span><span class="n">query</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="s2">&quot;Failed to get replicas from Rucio: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">RUCIOLISTREPLICASFAILED</span><span class="p">)</span>
