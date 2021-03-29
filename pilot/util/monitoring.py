@@ -424,12 +424,9 @@ def utility_monitor(job):
         else:  # check the utility output (the selector option adds a substring to the output file name)
             filename = usercommon.get_utility_command_output_filename(utcmd, selector=True)
             path = os.path.join(job.workdir, filename)
-            if os.path.exists(path):
-                logger.info('file: %s exists' % path)
-            else:
+            if not os.path.exists(path):
                 logger.warning('file: %s does not exist' % path)
 
-            # rest
             time.sleep(10)
 
 

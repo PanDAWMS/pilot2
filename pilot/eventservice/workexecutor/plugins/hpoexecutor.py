@@ -130,7 +130,7 @@ class HPOExecutor(BaseExecutor):
         """
 
         job = self.get_job()
-        logger.info("job.infosys.queuedata.es_stageout_gap: %s" % job.infosys.queuedata.es_stageout_gap)
+        # logger.info("job.infosys.queuedata.es_stageout_gap: %s" % job.infosys.queuedata.es_stageout_gap)
         if len(self.__queued_out_messages):
             if force or self.__last_stageout_time is None or (time.time() > self.__last_stageout_time + job.infosys.queuedata.es_stageout_gap):
                 out_messages = []
