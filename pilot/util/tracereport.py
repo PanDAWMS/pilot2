@@ -29,14 +29,14 @@ class TraceReport(dict):
     def __init__(self, *args, **kwargs):
 
         event_version = "%s+%s" % (get_pilot_version(), get_rucio_client_version())
-        defs = {
-            'eventType': '',                # sitemover
+        defs = {  # for reference, see Tracing report document in wiki area of Pilot GitHub repository
+            'eventType': '',
             'eventVersion': event_version,  # Pilot+Rucio client version
             'protocol': None,               # set by specific copy tool
             'clientState': 'INIT_REPORT',
-            'localSite': '',                # localsite
-            'remoteSite': '',               # equals remotesite
-            'timeStart': None,              # time to start
+            'localSite': environ.get('RUCIO_LOCAL_SITE_ID', ''),
+            'remoteSite': '',
+            'timeStart': None,
             'catStart': None,
             'relativeStart': None,
             'transferStart': None,
@@ -57,7 +57,8 @@ class TraceReport(dict):
             'url': None,
             'stateReason': None,
             'uuid': None,
-            'taskid': ''
+            'taskid': '',
+            'pq': environ.get('PILOT_SITENAME', '')
         }
 
         super(TraceReport, self).__init__(defs)
@@ -115,6 +116,11 @@ class TraceReport(dict):
             state_reason = ''
         self.update(stateReason=state_reason.replace('\\', ''))
 
+        # overwrite any localSite if RUCIO_LOCAL_SITE_ID is set
+        localsite = environ.get('RUCIO_LOCAL_SITE_ID', '')
+        if localsite:
+            self['localSite'] = localsite
+
         if not self['eventType'] or not self['localSite'] or not self['remoteSite']:
             return False
         else:
@@ -147,7 +153,7 @@ class TraceReport(dict):
             # create the command
             cmd = 'curl --connect-timeout 20 --max-time 120 --cacert %s -v -k -d \"%s\" %s' % \
                   (ssl_certificate, data, url)
-            exit_code, stdout, stderr = execute(cmd)
+            exit_code, stdout, stderr = execute(cmd, mute=True)
             if exit_code:
                 logger.warning('failed to send traces to rucio: %s' % stdout)
             #request(url, loaded)

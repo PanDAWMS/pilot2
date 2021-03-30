@@ -100,6 +100,7 @@ class JobData(BaseData):
     memorymonitor = ""             # memory monitor name, e.g. prmon
     actualcorecount = 0            # number of cores actually used by the payload
     corecounts = []                # keep track of all actual core count measurements
+    looping_check = True           # perform looping payload check
 
     # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
     t0 = None                      # payload startup time
@@ -159,7 +160,8 @@ class JobData(BaseData):
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies', 'corecounts'],
              dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes', 'preprocess',
                     'postprocess', 'coprocess', 'containeroptions'],
-             bool: ['is_eventservice', 'is_eventservicemerge', 'is_hpo', 'noexecstrcnv', 'debug', 'usecontainer', 'use_vp']
+             bool: ['is_eventservice', 'is_eventservicemerge', 'is_hpo', 'noexecstrcnv', 'debug', 'usecontainer',
+                    'use_vp', 'looping_check']
              }
 
     def __init__(self, data, use_kmap=True):
@@ -467,7 +469,8 @@ class JobData(BaseData):
             'maxcpucount': 'maxCpuCount',
             'allownooutput': 'allowNoOutput',
             'imagename_jobdef': 'container_name',
-            'containeroptions': 'containerOptions'
+            'containeroptions': 'containerOptions',
+            'looping_check': 'loopingCheck'
         } if use_kmap else {}
 
         self._load_data(data, kmap)
