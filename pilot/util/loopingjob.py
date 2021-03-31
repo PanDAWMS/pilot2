@@ -41,7 +41,7 @@ def looping_job(job, mt):
 
     logger.info('checking for looping job')
 
-    looping_limit = get_looping_job_limit(job)
+    looping_limit = get_looping_job_limit()
 
     if job.state == 'stagein':
         # set job.state to stagein during stage-in before implementing this algorithm
@@ -174,28 +174,16 @@ def kill_looping_job(job):
     kill_processes(job.pid)
 
 
-def get_looping_job_limit(job):
+def get_looping_job_limit():
     """
     Get the time limit for looping job detection.
 
-    :param job: job object.
-    :return: looping job time limit (int).
+    :return: looping job time limit in seconds (int).
     """
 
-    is_analysis = job.is_analysis()
-    looping_limit = convert_to_int(config.Pilot.looping_limit_default_prod, default=12 * 3600)
-    if is_analysis:
-        looping_limit = convert_to_int(config.Pilot.looping_limit_default_user, default=3 * 3600)
-
-    if job.maxcpucount and job.maxcpucount >= config.Pilot.looping_limit_min_default:
-        _looping_limit = max(config.Pilot.looping_limit_min_default, job.maxcpucount)
-    else:
-        _looping_limit = max(looping_limit, job.maxcpucount)
-
-    if _looping_limit != looping_limit:
-        logger.info("task request has updated looping job limit from %d s to %d s using maxCpuCount" % (looping_limit, _looping_limit))
-        looping_limit = _looping_limit
-    else:
-        logger.info("using standard looping job limit: %d s" % looping_limit)
+    looping_limit = convert_to_int(config.Pilot.looping_limit_default, default=2 * 3600)
+    looping_limit_min_default = convert_to_int(config.Pilot.looping_limit_min_default, default=2 * 3600)
+    looping_limit = max(looping_limit, looping_limit_min_default)
+    logger.info("using looping job limit: %d s" % looping_limit)
 
     return looping_limit

@@ -1647,7 +1647,7 @@ def get_redundants():
                 "singularity/*",  # new
                 "/cores",  # new
                 "/work",  # new
-                "/docs",  # new
+                "docs/",  # new
                 "/pilot2"]  # new
 
     return dir_list

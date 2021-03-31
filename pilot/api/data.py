@@ -45,6 +45,8 @@ class StagingClient(object):
                         'gfalcopy': {'module_name': 'gfal'},
                         'xrdcp': {'module_name': 'xrdcp'},
                         'mv': {'module_name': 'mv'},
+                        'objectstore': {'module_name': 'objectstore'},
+                        's3': {'module_name': 's3'},
                         'lsm': {'module_name': 'lsm'}
                         }
 

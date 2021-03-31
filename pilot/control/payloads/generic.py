@@ -489,7 +489,7 @@ class Executor(object):
             user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user],
                               0)  # Python 2/3
             show_memory_usage()
-            cmd = user.get_payload_command(job)  # + 'sleep 480'
+            cmd = user.get_payload_command(job)  #+ 'sleep 1000'  # to test looping jobs
         except PilotException as error:
             self.post_setup(job)
             import traceback
