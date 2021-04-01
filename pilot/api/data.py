@@ -47,6 +47,7 @@ class StagingClient(object):
                         'mv': {'module_name': 'mv'},
                         'objectstore': {'module_name': 'objectstore'},
                         's3': {'module_name': 's3'},
+                        'gs': {'module_name': 'gs'},
                         'lsm': {'module_name': 'lsm'}
                         }
 

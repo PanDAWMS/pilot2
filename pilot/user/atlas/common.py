@@ -1875,9 +1875,22 @@ def get_utility_commands(order=None, job=None):
             if job.postprocess.get('command', ''):
                 return download_command(job.postprocess, job.workdir)
         elif order == UTILITY_BEFORE_STAGEIN:
-            return {'command': 'Benchmark', 'args': ''}
+            # check catchall for xcache service activation
+            if 'xcache' in job.infosys.queuedata.catchall:
+                return xcache_activation_command(job)
         elif order == UTILITY_WITH_STAGEIN:
             return {'command': 'Benchmark', 'args': ''}
+
+    return {}
+
+
+def xcache_activation_command(job):
+    """
+    Return the xcache service activation command.
+
+    :param job: Job object.
+    :return: xcache command (string).
+    """
 
     return {}
 

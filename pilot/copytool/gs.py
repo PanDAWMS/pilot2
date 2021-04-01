@@ -11,10 +11,13 @@ import os
 import logging
 
 try:
-    import boto3
-    from botocore.exceptions import ClientError
+    from google.cloud import storage
 except Exception:
     pass
+try:
+    import pathlib  # Python 3
+except Exception:
+    pathlib = None
 
 from .common import resolve_common_transfer_errors
 from pilot.common.errorcodes import ErrorCodes
@@ -28,7 +31,7 @@ require_replicas = False    ## indicates if given copytool requires input replic
 require_input_protocols = True    ## indicates if given copytool requires input protocols and manual generation of input replicas
 require_protocols = True  ## indicates if given copytool requires protocols to be resolved first for stage-out
 
-allowed_schemas = ['srm', 'gsiftp', 'https', 'davs', 'root', 's3', 's3+rucio']
+allowed_schemas = ['gs', 'srm', 'gsiftp', 'https', 'davs', 'root']
 
 
 def is_valid_for_copy_in(files):
@@ -78,11 +81,9 @@ def copy_in(files, **kwargs):
     for fspec in files:
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
-
-        bucket = 'bucket'  # UPDATE ME
         path = os.path.join(dst, fspec.lfn)
-        logger.info('downloading object %s from bucket=%s to local file %s' % (fspec.lfn, bucket, path))
-        status, diagnostics = download_file(path, bucket, object_name=fspec.lfn)
+        logger.info('downloading surl=%s to local file %s' % (fspec.surl, path))
+        status, diagnostics = download_file(path, fspec.surl, object_name=fspec.lfn)
 
         if not status:  ## an error occurred
             error = resolve_common_transfer_errors(diagnostics, is_stagein=True)
@@ -96,29 +97,27 @@ def copy_in(files, **kwargs):
     return files
 
 
-def download_file(path, bucket, object_name=None):
+def download_file(path, surl, object_name=None):
     """
-    Download a file from an S3 bucket.
+    Download a file from a GS bucket.
 
     :param path: Path to local file after download (string).
-    :param bucket: Bucket to download from.
+    :param surl: remote path (string).
     :param object_name: S3 object name. If not specified then file_name from path is used.
     :return: True if file was uploaded (else False), diagnostics (string).
     """
 
-    # if S3 object_name was not specified, use file name from path
+    # if object_name was not specified, use file name from path
     if object_name is None:
         object_name = os.path.basename(path)
 
     try:
-        s3 = boto3.client('s3')
-        s3.download_file(bucket, object_name, path)
-    except ClientError as e:
-        diagnostics = 'S3 ClientError: %s' % e
-        logger.critical(diagnostics)
-        return False, diagnostics
+        client = storage.Client()
+        target = pathlib.Path(object_name)
+        with target.open(mode="wb") as downloaded_file:
+            client.download_blob_to_file(surl, downloaded_file)
     except Exception as e:
-        diagnostics = 'exception caught in s3_client: %s' % e
+        diagnostics = 'exception caught in gs client: %s' % e
         logger.critical(diagnostics)
         return False, diagnostics
 
@@ -127,7 +126,7 @@ def download_file(path, bucket, object_name=None):
 
 def copy_out(files, **kwargs):
     """
-    Upload given files to S3 storage.
+    Upload given files to GS storage.
 
     :param files: list of `FileSpec` objects
     :raise: PilotException in case of controlled error
@@ -167,7 +166,7 @@ def upload_file(file_name, bucket, object_name=None):
     Upload a file to an S3 bucket.
 
     :param file_name: File to upload.
-    :param bucket: Bucket to upload to.
+    :param bucket: Bucket to upload to (string).
     :param object_name: S3 object name. If not specified then file_name is used.
     :return: True if file was uploaded (else False), diagnostics (string).
     """
@@ -178,14 +177,13 @@ def upload_file(file_name, bucket, object_name=None):
 
     # upload the file
     try:
-        s3_client = boto3.client('s3')
-        response = s3_client.upload_file(file_name, bucket, object_name)
-    except ClientError as e:
-        diagnostics = 'S3 ClientError: %s' % e
-        logger.critical(diagnostics)
-        return False, diagnostics
+        client = storage.Client()
+        gs_bucket = client.get_bucket(bucket)
+        remote_path = file_name  # update me
+        blob = gs_bucket.blob(remote_path)
+        blob.upload_from_filename(filename=file_name)
     except Exception as e:
-        diagnostics = 'exception caught in s3_client: %s' % e
+        diagnostics = 'exception caught in gs client: %s' % e
         logger.critical(diagnostics)
         return False, diagnostics
 

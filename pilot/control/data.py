@@ -440,7 +440,7 @@ def copytool_in(queues, traces, args):
             # does the user want to execute any special commands before stage-in?
             pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
             user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
-            cmd = user.get_utility_commands(order=UTILITY_BEFORE_STAGEIN)
+            cmd = user.get_utility_commands(job=job, order=UTILITY_BEFORE_STAGEIN)
             if cmd:
                 pass
 
