@@ -34,7 +34,8 @@ from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import is_python3
 from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
-    UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_WITH_STAGEIN, UTILITY_AFTER_PAYLOAD_STARTED2
+    UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_WITH_STAGEIN, UTILITY_AFTER_PAYLOAD_STARTED2,\
+    UTILITY_BEFORE_STAGEIN
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy,\
     copy_pilot_source, write_file, read_json, read_file, update_extension, get_local_file_size, calculate_checksum
@@ -1873,6 +1874,8 @@ def get_utility_commands(order=None, job=None):
         elif order == UTILITY_AFTER_PAYLOAD_FINISHED and job and job.postprocess:
             if job.postprocess.get('command', ''):
                 return download_command(job.postprocess, job.workdir)
+        elif order == UTILITY_BEFORE_STAGEIN:
+            return {'command': 'Benchmark', 'args': ''}
         elif order == UTILITY_WITH_STAGEIN:
             return {'command': 'Benchmark', 'args': ''}
 

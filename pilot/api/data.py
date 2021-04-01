@@ -501,7 +501,7 @@ class StagingClient(object):
                 continue
 
             try:
-                self.logger.debug('kwargs=%s' % str(kwargs))
+                #self.logger.debug('kwargs=%s' % str(kwargs))
                 result = self.transfer_files(copytool, remain_files, activity, **kwargs)
                 self.logger.debug('transfer_files() using copytool=%s completed with result=%s' % (copytool, str(result)))
                 show_memory_usage()
