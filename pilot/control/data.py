@@ -442,8 +442,10 @@ def copytool_in(queues, traces, args):
             user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
             cmd = user.get_utility_commands(job=job, order=UTILITY_BEFORE_STAGEIN)
             if cmd:
-                pass
-
+                exit_code, stdout, stderr = execute(cmd)
+                logger.debug('exit_code=%d' % exit_code)
+                logger.debug('stderr=%d' % stderr)
+                logger.debug('stdout=%d' % stdout)
             # place it in the current stage-in queue (used by the jobs' queue monitoring)
             put_in_queue(job, queues.current_data_in)
 

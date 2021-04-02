@@ -667,10 +667,13 @@ class Executor(object):
         except Exception as e:
             logger.error(e)
         else:
-            if cmd_after_payload:
+            if cmd_after_payload and self.__job.postprocess:
                 cmd_after_payload = self.__job.setup + cmd_after_payload
                 logger.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
                 exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'postprocess')
+            elif cmd_after_payload:
+                logger.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
+                exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'xcache')
 
         return exit_code
 

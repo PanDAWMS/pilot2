@@ -22,7 +22,7 @@ except Exception:
 
 from .container import create_root_container_command
 from .dbrelease import get_dbrelease_version, create_dbrelease
-from .setup import should_pilot_prepare_setup, is_standard_atlas_job,\
+from .setup import should_pilot_prepare_setup, is_standard_atlas_job, get_asetup,\
     set_inds, get_analysis_trf, get_payload_environment_variables, replace_lfns_with_turls
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup, get_memory_monitor_output_filename,\
@@ -1852,47 +1852,70 @@ def get_utility_commands(order=None, job=None):
     :return: dictionary of utilities to be executed in parallel with the payload.
     """
 
+    com = {}
     if order:
         if order == UTILITY_BEFORE_PAYLOAD and job and job.preprocess:
             if job.preprocess.get('command', ''):
-                return download_command(job.preprocess, job.workdir)
+                com = download_command(job.preprocess, job.workdir)
         elif order == UTILITY_WITH_PAYLOAD:
-            return {'command': 'NetworkMonitor', 'args': ''}
+            com = {'command': 'NetworkMonitor', 'args': ''}
         elif order == UTILITY_AFTER_PAYLOAD_STARTED:
             cmd = config.Pilot.utility_after_payload_started
             if cmd:
-                return {'command': cmd, 'args': ''}
+                com = {'command': cmd, 'args': ''}
         elif order == UTILITY_AFTER_PAYLOAD_STARTED2 and job and job.coprocess:
             # cmd = config.Pilot.utility_after_payload_started  DEPRECATED
             # if cmd:
-            #    return {'command': cmd, 'args': ''}
+            #    com = {'command': cmd, 'args': ''}
             if job.coprocess.get('command', ''):
-                return download_command(job.coprocess, job.workdir)
+                com = download_command(job.coprocess, job.workdir)
         elif order == UTILITY_AFTER_PAYLOAD and job and job.postprocess:
             if job.postprocess.get('command', ''):
-                return download_command(job.postprocess, job.workdir)
-        elif order == UTILITY_AFTER_PAYLOAD_FINISHED and job and job.postprocess:
-            if job.postprocess.get('command', ''):
-                return download_command(job.postprocess, job.workdir)
+                com = download_command(job.postprocess, job.workdir)
+        elif order == UTILITY_AFTER_PAYLOAD_FINISHED and job:
+            if job.postprocess and job.postprocess.get('command', ''):
+                com = download_command(job.postprocess, job.workdir)
+            elif 'pilotXcache' in job.infosys.queuedata.catchall:
+                com = xcache_deactivation_command()
         elif order == UTILITY_BEFORE_STAGEIN:
-            # check catchall for xcache service activation
-            if 'xcache' in job.infosys.queuedata.catchall:
-                return xcache_activation_command(job)
+            if 'pilotXcache' in job.infosys.queuedata.catchall:
+                com = xcache_activation_command()
         elif order == UTILITY_WITH_STAGEIN:
-            return {'command': 'Benchmark', 'args': ''}
+            com = {'command': 'Benchmark', 'args': ''}
 
-    return {}
+    return com
 
 
-def xcache_activation_command(job):
+def xcache_activation_command():
     """
     Return the xcache service activation command.
 
-    :param job: Job object.
     :return: xcache command (string).
     """
 
-    return {}
+    # a successful startup will set ALRB_XCACHE_PROXY and ALRB_XCACHE_PROXY_REMOTE
+    # so any file access with root://...  should be replaced with one of the above
+    # (depending on whether you are on the same machine or not)
+    # example:
+    # ${ALRB_XCACHE_PROXY}root://atlasxrootd-kit.gridka.de:1094//pnfs/gridka.de/../DAOD_FTAG4.24348858._000020.pool.root.1
+    command = "%s; " % get_asetup(asetup=False)
+    command += "lsetup xcache; xcache start -d /tmp/xcache --disklow 5.0g --diskhigh 7.0g"  # -C centos7
+
+    return {'command': command, 'args': ''}
+
+
+def xcache_deactivation_command():
+    """
+    Return the xcache service deactivation command.
+    This service should be stopped after the payload has finished.
+
+    :return: xcache command (string).
+    """
+
+    command = "%s; " % get_asetup(asetup=False)
+    command += "lsetup xcache; xcache stop"  # -C centos7
+
+    return {'command': command, 'args': ''}
 
 
 def get_utility_command_setup(name, job, setup=None):
