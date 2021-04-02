@@ -444,8 +444,8 @@ def copytool_in(queues, traces, args):
             if cmd:
                 exit_code, stdout, stderr = execute(cmd.get('command'))
                 logger.debug('exit_code=%d' % exit_code)
-                logger.debug('stderr=%d' % stderr)
-                logger.debug('stdout=%d' % stdout)
+                logger.debug('stderr=%s' % stderr)
+                logger.debug('stdout=%s' % stdout)
             # place it in the current stage-in queue (used by the jobs' queue monitoring)
             put_in_queue(job, queues.current_data_in)
 
