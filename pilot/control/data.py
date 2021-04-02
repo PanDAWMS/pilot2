@@ -442,7 +442,7 @@ def copytool_in(queues, traces, args):
             user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
             cmd = user.get_utility_commands(job=job, order=UTILITY_BEFORE_STAGEIN)
             if cmd:
-                exit_code, stdout, stderr = execute(cmd)
+                exit_code, stdout, stderr = execute(cmd.get('command'))
                 logger.debug('exit_code=%d' % exit_code)
                 logger.debug('stderr=%d' % stderr)
                 logger.debug('stdout=%d' % stdout)
