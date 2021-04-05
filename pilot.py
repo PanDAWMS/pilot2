@@ -465,6 +465,8 @@ def set_environment_variables(args, mainworkdir):
 
     # keep track of the server urls
     url = args.url if ":" in args.url else "%s:%d" % (args.url, args.port)
+    if not url.startswith('http'):
+        url = 'https://' + url
     environ['PANDA_SERVER_URL'] = url
     environ['QUEUEDATA_SERVER_URL'] = '%s' % args.queuedata_url
 
