@@ -464,9 +464,9 @@ def set_environment_variables(args, mainworkdir):
     environ['PILOT_RESOURCE_NAME'] = args.hpc_resource
 
     # keep track of the server urls
+    if not args.url.startswith('http'):
+        args.url = 'https://' + args.url
     url = args.url if ":" in args.url else "%s:%d" % (args.url, args.port)
-    if not url.startswith('http'):
-        url = 'https://' + url
     environ['PANDA_SERVER_URL'] = url
     environ['QUEUEDATA_SERVER_URL'] = '%s' % args.queuedata_url
 
