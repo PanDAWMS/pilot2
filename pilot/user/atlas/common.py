@@ -1898,8 +1898,9 @@ def xcache_activation_command():
     # (depending on whether you are on the same machine or not)
     # example:
     # ${ALRB_XCACHE_PROXY}root://atlasxrootd-kit.gridka.de:1094//pnfs/gridka.de/../DAOD_FTAG4.24348858._000020.pool.root.1
-    command = "%s; " % get_asetup(asetup=False)
-    command += "lsetup xcache; xcache start -d /tmp/xcache --disklow 5.0g --diskhigh 7.0g"  # -C centos7
+    command = "%s " % get_asetup(asetup=False)
+    # add 'xcache list' which will also kill any orphaned processes lingering in the system
+    command += "lsetup xcache; xcache list; xcache start -d $TMPDIR/xcache --disklow 5.0g --diskhigh 7.0g -C centos7"
 
     return {'command': command, 'args': ''}
 
@@ -1912,8 +1913,8 @@ def xcache_deactivation_command():
     :return: xcache command (string).
     """
 
-    command = "%s; " % get_asetup(asetup=False)
-    command += "lsetup xcache; xcache stop"  # -C centos7
+    command = "%s " % get_asetup(asetup=False)
+    command += "lsetup xcache; xcache kill"  # -C centos7
 
     return {'command': command, 'args': ''}
 

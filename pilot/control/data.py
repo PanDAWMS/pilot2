@@ -446,6 +446,10 @@ def copytool_in(queues, traces, args):
                 logger.debug('exit_code=%d' % exit_code)
                 logger.debug('stderr=%s' % stderr)
                 logger.debug('stdout=%s' % stdout)
+            else:
+                logger.debug('ALRB_XCACHE_PROXY=%s' % os.environ.get('ALRB_XCACHE_PROXY', '<not set>'))
+                logger.debug('ALRB_XCACHE_PROXY_REMOTE=%s' % os.environ.get('ALRB_XCACHE_PROXY_REMOTE', '<not set>'))
+
             # place it in the current stage-in queue (used by the jobs' queue monitoring)
             put_in_queue(job, queues.current_data_in)
 

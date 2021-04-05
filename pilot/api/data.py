@@ -588,9 +588,12 @@ class StagingClient(object):
                 resolve_surl = self.resolve_surl
 
             r = resolve_surl(fspec, protocol, ddmconf, local_dir=local_dir)  # pass ddmconf for possible custom look up at the level of copytool
-            self.logger.debug('r=%s' % str(r))
             if r.get('surl'):
                 fspec.turl = r['surl']
+                alrb_xcache_proxy = os.environ.get('ALRB_XCACHE_PROXY', None)
+                if alrb_xcache_proxy and fspec.is_directaccess(ensure_replica=False):
+                    fspec.turl = '${ALRB_XCACHE_PROXY}' + fspec.turl
+
             if r.get('ddmendpoint'):
                 fspec.ddmendpoint = r['ddmendpoint']
 

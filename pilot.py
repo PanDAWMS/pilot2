@@ -255,6 +255,12 @@ def get_args():
                             default=True,
                             help='Disable proxy verification')
 
+    arg_parser.add_argument('-u',
+                            dest='verify_payload_proxy',
+                            action='store_false',
+                            default=True,
+                            help='Disable payload proxy verification')
+
     # SSL certificates
     arg_parser.add_argument('--cacert',
                             dest='cacert',
@@ -441,7 +447,7 @@ def set_environment_variables(args, mainworkdir):
 
     # proxy verifications
     environ['PILOT_PROXY_VERIFICATION'] = '%s' % args.verify_proxy
-#    environ['PILOT_PAYLOAD_PROXY_VERIFICATION'] = '%s' % args.verify_payload_proxy
+    environ['PILOT_PAYLOAD_PROXY_VERIFICATION'] = '%s' % args.verify_payload_proxy
 
     # keep track of the server updates, if any
     environ['SERVER_UPDATE'] = SERVER_UPDATE_NOT_DONE
