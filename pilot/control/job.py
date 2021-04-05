@@ -457,7 +457,7 @@ def get_panda_server(url, port):
     """
 
     if url != '' and port != 0:
-        pandaserver = '%s:%s' % (url, port)
+        pandaserver = '%s:%s' % (url, port) if ":" not in url else url
     else:
         pandaserver = config.Pilot.pandaserver
 
@@ -1478,7 +1478,6 @@ def retrieve(queues, traces, args):  # noqa: C901
     starttime = time.time()
 
     jobnumber = 0  # number of downloaded jobs
-    getjob_requests = 0  # number of getjob requests
 
     print_node_info()
 
@@ -1487,7 +1486,7 @@ def retrieve(queues, traces, args):  # noqa: C901
         time.sleep(0.5)
         getjob_requests += 1
 
-        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester, args.verify_proxy, traces):
+        if not proceed_with_getjob(timefloor, starttime, jobnumber, args.getjob_requests, args.harvester, args.verify_proxy, traces):
             # do not set graceful stop if pilot has not finished sending the final job update
             # i.e. wait until SERVER_UPDATE is DONE_FINAL
             check_for_final_server_update(args.update_server)

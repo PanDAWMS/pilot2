@@ -39,8 +39,8 @@ def get_payload_proxy(proxy_outfile_name, voms_role='atlas'):
     """
     try:
         # it assumes that https_setup() was done already
-        res = https.request('{pandaserver}/server/panda/getProxy'.format(pandaserver=config.Pilot.pandaserver),
-                            data={'role': voms_role})
+        url = os.environ.get('PANDA_SERVER_URL', config.Pilot.pandaserver)
+        res = https.request('{pandaserver}/server/panda/getProxy'.format(pandaserver=url), data={'role': voms_role})
 
         if res is None:
             logger.error("Unable to get proxy with role '%s' from panda server" % voms_role)

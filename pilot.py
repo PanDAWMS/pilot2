@@ -261,6 +261,14 @@ def get_args():
                             default=True,
                             help='Disable payload proxy verification')
 
+    # graciously stop pilot process after hard limit
+    arg_parser.add_argument('-v',
+                            dest='getjob_requests',
+                            default=2,
+                            required=False,
+                            type=int,
+                            help='Number of getjob requests')
+
     # SSL certificates
     arg_parser.add_argument('--cacert',
                             dest='cacert',
@@ -276,7 +284,7 @@ def get_args():
     # Server URLs and ports
     arg_parser.add_argument('--url',
                             dest='url',
-                            default='',  # the proper default is stored in config.cfg
+                            default='',  # the proper default is stored in default.cfg
                             help='PanDA server URL')
     arg_parser.add_argument('-p',
                             dest='port',
@@ -455,7 +463,9 @@ def set_environment_variables(args, mainworkdir):
     # set the (HPC) resource name (if set in options)
     environ['PILOT_RESOURCE_NAME'] = args.hpc_resource
 
-    # keep track of the PanDA server url
+    # keep track of the server urls
+    url = args.url if ":" in args.url else "%s:%d" % (args.url, args.port)
+    environ['PANDA_SERVER_URL'] = url
     environ['QUEUEDATA_SERVER_URL'] = '%s' % args.queuedata_url
 
 
