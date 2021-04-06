@@ -1876,7 +1876,7 @@ def get_utility_commands(order=None, job=None):
             if job.postprocess and job.postprocess.get('command', ''):
                 com = download_command(job.postprocess, job.workdir)
             elif 'pilotXcache' in job.infosys.queuedata.catchall:
-                com = xcache_deactivation_command()
+                com = xcache_deactivation_command(job.workdir)
         elif order == UTILITY_BEFORE_STAGEIN:
             if 'pilotXcache' in job.infosys.queuedata.catchall:
                 com = xcache_activation_command(job.jobid, job.infosys.queuedata.maxinputsize)
@@ -1913,13 +1913,24 @@ def xcache_activation_command(jobid, maxinputsize):
     return {'command': command, 'args': ''}
 
 
-def xcache_deactivation_command():
+def xcache_deactivation_command(workdir):
     """
     Return the xcache service deactivation command.
     This service should be stopped after the payload has finished.
+    Copy the messages log before shutting down.
 
+    :param workdir: payload work directory (string).
     :return: xcache command (string).
     """
+
+    path = os.path.join(os.environ.get('ALRB_XCACHE_FILES', ''), 'messages.log')
+    if os.path.exists(path):
+        logger.debug('copying xcache messages log file (%s) to work dir (%s)' % (path, workdir))
+        dest = os.path.join(workdir, 'xcache-messages.log')
+        try:
+            copy(path, dest)
+        except Exception as e:
+            logger.warning('exception caught copying xcache log: %s' % e)
 
     command = "%s " % get_asetup(asetup=False)
     command += "lsetup xcache; xcache kill"  # -C centos7
