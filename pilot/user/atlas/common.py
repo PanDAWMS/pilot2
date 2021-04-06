@@ -1854,7 +1854,7 @@ def get_utility_commands(order=None, job=None):
 
     com = {}
 
-    if order == UTILITY_BEFORE_PAYLOAD and job and job.preprocess:
+    if order == UTILITY_BEFORE_PAYLOAD and job.preprocess:
         if job.preprocess.get('command', ''):
             com = download_command(job.preprocess, job.workdir)
     elif order == UTILITY_WITH_PAYLOAD:
@@ -1863,16 +1863,13 @@ def get_utility_commands(order=None, job=None):
         cmd = config.Pilot.utility_after_payload_started
         if cmd:
             com = {'command': cmd, 'args': ''}
-    elif order == UTILITY_AFTER_PAYLOAD_STARTED2 and job and job.coprocess:
-        # cmd = config.Pilot.utility_after_payload_started  DEPRECATED
-        # if cmd:
-        #    com = {'command': cmd, 'args': ''}
+    elif order == UTILITY_AFTER_PAYLOAD_STARTED2 and job.coprocess:
         if job.coprocess.get('command', ''):
             com = download_command(job.coprocess, job.workdir)
-    elif order == UTILITY_AFTER_PAYLOAD and job and job.postprocess:
+    elif order == UTILITY_AFTER_PAYLOAD and job.postprocess:
         if job.postprocess.get('command', ''):
             com = download_command(job.postprocess, job.workdir)
-    elif order == UTILITY_AFTER_PAYLOAD_FINISHED and job:
+    elif order == UTILITY_AFTER_PAYLOAD_FINISHED:
         if job.postprocess and job.postprocess.get('command', ''):
             com = download_command(job.postprocess, job.workdir)
         elif 'pilotXcache' in job.infosys.queuedata.catchall:
@@ -1880,8 +1877,6 @@ def get_utility_commands(order=None, job=None):
     elif order == UTILITY_BEFORE_STAGEIN:
         if 'pilotXcache' in job.infosys.queuedata.catchall:
             com = xcache_activation_command(job.jobid, job.infosys.queuedata.maxinputsize)
-    elif order == UTILITY_WITH_STAGEIN:
-        com = {'command': 'Benchmark', 'args': ''}
 
     return com
 
