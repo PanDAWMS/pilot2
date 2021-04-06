@@ -389,6 +389,10 @@ def get_args():
                             dest='hpc_mode',
                             default='manytoone',
                             help='HPC mode (manytoone, jumbojobs)')
+    arg_parser.add_argument('--executor-type',
+                            dest='executor_type',
+                            default='generic',
+                            help='Executor type (generic, raythena)')
 
     return arg_parser.parse_args()
 

@@ -1879,17 +1879,19 @@ def get_utility_commands(order=None, job=None):
                 com = xcache_deactivation_command()
         elif order == UTILITY_BEFORE_STAGEIN:
             if 'pilotXcache' in job.infosys.queuedata.catchall:
-                com = xcache_activation_command()
+                com = xcache_activation_command(job.jobid, job.infosys.queuedata.maxinputsize)
         elif order == UTILITY_WITH_STAGEIN:
             com = {'command': 'Benchmark', 'args': ''}
 
     return com
 
 
-def xcache_activation_command():
+def xcache_activation_command(jobid, maxinputsize):
     """
     Return the xcache service activation command.
 
+    :param jobid: PanDA job id to guarantee that xcache process is unique (int).
+    :param maxinputsize: maximum allowed size for input files (int).
     :return: xcache command (string).
     """
 
@@ -1900,7 +1902,13 @@ def xcache_activation_command():
     # ${ALRB_XCACHE_PROXY}root://atlasxrootd-kit.gridka.de:1094//pnfs/gridka.de/../DAOD_FTAG4.24348858._000020.pool.root.1
     command = "%s " % get_asetup(asetup=False)
     # add 'xcache list' which will also kill any orphaned processes lingering in the system
-    command += "lsetup xcache; xcache list; xcache start -d $TMPDIR/xcache --disklow 5.0g --diskhigh 7.0g -C centos7"
+    if maxinputsize and type(maxinputsize) == int:
+        disklow = '--disklow %dg' % int(maxinputsize * 0.45 / 1000)
+        diskhigh = '--diskhigh %dg' % int(maxinputsize * 0.5 / 1000)
+    else:
+        disklow = ''
+        diskhigh = ''
+    command += "lsetup xcache; xcache list; xcache start -d $PWD/%s/xcache -C centos7 %s %s" % (jobid, disklow, diskhigh)
 
     return {'command': command, 'args': ''}
 
