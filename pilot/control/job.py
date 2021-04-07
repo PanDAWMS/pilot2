@@ -461,7 +461,7 @@ def get_panda_server(url, port):
     else:
         pandaserver = config.Pilot.pandaserver
 
-    if pandaserver.startswith('http'):
+    if not pandaserver.startswith('http'):
         pandaserver = 'https://' + pandaserver
 
     # add randomization for PanDA server
