@@ -456,6 +456,9 @@ def get_panda_server(url, port):
     :return: full URL (either from pilot options or from config file)
     """
 
+    if url.startswith('https://'):
+        url = url.replace('https://', '')
+
     if url != '' and port != 0:
         pandaserver = '%s:%s' % (url, port) if ":" not in url else url
     else:
