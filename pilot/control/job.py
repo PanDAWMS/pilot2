@@ -456,12 +456,13 @@ def get_panda_server(url, port):
     :return: full URL (either from pilot options or from config file)
     """
 
-    logger.debug('url=%s' % url)
-    logger.debug('port=%s' % port)
     if url != '' and port != 0:
         pandaserver = '%s:%s' % (url, port) if ":" not in url else url
     else:
         pandaserver = config.Pilot.pandaserver
+
+    if pandaserver.startswith('http'):
+        pandaserver = 'https://' + pandaserver
 
     # add randomization for PanDA server
     default = 'pandaserver.cern.ch'
