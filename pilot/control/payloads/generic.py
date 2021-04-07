@@ -608,8 +608,6 @@ class Executor(object):
                     logger.debug('starting utility command: %s' % utility_cmd)
                     label = 'coprocess' if 'coprocess' in utility_cmd else None
                     proc_co = self.run_command(utility_cmd, label=label)
-                else:
-                    logger.debug('no command (UTILITY_AFTER_PAYLOAD_STARTED2)')
 
                 logger.info('will wait for graceful exit')
                 exit_code = self.wait_graceful(self.__args, proc, self.__job)
