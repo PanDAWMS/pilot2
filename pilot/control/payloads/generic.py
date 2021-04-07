@@ -594,7 +594,7 @@ class Executor(object):
                     break
             else:
                 # the process is now running, update the server
-                send_state(self.__job, self.__args, self.__job.state)
+                send_state(self.__job, self.__args, self.__job.state, test_tobekilled=True)
 
                 # note: when sending a state change to the server, the server might respond with 'tobekilled'
                 if self.__job.state == 'failed':

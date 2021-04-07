@@ -454,7 +454,7 @@ def copytool_in(queues, traces, args):
             put_in_queue(job, queues.current_data_in)
 
             # ready to set the job in running state
-            send_state(job, args, 'running', test_tobekilled=True)
+            send_state(job, args, 'running')
 
             # note: when sending a state change to the server, the server might respond with 'tobekilled'
             if job.state == 'failed':
