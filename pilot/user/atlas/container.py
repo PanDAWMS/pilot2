@@ -325,7 +325,7 @@ def update_for_user_proxy(_cmd, cmd, is_analysis=False):
         # add it instead to the container setup command:
 
         # download and verify payload proxy from the server if desired
-        proxy_verification = os.environ.get('PILOT_PROXY_VERIFICATION') == 'True' and os.environ('PILOT_PAYLOAD_PROXY_VERIFICATION') == 'True'
+        proxy_verification = os.environ.get('PILOT_PROXY_VERIFICATION') == 'True' and os.environ.get('PILOT_PAYLOAD_PROXY_VERIFICATION') == 'True'
         if proxy_verification and config.Pilot.payload_proxy_from_server and is_analysis:
             exit_code, diagnostics, x509 = get_and_verify_payload_proxy_from_server(x509)
             if exit_code != 0:  # do not return non-zero exit code if only download fails
