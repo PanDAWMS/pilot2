@@ -62,7 +62,6 @@ def execute(executable, **kwargs):
     # Note: the container.wrapper() function must at least be declared
     if usecontainer:
         executable, diagnostics = containerise_executable(executable, **kwargs)
-        logger.debug('exe=%s , diag=%s' % (executable, diagnostics))
         if not executable:
             return None if returnproc else -1, "", diagnostics
 
