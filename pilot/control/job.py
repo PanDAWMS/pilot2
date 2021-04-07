@@ -494,6 +494,11 @@ def handle_backchannel_command(res, job, args, test_tobekilled=False):
                         (job.jobid, time_stamp()))
             set_pilot_state(job=job, state="failed")
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL)
+            if job.pid:
+                logger.debug('killing payload process')
+                kill_process(job.pid)
+            else:
+                logger.debug('no pid to kill')
             args.abort_job.set()
         elif 'softkill' in res.get('command'):
             logger.info('pilot received a panda server signal to softkill job %s at %s' %
