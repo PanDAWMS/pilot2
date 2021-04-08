@@ -1930,7 +1930,7 @@ def xcache_deactivation_command(workdir):
     command = "%s " % get_asetup(asetup=False)
     command += "lsetup xcache; xcache kill"  # -C centos7
 
-    return {'command': command, 'args': ''}
+    return {'command': command, 'args': '-p all'}
 
 
 def get_utility_command_setup(name, job, setup=None):

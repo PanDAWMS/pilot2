@@ -253,8 +253,8 @@ class Executor(object):
             elif label == 'postprocess':
                 err = errors.POSTPROCESSFAILURE
             else:
-                err = errors.UNKNOWNPAYLOADFAILURE
-            if exit_code != 160:  # ignore no-more-data-points exit code
+                err = 0  # ie ignore
+            if err and exit_code != 160:  # ignore no-more-data-points exit code
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(err)
 
         # write output to log files
@@ -594,7 +594,8 @@ class Executor(object):
                     break
             else:
                 # the process is now running, update the server
-                send_state(self.__job, self.__args, self.__job.state, test_tobekilled=True)
+                # test 'tobekilled' from here to try payload kill
+                send_state(self.__job, self.__args, self.__job.state)
 
                 # note: when sending a state change to the server, the server might respond with 'tobekilled'
                 if self.__job.state == 'failed':

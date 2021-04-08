@@ -52,7 +52,7 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
     except PilotException as e:
         raise e
 
-    if config.Container.use_middleware_container and container_type == 'container':
+    if container_type == 'container':
         # add bits and pieces needed to run the cmd in a container
         pilot_user = environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
@@ -166,7 +166,7 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, ext
     full_script_path = path.join(path.join(job.workdir, script_path))
     copy(full_script_path, final_script_path)
 
-    if config.Container.use_middleware_container and container_type == 'container':
+    if container_type == 'container':
         # correct the path when containers have been used
         final_script_path = path.join('.', script)
         workdir = '/srv'
