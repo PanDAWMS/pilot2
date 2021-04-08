@@ -457,7 +457,7 @@ class StagingClient(object):
             if fspec.ddm_activity:  # skip already initialized data
                 continue
             if self.mode == 'stage-in':
-                if config.Payload.executor_type.lower() == 'raythena':
+                if os.environ.get('PILOT_ES_EXECUTOR_TYPE', 'generic') == 'raythena':
                     fspec.status = 'no_transfer'
 
                 try:

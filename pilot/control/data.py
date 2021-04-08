@@ -485,7 +485,7 @@ def copytool_in(queues, traces, args):
                     logger.debug('job %s has been removed from the current_data_in queue' % _job.jobid)
 
                 # now create input file metadata if required by the payload
-                if config.Payload.executor_type.lower() != 'raythena':
+                if os.environ.get('PILOT_ES_EXECUTOR_TYPE', 'generic') == 'generic':
                     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
                     user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
                     file_dictionary = get_input_file_dictionary(job.indata)

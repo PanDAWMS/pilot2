@@ -401,7 +401,7 @@ def get_container_options(container_options):
     :return: updated container command (string).
     """
 
-    is_raythena = config.Payload.executor_type.lower() == 'raythena'
+    is_raythena = os.environ.get('PILOT_ES_EXECUTOR_TYPE', 'generic') == 'raythena'
 
     opts = ''
     # Set the singularity options

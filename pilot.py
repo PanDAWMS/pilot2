@@ -389,10 +389,10 @@ def get_args():
                             dest='hpc_mode',
                             default='manytoone',
                             help='HPC mode (manytoone, jumbojobs)')
-    arg_parser.add_argument('--executor-type',
+    arg_parser.add_argument('--es-executor-type',
                             dest='executor_type',
                             default='generic',
-                            help='Executor type (generic, raythena)')
+                            help='Event service executor type (generic, raythena)')
 
     return arg_parser.parse_args()
 
@@ -466,6 +466,9 @@ def set_environment_variables(args, mainworkdir):
 
     # set the (HPC) resource name (if set in options)
     environ['PILOT_RESOURCE_NAME'] = args.hpc_resource
+
+    # event service executor type
+    environ['PILOT_ES_EXECUTOR_TYPE'] = args.executor_type
 
     # keep track of the server urls
     url = args.url if ":" in args.url else "%s:%d" % (args.url, args.port)
