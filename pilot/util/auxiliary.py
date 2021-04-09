@@ -495,3 +495,47 @@ def cut_output(txt, cutat=1024, separator='\n[...]\n'):
         txt = txt[:cutat] + separator + txt[-cutat:]
 
     return txt
+
+
+def has_instruction_set(instruction_set):
+    """
+    Determine whether a given CPU instruction set is available.
+    The function will use grep to search in /proc/cpuinfo (both in upper and lower case).
+
+    :param instruction_set: instruction set (e.g. AVX2) (string).
+    :return: Boolean
+    """
+
+    status = False
+    cmd = "grep -o \'%s[^ ]*\|%s[^ ]*\' /proc/cpuinfo" % (instruction_set.lower(), instruction_set.upper())
+    exit_code, stdout, stderr = execute(cmd)
+    if not exit_code and not stderr:
+        if instruction_set.lower() in stdout.split() or instruction_set.upper() in stdout.split():
+            status = True
+
+    return status
+
+
+def has_instruction_sets(instruction_sets):
+    """
+    Determine whether a given list of CPU instruction sets is available.
+    The function will use grep to search in /proc/cpuinfo (both in upper and lower case).
+    Example: instruction_sets = ['AVX', 'AVX2', 'SSE4_2', 'XXX'] -> "AVX|AVX2|SSE4_2"
+    :param instruction_sets: instruction set (e.g. AVX2) (string).
+    :return: Boolean
+    """
+
+    ret = ''
+    r = ''
+
+    for i in instruction_sets:
+        r += '\|%s[^ ]*\|%s[^ ]*' % (i.lower(), i.upper()) if r else '%s[^ ]*\|%s[^ ]*' % (i.lower(), i.upper())
+    cmd = "grep -o \'%s\' /proc/cpuinfo" % r
+
+    exit_code, stdout, stderr = execute(cmd)
+    if not exit_code and not stderr:
+        for i in instruction_sets:
+            if i.lower() in stdout.split() or i.upper() in stdout.split():
+                ret += '|%s' % i.upper() if ret else i.upper()
+
+    return ret

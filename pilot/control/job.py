@@ -32,7 +32,7 @@ from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, \
     set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine, \
-    is_python3, show_memory_usage
+    is_python3, show_memory_usage, has_instruction_sets
 from pilot.util.config import config
 from pilot.util.common import should_abort, was_pilot_killed
 from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
@@ -545,6 +545,11 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     schedulerid = get_job_scheduler_id()
     if schedulerid:
         data['schedulerID'] = schedulerid
+
+    instruction_sets = has_instruction_sets(['AVX', 'AVX2', 'SSE4_2'])
+    if instruction_sets:
+        logger.debug('could have sent instruction sets %s to server' % instruction_sets)
+        # data['instructionSets'] = instruction_sets
 
     pilotid = get_pilot_id()
     if pilotid:
