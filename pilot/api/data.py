@@ -54,7 +54,7 @@ class StagingClient(object):
     # list of allowed schemas to be used for direct acccess mode from REMOTE replicas
     direct_remoteinput_allowed_schemas = ['root', 'https']
     # list of schemas to be used for direct acccess mode from LOCAL replicas
-    direct_localinput_allowed_schemas = ['root', 'dcache', 'dcap', 'file', 'https']
+    direct_localinput_allowed_schemas = ['root', 'dcache', 'dcap', 'file', 'https', 'davs']
     # list of allowed schemas to be used for transfers from REMOTE sites
     remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm', 'storm', 'https']
 
@@ -889,14 +889,14 @@ class StageInClient(StagingClient):
             direct_lan = (fspec.domain == 'lan' and fspec.direct_access_lan and
                           fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.direct_localinput_allowed_schemas))
             direct_wan = (fspec.domain == 'wan' and fspec.direct_access_wan and
-                          fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.remoteinput_allowed_schemas))
+                          fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.direct_remoteinput_allowed_schemas))
 
             if not direct_lan and not direct_wan:
                 self.logger.debug('direct lan/wan transfer will not be used for lfn=%s' % fspec.lfn)
             self.logger.debug('lfn=%s, direct_lan=%s, direct_wan=%s, direct_access_lan=%s, direct_access_wan=%s, '
                               'direct_localinput_allowed_schemas=%s, remoteinput_allowed_schemas=%s' %
                               (fspec.lfn, direct_lan, direct_wan, fspec.direct_access_lan, fspec.direct_access_wan,
-                               str(self.direct_localinput_allowed_schemas), str(self.remoteinput_allowed_schemas)))
+                               str(self.direct_localinput_allowed_schemas), str(self.direct_remoteinput_allowed_schemas)))
 
             if direct_lan or direct_wan:
                 fspec.status_code = 0

@@ -471,7 +471,8 @@ def set_environment_variables(args, mainworkdir):
     environ['PILOT_ES_EXECUTOR_TYPE'] = args.executor_type
 
     # keep track of the server urls
-    url = args.url if ":" in args.url else "%s:%d" % (args.url, args.port)
+    _port = ":%s" % args.port
+    url = args.url if _port in args.url else args.url + _port
     environ['PANDA_SERVER_URL'] = url
     environ['QUEUEDATA_SERVER_URL'] = '%s' % args.queuedata_url
 

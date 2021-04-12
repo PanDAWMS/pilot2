@@ -1569,9 +1569,6 @@ def retrieve(queues, traces, args):  # noqa: C901
                 jobnumber += 1
                 while not args.graceful_stop.is_set():
                     if has_job_completed(queues, args):
-                        #import signal
-                        #os.kill(os.getpid(), signal.SIGTERM)
-
                         # purge queue(s) that retains job object
                         purge_queue(queues.finished_data_in)
 

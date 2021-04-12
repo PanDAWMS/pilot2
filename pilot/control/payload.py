@@ -195,10 +195,13 @@ def execute_payloads(queues, traces, args):  # noqa: C901
         try:
             job = queues.validated_payloads.get(block=True, timeout=1)
 
+            #q_snapshot = list(queues.finished_data_in.queue) if queues.finished_data_in else []
+            #peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
+            #if job.jobid not in q_snapshot:
+
             q_snapshot = list(queues.finished_data_in.queue)
             peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
             if len(peek) == 0:
-                #queues.validated_payloads.put(job)
                 put_in_queue(job, queues.validated_payloads)
                 for i in range(10):  # Python 3
                     if args.graceful_stop.is_set():
