@@ -546,11 +546,6 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     if schedulerid:
         data['schedulerID'] = schedulerid
 
-    instruction_sets = has_instruction_sets(['AVX', 'AVX2', 'SSE4_2'])
-    if instruction_sets:
-        logger.debug('could have sent instruction sets %s to server' % instruction_sets)
-        # data['instructionSets'] = instruction_sets
-
     pilotid = get_pilot_id()
     if pilotid:
         pilotversion = os.environ.get('PILOT_VERSION')
@@ -604,8 +599,15 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     constime = get_cpu_consumption_time(job.cpuconsumptiontime)
     if constime and constime != -1:
         data['cpuConsumptionTime'] = constime
-        data['cpuConsumptionUnit'] = job.cpuconsumptionunit + "+" + get_cpu_model()
         data['cpuConversionFactor'] = job.cpuconversionfactor
+        data['cpuConsumptionUnit'] = job.cpuconsumptionunit + "+" + get_cpu_model()
+
+    instruction_sets = has_instruction_sets(['AVX', 'AVX2'])
+    if instruction_sets:
+        if 'cpuConsumptionUnit' in data:
+            data['cpuConsumptionUnit'] += '+' + instruction_sets
+        else:
+            data['cpuConsumptionUnit'] = instruction_sets
 
     # add memory information if available
     add_memory_info(data, job.workdir, name=job.memorymonitor)
@@ -1042,6 +1044,10 @@ def get_dispatcher_dictionary(args):
         data['harvester_id'] = os.environ.get('HARVESTER_ID')
     if 'HARVESTER_WORKER_ID' in os.environ:
         data['worker_id'] = os.environ.get('HARVESTER_WORKER_ID')
+
+#    instruction_sets = has_instruction_sets(['AVX', 'AVX2'])
+#    if instruction_sets:
+#        data['cpuConsumptionUnit'] = instruction_sets
 
     return data
 
