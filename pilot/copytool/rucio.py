@@ -7,7 +7,7 @@
 # Authors:
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2021
 # - Tomas Javurek, tomas.javurek@cern.ch, 2019
 # - David Cameron, david.cameron@cern.ch, 2019
 
@@ -99,11 +99,15 @@ def copy_in(files, **kwargs):
         except Exception as error:
             error_msg = str(error)
             error_details = handle_rucio_error(error_msg, trace_report, trace_report_out, fspec, stagein=True)
-
+            protocol = get_protocol(trace_report_out)
+            trace_report.update(protocol=protocol)
             if not ignore_errors:
                 trace_report.send()
                 msg = ' %s:%s from %s, %s' % (fspec.scope, fspec.lfn, fspec.ddmendpoint, error_details.get('error'))
                 raise PilotException(msg, code=error_details.get('rcode'), state=error_details.get('state'))
+        else:
+            protocol = get_protocol(trace_report_out)
+            trace_report.update(protocol=protocol)
 
         # make sure there was no missed failure (only way to deal with this until rucio API has been fixed)
         # (using the timeout decorator prevents the trace_report_out from being updated - rucio API should return
@@ -144,6 +148,23 @@ def copy_in(files, **kwargs):
         trace_report.send()
 
     return files
+
+
+def get_protocol(trace_report_out):
+    """
+    Extract the protocol used for the transdfer from the dictionary returned by rucio.
+
+    :param trace_report_out: returned rucio transfer dictionary (dictionary).
+    :return: protocol (string).
+    """
+
+    try:
+        p = trace_report_out[0].get('protocol')
+    except Exception as e:
+        logger.warning('exception caught: %s' % e)
+        p = ''
+
+    return p
 
 
 def handle_rucio_error(error_msg, trace_report, trace_report_out, fspec, stagein=True):
@@ -228,6 +249,8 @@ def copy_in_bulk(files, **kwargs):
         # getting the trace for given file
         # if one trace is missing, the whould stagin gets failed
         trace_candidates = _get_trace(fspec, trace_report_out)
+        protocol = get_protocol(trace_report_out)  # note this is probably not correct (using [0])
+        trace_report.update(protocol=protocol)
         trace_report = None
         diagnostics = 'unknown'
         if len(trace_candidates) == 0:
@@ -344,7 +367,8 @@ def copy_out(files, **kwargs):  # noqa: C901
         except PilotException as error:
             error_msg = str(error)
             error_details = handle_rucio_error(error_msg, trace_report, trace_report_out, fspec, stagein=False)
-
+            protocol = get_protocol(trace_report_out)
+            trace_report.update(protocol=protocol)
             if not ignore_errors:
                 trace_report.send()
                 msg = ' %s:%s to %s, %s' % (fspec.scope, fspec.lfn, fspec.ddmendpoint, error_details.get('error'))
@@ -352,11 +376,15 @@ def copy_out(files, **kwargs):  # noqa: C901
         except Exception as error:
             error_msg = str(error)
             error_details = handle_rucio_error(error_msg, trace_report, trace_report_out, fspec, stagein=False)
-
+            protocol = get_protocol(trace_report_out)
+            trace_report.update(protocol=protocol)
             if not ignore_errors:
                 trace_report.send()
                 msg = ' %s:%s to %s, %s' % (fspec.scope, fspec.lfn, fspec.ddmendpoint, error_details.get('error'))
                 raise PilotException(msg, code=error_details.get('rcode'), state=error_details.get('state'))
+        else:
+            protocol = get_protocol(trace_report_out)
+            trace_report.update(protocol=protocol)
 
         # make sure there was no missed failure (only way to deal with this until rucio API has been fixed)
         # (using the timeout decorator prevents the trace_report_out from being updated - rucio API should return
