@@ -507,7 +507,7 @@ def has_instruction_set(instruction_set):
     """
 
     status = False
-    cmd = "grep -o \'%s[^ ]*\|%s[^ ]*\' /proc/cpuinfo" % (instruction_set.lower(), instruction_set.upper())
+    cmd = r"grep -o \'%s[^ ]*\|%s[^ ]*\' /proc/cpuinfo" % (instruction_set.lower(), instruction_set.upper())
     exit_code, stdout, stderr = execute(cmd)
     if not exit_code and not stderr:
         if instruction_set.lower() in stdout.split() or instruction_set.upper() in stdout.split():
@@ -529,7 +529,7 @@ def has_instruction_sets(instruction_sets):
     r = ''
 
     for i in instruction_sets:
-        r += '\|%s[^ ]*\|%s[^ ]*' % (i.lower(), i.upper()) if r else '%s[^ ]*\|%s[^ ]*' % (i.lower(), i.upper())
+        r += r'\|%s[^ ]*\|%s[^ ]*' % (i.lower(), i.upper()) if r else r'%s[^ ]*\|%s[^ ]*' % (i.lower(), i.upper())
     cmd = "grep -o \'%s\' /proc/cpuinfo" % r
 
     exit_code, stdout, stderr = execute(cmd)
