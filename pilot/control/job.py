@@ -39,7 +39,7 @@ from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PI
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
 from pilot.util.container import execute
-from pilot.util.filehandling import get_files, tail, is_json, copy, remove, write_json, establish_logging, write_file, \
+from pilot.util.filehandling import find_text_files, tail, is_json, copy, remove, write_json, establish_logging, write_file, \
     create_symlink
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file, \
     is_harvester_mode, get_worker_attributes_file, publish_job_report, publish_work_report, get_event_status_file, \
@@ -574,7 +574,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
         data['metaData'] = metadata
 
     # in debug mode, also send a tail of the latest log file touched by the payload
-    if job.debug:
+    if job.debug or True:
         stdout_tail = get_payload_log_tail(job)
         if stdout_tail:
             data['stdout'] = stdout_tail
@@ -721,16 +721,39 @@ def add_memory_info(data, workdir, name=""):
         pass
 
 
-def get_list_of_log_files():
-    """
-    Return a list of log files produced by the payload.
+#def get_list_of_log_files():
+#    """
+#    Return a list of log files produced by the payload.
+#
+#    :return: list of log files.
+#    """
+#
+#    list_of_files = get_files()
+#    if not list_of_files:  # some TRFs produce logs with different naming scheme
+#        list_of_files = get_files(pattern="log.*")
+#
+#    return list_of_files
 
-    :return: list of log files.
+
+def remove_pilot_logs_from_list(list_of_files):
+    """
+    Remove any pilot logs from the list of last updated files.
+
+    :param list_of_files: list of last updated files (list).
+    :return: list of files (list).
     """
 
-    list_of_files = get_files()
-    if not list_of_files:  # some TRFs produce logs with different naming scheme
-        list_of_files = get_files(pattern="log.*")
+    # ignore the pilot log files
+    to_be_removed = [config.Pilot.pilotlog, config.Pilot.stageinlog, config.Pilot.stageoutlog,
+                     config.Pilot.timing_file, config.Pilot.remotefileverification_dictionary,
+                     config.Pilot.remotefileverification_log, config.Pilot.base_trace_report,
+                     config.Pilot.container_script, config.Pilot.release_setup, config.Pilot.stagein_status_dictionary,
+                     config.Pilot.stagein_replica_dictionary]
+    for filename in to_be_removed:
+        try:
+            list_of_files.remove(filename)
+        except Exception:
+            pass
 
     return list_of_files
 
@@ -746,10 +769,14 @@ def get_payload_log_tail(job):
     stdout_tail = ""
 
     # find the latest updated log file
-    list_of_files = get_list_of_log_files()
+    # list_of_files = get_list_of_log_files()
+    # find the latest updated text file
+    list_of_files = find_text_files()
+    list_of_files = remove_pilot_logs_from_list(list_of_files)
+
     if not list_of_files:
         logger.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
-        list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]  # get_files(pattern=config.Payload.payloadstdout)
+        list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]
 
     try:
         latest_file = max(list_of_files, key=os.path.getmtime)
