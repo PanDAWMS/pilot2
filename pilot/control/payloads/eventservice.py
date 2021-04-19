@@ -15,7 +15,6 @@ import time
 from pilot.common import exception
 from pilot.control.payloads import generic
 from pilot.eventservice.workexecutor.workexecutor import WorkExecutor
-from pilot.util.config import config
 
 import logging
 logger = logging.getLogger(__name__)

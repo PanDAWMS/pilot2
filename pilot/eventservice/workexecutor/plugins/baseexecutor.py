@@ -11,7 +11,6 @@
 import os
 import threading
 
-from pilot.util.config import config
 from pilot.common.pluginfactory import PluginFactory
 from pilot.control.job import create_job
 from pilot.eventservice.communicationmanager.communicationmanager import CommunicationManager

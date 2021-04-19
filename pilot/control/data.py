@@ -26,7 +26,7 @@ from pilot.api.es_data import StageInESClient
 from pilot.control.job import send_state
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException, LogFileCreationFailure
-from pilot.util.config import config
+#from pilot.util.config import config
 from pilot.util.auxiliary import set_pilot_state, check_for_final_server_update  #, abort_jobs_in_queues
 from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT, LOG_TRANSFER_IN_PROGRESS,\

@@ -166,7 +166,7 @@ def find_text_files():
 
     files = []
     # -I = ignore binary files
-    cmd = "find . -type f -exec grep -Iq . {} \; -print"
+    cmd = r"find . -type f -exec grep -Iq . {} \; -print"
 
     exit_code, stdout, stderr = execute(cmd)
     if stdout:
