@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
-# - Paul Nilsson, paul.nilsson@cern.ch, 2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2021
 
 
 import os
@@ -91,13 +91,12 @@ class Executor(generic.Executor):
         # return {'executor_type': executor_type}
         return {'executor_type': os.environ.get('PILOT_ES_EXECUTOR_TYPE', 'generic')}
 
-    def wait_graceful(self, args, proc, job):
+    def wait_graceful(self, args, proc):
         """
         (add description)
 
         :param args:
         :param proc:
-        :param job:
         :return:
         """
 

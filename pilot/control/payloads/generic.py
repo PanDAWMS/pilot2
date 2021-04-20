@@ -8,7 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 import time
@@ -427,12 +427,11 @@ class Executor(object):
 
         return setup
 
-    def wait_graceful(self, args, proc, job):
+    def wait_graceful(self, args, proc):
         """
         (add description)
         :param args:
         :param proc:
-        :param job:
         :return:
         """
 
@@ -467,7 +466,6 @@ class Executor(object):
             if exit_code is not None:
                 break
             else:
-                # send_state(job, args, 'running')
                 continue
 
         return exit_code
@@ -611,7 +609,7 @@ class Executor(object):
                     proc_co = self.run_command(utility_cmd, label=label)
 
                 logger.info('will wait for graceful exit')
-                exit_code = self.wait_graceful(self.__args, proc, self.__job)
+                exit_code = self.wait_graceful(self.__args, proc)
                 # reset error if Raythena decided to kill payload (no error)
                 if errors.KILLPAYLOAD in self.__job.piloterrorcodes:
                     logger.debug('ignoring KILLPAYLOAD error')
