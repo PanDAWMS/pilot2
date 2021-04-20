@@ -538,9 +538,8 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
             'state': state,
             'timestamp': time_stamp(),
             'siteName': os.environ.get('PILOT_SITENAME'),  # args.site,
-            'node': get_node_name()}
-
-    data['attemptNr'] = job.attemptnr
+            'node': get_node_name(),
+            'attemptNr': job.attemptnr}
 
     schedulerid = get_job_scheduler_id()
     if schedulerid:
@@ -574,7 +573,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
         data['metaData'] = metadata
 
     # in debug mode, also send a tail of the latest log file touched by the payload
-    if job.debug or True:
+    if job.debug:
         stdout_tail = get_payload_log_tail(job)
         if stdout_tail:
             data['stdout'] = stdout_tail
@@ -744,18 +743,24 @@ def remove_pilot_logs_from_list(list_of_files):
     """
 
     # ignore the pilot log files
-    to_be_removed = [config.Pilot.pilotlog, config.Pilot.stageinlog, config.Pilot.stageoutlog,
-                     config.Pilot.timing_file, config.Pilot.remotefileverification_dictionary,
-                     config.Pilot.remotefileverification_log, config.Pilot.base_trace_report,
-                     config.Pilot.container_script, config.Pilot.release_setup, config.Pilot.stagein_status_dictionary,
-                     config.Pilot.stagein_replica_dictionary]
-    for filename in to_be_removed:
-        try:
-            list_of_files.remove(filename)
-        except Exception:
-            pass
+    try:
+        to_be_removed = [config.Pilot.pilotlog, config.Pilot.stageinlog, config.Pilot.stageoutlog,
+                         config.Pilot.timing_file, config.Pilot.remotefileverification_dictionary,
+                         config.Pilot.remotefileverification_log, config.Pilot.base_trace_report,
+                         config.Container.container_script, config.Container.release_setup,
+                         config.Container.stagein_status_dictionary, config.Container.stagein_replica_dictionary,
+                         'eventLoopHeartBeat.txt']
+    except Exception as e:
+        logger.warning('exception caught: %s' % e)
+        to_be_removed = []
 
-    return list_of_files
+    new_list_of_files = []
+    for filename in list_of_files:
+        if os.path.basename(filename) not in to_be_removed and '/pilot/' not in filename:
+            new_list_of_files.append(filename)
+
+    #logger.debug('list_of_files=%s' % str(new_list_of_files))
+    return new_list_of_files
 
 
 def get_payload_log_tail(job):
