@@ -826,10 +826,6 @@ class StageInClient(StagingClient):
                 if replica.get('domain'):
                     fspec.domain = replica['domain']
 
-                alrb_xcache_proxy = os.environ.get('ALRB_XCACHE_PROXY', None)
-                if alrb_xcache_proxy and fspec.is_directaccess(ensure_replica=False):
-                    fspec.turl = '${ALRB_XCACHE_PROXY}' + fspec.turl
-
                 self.logger.info("[stage-in] found replica to be used for lfn=%s: ddmendpoint=%s, pfn=%s" %
                                  (fspec.lfn, fspec.ddmendpoint, fspec.turl))
 
@@ -907,6 +903,10 @@ class StageInClient(StagingClient):
             if direct_lan or direct_wan:
                 fspec.status_code = 0
                 fspec.status = 'remote_io'
+
+                alrb_xcache_proxy = os.environ.get('ALRB_XCACHE_PROXY', None)
+                if alrb_xcache_proxy and fspec.is_directaccess(ensure_replica=False):
+                    fspec.turl = '${ALRB_XCACHE_PROXY}' + fspec.turl
 
                 self.logger.info('stage-in: direct access (remote i/o) will be used for lfn=%s (direct_lan=%s, direct_wan=%s), turl=%s' %
                                  (fspec.lfn, direct_lan, direct_wan, fspec.turl))
