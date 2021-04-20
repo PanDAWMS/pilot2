@@ -844,7 +844,7 @@ def _stage_out_new(job, args):
             output_files = [fspec.lfn for fspec in job.outdata]
             create_log(job, logfile.lfn, tarball_name, args.cleanup,
                        input_files=input_files, output_files=output_files,
-                       islooping=errors.LOOPINGJOB in job.piloterrorcodes)
+                       is_looping=errors.LOOPINGJOB in job.piloterrorcodes)
         except LogFileCreationFailure as e:
             logger.warning('failed to create tar file: %s' % e)
             set_pilot_state(job=job, state="failed")
