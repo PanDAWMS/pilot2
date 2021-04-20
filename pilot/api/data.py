@@ -590,9 +590,6 @@ class StagingClient(object):
             r = resolve_surl(fspec, protocol, ddmconf, local_dir=local_dir)  # pass ddmconf for possible custom look up at the level of copytool
             if r.get('surl'):
                 fspec.turl = r['surl']
-                alrb_xcache_proxy = os.environ.get('ALRB_XCACHE_PROXY', None)
-                if alrb_xcache_proxy and fspec.is_directaccess(ensure_replica=False):
-                    fspec.turl = '${ALRB_XCACHE_PROXY}' + fspec.turl
 
             if r.get('ddmendpoint'):
                 fspec.ddmendpoint = r['ddmendpoint']
@@ -829,6 +826,10 @@ class StageInClient(StagingClient):
                 if replica.get('domain'):
                     fspec.domain = replica['domain']
 
+                alrb_xcache_proxy = os.environ.get('ALRB_XCACHE_PROXY', None)
+                if alrb_xcache_proxy and fspec.is_directaccess(ensure_replica=False):
+                    fspec.turl = '${ALRB_XCACHE_PROXY}' + fspec.turl
+
                 self.logger.info("[stage-in] found replica to be used for lfn=%s: ddmendpoint=%s, pfn=%s" %
                                  (fspec.lfn, fspec.ddmendpoint, fspec.turl))
 
@@ -890,6 +891,11 @@ class StageInClient(StagingClient):
                           fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.direct_localinput_allowed_schemas))
             direct_wan = (fspec.domain == 'wan' and fspec.direct_access_wan and
                           fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.direct_remoteinput_allowed_schemas))
+
+            if 'CYFRONET' in os.environ.get('PILOT_SITENAME'):
+                if '.root.' in lfn:
+                    direct_lan = True
+
 
             if not direct_lan and not direct_wan:
                 self.logger.debug('direct lan/wan transfer will not be used for lfn=%s' % fspec.lfn)
