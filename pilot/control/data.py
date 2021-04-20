@@ -32,7 +32,7 @@ from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT, LOG_TRANSFER_IN_PROGRESS,\
     LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME, UTILITY_BEFORE_STAGEIN
 from pilot.util.container import execute
-from pilot.util.filehandling import remove, get_local_file_size
+from pilot.util.filehandling import remove
 from pilot.util.processes import threads_aborted
 from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
 from pilot.util.timing import add_to_pilot_timing
@@ -671,87 +671,62 @@ def filter_files_for_log(directory):
     return filtered_files
 
 
-def create_log(job, logfile, tarball_name, args):
+def create_log(workdir, logfile_name, tarball_name, cleanup, input_files=[], output_files=[], is_looping=False):
     """
+    Create the tarball for the job.
 
-    :param job:
-    :param logfile:
+    :param workdir: work directory for the job (string).
+    :param logfile_name: log file name (string).
     :param tarball_name:
-    :raises LogFileCreationFailure: in case of log file creation problem
+    :param cleanup: perform cleanup (Boolean).
+    :param input_files: list of input files to remove (list).
+    :param output_files: list of output files to remove (list).
+    :param is_looping: True for looping jobs, False by default (Boolean).
+    :raises LogFileCreationFailure: in case of log file creation problem.
     :return:
     """
 
     logger.debug('preparing to create log file')
+    # PILOT_HOME is the launch directory of the pilot (or the one specified in pilot options as pilot workdir)
     pilot_home = os.environ.get('PILOT_HOME', os.getcwd())
     current_dir = os.getcwd()
     if pilot_home != current_dir:
-        logger.debug('cd from %s to %s for log creation' % (current_dir, pilot_home))
         os.chdir(pilot_home)
 
     # perform special cleanup (user specific) prior to log file creation
-    if args.cleanup:
+    if cleanup:
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
-        user.remove_redundant_files(job.workdir, islooping=errors.LOOPINGJOB in job.piloterrorcodes)
-    else:
-        logger.debug('user specific cleanup not performed')
-
-    input_files = [e.lfn for e in job.indata]
-    output_files = [e.lfn for e in job.outdata]
+        user.remove_redundant_files(workdir, islooping=is_looping)
 
     # remove any present input/output files before tarring up workdir
     for f in input_files + output_files:
-        path = os.path.join(job.workdir, f)
+        path = os.path.join(workdir, f)
         if os.path.exists(path):
             logger.info('removing file: %s' % path)
             remove(path)
 
     # rename the workdir for the tarball creation
-    newworkdir = os.path.join(os.path.dirname(job.workdir), tarball_name)
-    orgworkdir = job.workdir
-    logger.debug('renaming %s to %s' % (job.workdir, newworkdir))
-    os.rename(job.workdir, newworkdir)
-    job.workdir = newworkdir
+    newworkdir = os.path.join(os.path.dirname(workdir), tarball_name)
+    orgworkdir = workdir
+    os.rename(workdir, newworkdir)
+    workdir = newworkdir
 
-    fullpath = os.path.join(job.workdir, logfile.lfn)  # /some/path/to/dirname/log.tgz
-
+    fullpath = os.path.join(workdir, logfile_name)  # /some/path/to/dirname/log.tgz
     logger.info('will create archive %s' % fullpath)
     try:
-        #newdirnm = "tarball_PandaJob_%s" % job.jobid
-        #tarballnm = "%s.tar.gz" % newdirnm
-        #os.rename(job.workdir, newdirnm)
         cmd = "pwd;tar cvfz %s %s --dereference --one-file-system; echo $?" % (fullpath, tarball_name)
         exit_code, stdout, stderr = execute(cmd)
-
-        #with closing(tarfile.open(name=fullpath, mode='w:gz', dereference=True)) as archive:
-        #    archive.add(os.path.basename(job.workdir), recursive=True)
     except Exception as e:
         raise LogFileCreationFailure(e)
     else:
         if pilot_home != current_dir:
-            logger.debug('cd from %s to %s after log creation' % (pilot_home, current_dir))
             os.chdir(pilot_home)
         logger.debug('stdout = %s' % stdout)
-
-        # verify the size of the log file
-        size = get_local_file_size(fullpath)
-        if size < 1024:
-            logger.warning('log file size too small: %d B' % size)
-        else:
-            logger.info('log file size: %d B' % size)
-
-    logger.debug('renaming %s back to %s' % (job.workdir, orgworkdir))
     try:
-        os.rename(job.workdir, orgworkdir)
+        os.rename(workdir, orgworkdir)
     except Exception as e:
         logger.debug('exception caught: %s' % e)
-    job.workdir = orgworkdir
-
-    #fullpath = os.path.join(job.workdir, logfile.lfn)  # reset fullpath since workdir has changed since above
-    #return {'scope': logfile.scope,
-    #        'name': logfile.lfn,
-    #        'guid': logfile.guid,
-    #        'bytes': os.stat(fullpath).st_size}
 
 
 def _do_stageout(job, xdata, activity, queue, title, output_dir=''):
@@ -864,7 +839,12 @@ def _stage_out_new(job, args):
         logfile = job.logdata[0]
 
         try:
-            create_log(job, logfile, 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue), args)
+            tarball_name = 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue)
+            input_files = [fspec.lfn for fspec in job.indata]
+            output_files = [fspec.lfn for fspec in job.outdata]
+            create_log(job, logfile.lfn, tarball_name, args.cleanup,
+                       input_files=input_files, output_files=output_files,
+                       islooping=errors.LOOPINGJOB in job.piloterrorcodes)
         except LogFileCreationFailure as e:
             logger.warning('failed to create tar file: %s' % e)
             set_pilot_state(job=job, state="failed")
