@@ -677,7 +677,7 @@ def create_log(workdir, logfile_name, tarball_name, cleanup, input_files=[], out
 
     :param workdir: work directory for the job (string).
     :param logfile_name: log file name (string).
-    :param tarball_name:
+    :param tarball_name: tarball name (string).
     :param cleanup: perform cleanup (Boolean).
     :param input_files: list of input files to remove (list).
     :param output_files: list of output files to remove (list).
