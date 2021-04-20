@@ -520,26 +520,13 @@ def handle_backchannel_command(res, job, args, test_tobekilled=False):
             logger.warning('received unknown server command via backchannel: %s' % res.get('command'))
 
 
-def get_data_structure(job, state, args, xml=None, metadata=None):
+def add_data_structure_ids(data, version_tag):
     """
-    Build the data structure needed for getJob, updateJob.
+    Add pilot, batch and scheduler ids to the data structure for getJob, updateJob.
 
-    :param job: job object.
-    :param state: state of the job (string).
-    :param args:
-    :param xml: optional XML string.
-    :param metadata: job report metadata read as a string.
-    :return: data structure (dictionary).
+    :param data: data structure (dict).
+    :return: updated data structure (dict).
     """
-
-    logger.debug('building data structure to be sent to server with heartbeat')
-
-    data = {'jobId': job.jobid,
-            'state': state,
-            'timestamp': time_stamp(),
-            'siteName': os.environ.get('PILOT_SITENAME'),  # args.site,
-            'node': get_node_name(),
-            'attemptNr': job.attemptnr}
 
     schedulerid = get_job_scheduler_id()
     if schedulerid:
@@ -553,11 +540,35 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
         batchsystem_type, batchsystem_id = get_batchsystem_jobid()
 
         if batchsystem_type:
-            data['pilotID'] = "%s|%s|%s|%s" % \
-                              (pilotid, batchsystem_type, args.version_tag, pilotversion)
+            data['pilotID'] = "%s|%s|%s|%s" % (pilotid, batchsystem_type, version_tag, pilotversion)
             data['batchID'] = batchsystem_id
         else:
-            data['pilotID'] = "%s|%s|%s" % (pilotid, args.version_tag, pilotversion)
+            data['pilotID'] = "%s|%s|%s" % (pilotid, version_tag, pilotversion)
+
+    return data
+
+
+def get_data_structure(job, state, args, xml=None, metadata=None):
+    """
+    Build the data structure needed for getJob, updateJob.
+
+    :param job: job object.
+    :param state: state of the job (string).
+    :param args:
+    :param xml: optional XML string.
+    :param metadata: job report metadata read as a string.
+    :return: data structure (dictionary).
+    """
+
+    data = {'jobId': job.jobid,
+            'state': state,
+            'timestamp': time_stamp(),
+            'siteName': os.environ.get('PILOT_SITENAME'),  # args.site,
+            'node': get_node_name(),
+            'attemptNr': job.attemptnr}
+
+    # add pilot, batch and scheduler ids to the data structure
+    data = add_data_structure_ids(data, args.version_tag)
 
     starttime = get_postgetjob_time(job.jobid, args)
     if starttime:
