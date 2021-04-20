@@ -842,7 +842,7 @@ def _stage_out_new(job, args):
             tarball_name = 'tarball_PandaJob_%s_%s' % (job.jobid, job.infosys.pandaqueue)
             input_files = [fspec.lfn for fspec in job.indata]
             output_files = [fspec.lfn for fspec in job.outdata]
-            create_log(job, logfile.lfn, tarball_name, args.cleanup,
+            create_log(job.workdir, logfile.lfn, tarball_name, args.cleanup,
                        input_files=input_files, output_files=output_files,
                        is_looping=errors.LOOPINGJOB in job.piloterrorcodes)
         except LogFileCreationFailure as e:
