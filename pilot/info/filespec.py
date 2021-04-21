@@ -137,7 +137,7 @@ class FileSpec(BaseData):
 
         # temp hardcoding for CYFRONET testing
         from os import environ
-        if 'CYFRONET' in environ.get('PILOT_SITENAME'):
+        if 'CYFRONET' in environ.get('PILOT_SITENAME', ''):
             self.direct_access_lan = True
 
     def is_directaccess(self, ensure_replica=True, allowed_replica_schemas=None):

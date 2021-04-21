@@ -888,7 +888,7 @@ class StageInClient(StagingClient):
             direct_wan = (fspec.domain == 'wan' and fspec.direct_access_wan and
                           fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.direct_remoteinput_allowed_schemas))
 
-            if 'CYFRONET' in os.environ.get('PILOT_SITENAME'):
+            if 'CYFRONET' in os.environ.get('PILOT_SITENAME', ''):
                 if '.root.' in fspec.lfn:
                     direct_lan = True
 
@@ -905,7 +905,7 @@ class StageInClient(StagingClient):
                 fspec.status = 'remote_io'
 
                 alrb_xcache_proxy = os.environ.get('ALRB_XCACHE_PROXY', None)
-                if alrb_xcache_proxy and fspec.is_directaccess(ensure_replica=False):
+                if alrb_xcache_proxy and direct_lan:  #fspec.is_directaccess(ensure_replica=False):
                     fspec.turl = '${ALRB_XCACHE_PROXY}' + fspec.turl
 
                 self.logger.info('stage-in: direct access (remote i/o) will be used for lfn=%s (direct_lan=%s, direct_wan=%s), turl=%s' %

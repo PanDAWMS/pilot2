@@ -415,6 +415,26 @@ def stage_out_auto(site, files):
     return files
 
 
+def xcache_proxy(output):
+
+    for line in output.split('\n'):
+        if 'ALRB_XCACHE_PROXY' in line:
+            set_xcache_proxy(line, remote='REMOTE' in line)
+
+
+def set_xcache_proxy(line, remote=None):
+
+    import re
+    pattern = r'\ export\ ALRB_XCACHE_PROXY_REMOTE\=\"(.+)\"' if remote else r'\ export\ ALRB_XCACHE_PROXY\=\"(.+)\"'
+    pattern = re.compile(pattern)
+    result = re.findall(pattern, line)
+    if result:
+        if remote:
+            os.environ['ALRB_XCACHE_PROXY_REMOTE'] = result[0]
+        else:
+            os.environ['ALRB_XCACHE_PROXY'] = result[0]
+
+
 def copytool_in(queues, traces, args):
     """
     Call the stage-in function and put the job object in the proper queue.
@@ -446,9 +466,11 @@ def copytool_in(queues, traces, args):
                 logger.debug('exit_code=%d' % exit_code)
                 logger.debug('stderr=%s' % stderr)
                 logger.debug('stdout=%s' % stdout)
-            else:
-                logger.debug('ALRB_XCACHE_PROXY=%s' % os.environ.get('ALRB_XCACHE_PROXY', '<not set>'))
-                logger.debug('ALRB_XCACHE_PROXY_REMOTE=%s' % os.environ.get('ALRB_XCACHE_PROXY_REMOTE', '<not set>'))
+                # move code to user area
+                xcache_proxy(stdout)
+
+            logger.debug('ALRB_XCACHE_PROXY=%s' % os.environ.get('ALRB_XCACHE_PROXY', '<not set>'))
+            logger.debug('ALRB_XCACHE_PROXY_REMOTE=%s' % os.environ.get('ALRB_XCACHE_PROXY_REMOTE', '<not set>'))
 
             # place it in the current stage-in queue (used by the jobs' queue monitoring)
             put_in_queue(job, queues.current_data_in)
