@@ -888,9 +888,10 @@ class StageInClient(StagingClient):
             direct_wan = (fspec.domain == 'wan' and fspec.direct_access_wan and
                           fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.direct_remoteinput_allowed_schemas))
 
-            if 'CYFRONET' in os.environ.get('PILOT_SITENAME', ''):
-                if '.root.' in fspec.lfn:
-                    direct_lan = True
+            # testing direct acess
+            #if 'CYFRONET' in os.environ.get('PILOT_SITENAME', ''):
+            #    if '.root.' in fspec.lfn:
+            #        direct_lan = True
 
 
             if not direct_lan and not direct_wan:

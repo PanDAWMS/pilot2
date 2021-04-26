@@ -420,6 +420,8 @@ def xcache_proxy(output):
     for line in output.split('\n'):
         if 'ALRB_XCACHE_PROXY' in line:
             set_xcache_proxy(line, remote='REMOTE' in line)
+        if 'Messages logged in' in line:
+            set_xcache_log(line)
 
 
 def set_xcache_proxy(line, remote=None):
@@ -433,6 +435,16 @@ def set_xcache_proxy(line, remote=None):
             os.environ['ALRB_XCACHE_PROXY_REMOTE'] = result[0]
         else:
             os.environ['ALRB_XCACHE_PROXY'] = result[0]
+
+
+def set_xcache_log(line):
+
+    import re
+    pattern = r'xcache\ started\ successfully.\ \ Messages\ logged\ in\ (.+)'
+    pattern = re.compile(pattern)
+    result = re.findall(pattern, line)
+    if result:
+        os.environ['ALRB_XCACHE_LOG'] = result[0]
 
 
 def copytool_in(queues, traces, args):

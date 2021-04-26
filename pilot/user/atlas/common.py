@@ -1876,17 +1876,16 @@ def get_utility_commands(order=None, job=None):
             com = xcache_deactivation_command(job.workdir)
     elif order == UTILITY_BEFORE_STAGEIN:
         if 'pilotXcache' in job.infosys.queuedata.catchall:
-            com = xcache_activation_command(job.jobid, job.infosys.queuedata.maxinputsize)
+            com = xcache_activation_command(job.jobid)
 
     return com
 
 
-def xcache_activation_command(jobid, maxinputsize):
+def xcache_activation_command(jobid):
     """
     Return the xcache service activation command.
 
     :param jobid: PanDA job id to guarantee that xcache process is unique (int).
-    :param maxinputsize: maximum allowed size for input files (int).
     :return: xcache command (string).
     """
 
@@ -1897,13 +1896,7 @@ def xcache_activation_command(jobid, maxinputsize):
     # ${ALRB_XCACHE_PROXY}root://atlasxrootd-kit.gridka.de:1094//pnfs/gridka.de/../DAOD_FTAG4.24348858._000020.pool.root.1
     command = "%s " % get_asetup(asetup=False)
     # add 'xcache list' which will also kill any orphaned processes lingering in the system
-    if maxinputsize and type(maxinputsize) == int:
-        disklow = '--disklow %dg' % int(maxinputsize * 0.45 / 1000)
-        diskhigh = '--diskhigh %dg' % int(maxinputsize * 0.5 / 1000)
-    else:
-        disklow = ''
-        diskhigh = ''
-    command += "lsetup xcache; xcache list; xcache start -d $PWD/%s/xcache -C centos7 %s %s" % (jobid, disklow, diskhigh)
+    command += "lsetup xcache; xcache list; xcache start -d $PWD/%s/xcache -C centos7 --disklow 4g --diskhigh 5g %s" % jobid
 
     return {'command': command, 'args': ''}
 
@@ -1918,8 +1911,8 @@ def xcache_deactivation_command(workdir):
     :return: xcache command (string).
     """
 
-    path = os.path.join(os.environ.get('ALRB_XCACHE_FILES', ''), 'messages.log')
-    if os.path.exists(path):
+    path = os.environ.get('ALRB_XCACHE_LOG', None)
+    if path and os.path.exists(path):
         logger.debug('copying xcache messages log file (%s) to work dir (%s)' % (path, workdir))
         dest = os.path.join(workdir, 'xcache-messages.log')
         try:

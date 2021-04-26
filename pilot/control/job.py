@@ -612,7 +612,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
         data['cpuConversionFactor'] = job.cpuconversionfactor
         data['cpuConsumptionUnit'] = job.cpuconsumptionunit + "+" + get_cpu_model()
 
-    instruction_sets = has_instruction_sets(['AVX', 'AVX2'])
+    instruction_sets = has_instruction_sets(['AVX2'])
     if instruction_sets:
         if 'cpuConsumptionUnit' in data:
             data['cpuConsumptionUnit'] += '+' + instruction_sets

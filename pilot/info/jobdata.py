@@ -350,9 +350,11 @@ class JobData(BaseData):
         except Exception:
             ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())  # Python 2
 
-        # unify scopeOut structure: add scope of log file
-        log_lfn = data.get('logFile')
+        # take the logfile name from the environment first (in case of raythena and aborted pilots)
+        pilot_logfile = os.environ.get('PILOT_LOGFILE', None)
+        log_lfn = pilot_logfile if pilot_logfile else data.get('logFile')
         if log_lfn:
+            # unify scopeOut structure: add scope of log file
             scope_out = []
             for lfn in ksources.get('outFiles', []):
                 if lfn == log_lfn:
