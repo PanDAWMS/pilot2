@@ -34,7 +34,7 @@ def remove_unwanted_files(workdir, files):
     _files = []
     for _file in files:
         if not (workdir == _file or
-                "workDir" in _file or
+                #"workDir" in _file or
                 "prmon" in _file or
                 "/pilot" in _file or
                 "/pandawnutil" in _file or
@@ -47,6 +47,7 @@ def remove_unwanted_files(workdir, files):
                 "runjob" in _file or
                 "memory_" in _file or
                 "mem." in _file or
+                "docs/" in _file or
                 "DBRelease-" in _file):
             _files.append(_file)
 

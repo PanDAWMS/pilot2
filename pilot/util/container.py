@@ -12,7 +12,6 @@ from os import environ, getcwd, setpgrp  #, getpgid  #setsid
 from sys import version_info
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.util.config import config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -62,7 +61,6 @@ def execute(executable, **kwargs):
     # Note: the container.wrapper() function must at least be declared
     if usecontainer:
         executable, diagnostics = containerise_executable(executable, **kwargs)
-        logger.debug('exe=%s , diag=%s' % (executable, diagnostics))
         if not executable:
             return None if returnproc else -1, "", diagnostics
 
@@ -122,7 +120,7 @@ def containerise_executable(executable, **kwargs):
         # should a container really be used?
         do_use_container = job.usecontainer if job else container.do_use_container(**kwargs)
         # overrule for event service
-        if job and job.is_eventservice and do_use_container and config.Payload.executor_type.lower() != 'raythena':
+        if job and job.is_eventservice and do_use_container and environ.get('PILOT_ES_EXECUTOR_TYPE', 'generic') != 'raythena':
             logger.info('overruling container decision for event service grid job')
             do_use_container = False
 

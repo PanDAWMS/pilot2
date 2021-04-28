@@ -32,14 +32,14 @@ from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, \
     set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine, \
-    is_python3, show_memory_usage
+    is_python3, show_memory_usage, has_instruction_sets
 from pilot.util.config import config
 from pilot.util.common import should_abort, was_pilot_killed
 from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
     LOG_TRANSFER_IN_PROGRESS, LOG_TRANSFER_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_TROUBLE, SERVER_UPDATE_FINAL, \
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
 from pilot.util.container import execute
-from pilot.util.filehandling import get_files, tail, is_json, copy, remove, write_json, establish_logging, write_file, \
+from pilot.util.filehandling import find_text_files, tail, is_json, copy, remove, write_json, establish_logging, write_file, \
     create_symlink
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file, \
     is_harvester_mode, get_worker_attributes_file, publish_job_report, publish_work_report, get_event_status_file, \
@@ -456,10 +456,16 @@ def get_panda_server(url, port):
     :return: full URL (either from pilot options or from config file)
     """
 
+    if url.startswith('https://'):
+        url = url.replace('https://', '')
+
     if url != '' and port != 0:
-        pandaserver = '%s:%s' % (url, port)
+        pandaserver = '%s:%s' % (url, port) if ":" not in url else url
     else:
         pandaserver = config.Pilot.pandaserver
+
+    if not pandaserver.startswith('http'):
+        pandaserver = 'https://' + pandaserver
 
     # add randomization for PanDA server
     default = 'pandaserver.cern.ch'
@@ -494,6 +500,11 @@ def handle_backchannel_command(res, job, args, test_tobekilled=False):
                         (job.jobid, time_stamp()))
             set_pilot_state(job=job, state="failed")
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL)
+            if job.pid:
+                logger.debug('killing payload process')
+                kill_process(job.pid)
+            else:
+                logger.debug('no pid to kill')
             args.abort_job.set()
         elif 'softkill' in res.get('command'):
             logger.info('pilot received a panda server signal to softkill job %s at %s' %
@@ -509,27 +520,13 @@ def handle_backchannel_command(res, job, args, test_tobekilled=False):
             logger.warning('received unknown server command via backchannel: %s' % res.get('command'))
 
 
-def get_data_structure(job, state, args, xml=None, metadata=None):
+def add_data_structure_ids(data, version_tag):
     """
-    Build the data structure needed for getJob, updateJob.
+    Add pilot, batch and scheduler ids to the data structure for getJob, updateJob.
 
-    :param job: job object.
-    :param state: state of the job (string).
-    :param args:
-    :param xml: optional XML string.
-    :param metadata: job report metadata read as a string.
-    :return: data structure (dictionary).
+    :param data: data structure (dict).
+    :return: updated data structure (dict).
     """
-
-    logger.debug('building data structure to be sent to server with heartbeat')
-
-    data = {'jobId': job.jobid,
-            'state': state,
-            'timestamp': time_stamp(),
-            'siteName': os.environ.get('PILOT_SITENAME'),  # args.site,
-            'node': get_node_name()}
-
-    data['attemptNr'] = job.attemptnr
 
     schedulerid = get_job_scheduler_id()
     if schedulerid:
@@ -543,11 +540,35 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
         batchsystem_type, batchsystem_id = get_batchsystem_jobid()
 
         if batchsystem_type:
-            data['pilotID'] = "%s|%s|%s|%s" % \
-                              (pilotid, batchsystem_type, args.version_tag, pilotversion)
+            data['pilotID'] = "%s|%s|%s|%s" % (pilotid, batchsystem_type, version_tag, pilotversion)
             data['batchID'] = batchsystem_id
         else:
-            data['pilotID'] = "%s|%s|%s" % (pilotid, args.version_tag, pilotversion)
+            data['pilotID'] = "%s|%s|%s" % (pilotid, version_tag, pilotversion)
+
+    return data
+
+
+def get_data_structure(job, state, args, xml=None, metadata=None):
+    """
+    Build the data structure needed for getJob, updateJob.
+
+    :param job: job object.
+    :param state: state of the job (string).
+    :param args:
+    :param xml: optional XML string.
+    :param metadata: job report metadata read as a string.
+    :return: data structure (dictionary).
+    """
+
+    data = {'jobId': job.jobid,
+            'state': state,
+            'timestamp': time_stamp(),
+            'siteName': os.environ.get('PILOT_SITENAME'),  # args.site,
+            'node': get_node_name(),
+            'attemptNr': job.attemptnr}
+
+    # add pilot, batch and scheduler ids to the data structure
+    data = add_data_structure_ids(data, args.version_tag)
 
     starttime = get_postgetjob_time(job.jobid, args)
     if starttime:
@@ -588,8 +609,15 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     constime = get_cpu_consumption_time(job.cpuconsumptiontime)
     if constime and constime != -1:
         data['cpuConsumptionTime'] = constime
-        data['cpuConsumptionUnit'] = job.cpuconsumptionunit + "+" + get_cpu_model()
         data['cpuConversionFactor'] = job.cpuconversionfactor
+        data['cpuConsumptionUnit'] = job.cpuconsumptionunit + "+" + get_cpu_model()
+
+    instruction_sets = has_instruction_sets(['AVX2'])
+    if instruction_sets:
+        if 'cpuConsumptionUnit' in data:
+            data['cpuConsumptionUnit'] += '+' + instruction_sets
+        else:
+            data['cpuConsumptionUnit'] = instruction_sets
 
     # add memory information if available
     add_memory_info(data, job.workdir, name=job.memorymonitor)
@@ -703,18 +731,47 @@ def add_memory_info(data, workdir, name=""):
         pass
 
 
-def get_list_of_log_files():
+#def get_list_of_log_files():
+#    """
+#    Return a list of log files produced by the payload.
+#
+#    :return: list of log files.
+#    """
+#
+#    list_of_files = get_files()
+#    if not list_of_files:  # some TRFs produce logs with different naming scheme
+#        list_of_files = get_files(pattern="log.*")
+#
+#    return list_of_files
+
+
+def remove_pilot_logs_from_list(list_of_files):
     """
-    Return a list of log files produced by the payload.
+    Remove any pilot logs from the list of last updated files.
 
-    :return: list of log files.
+    :param list_of_files: list of last updated files (list).
+    :return: list of files (list).
     """
 
-    list_of_files = get_files()
-    if not list_of_files:  # some TRFs produce logs with different naming scheme
-        list_of_files = get_files(pattern="log.*")
+    # ignore the pilot log files
+    try:
+        to_be_removed = [config.Pilot.pilotlog, config.Pilot.stageinlog, config.Pilot.stageoutlog,
+                         config.Pilot.timing_file, config.Pilot.remotefileverification_dictionary,
+                         config.Pilot.remotefileverification_log, config.Pilot.base_trace_report,
+                         config.Container.container_script, config.Container.release_setup,
+                         config.Container.stagein_status_dictionary, config.Container.stagein_replica_dictionary,
+                         'eventLoopHeartBeat.txt']
+    except Exception as e:
+        logger.warning('exception caught: %s' % e)
+        to_be_removed = []
 
-    return list_of_files
+    new_list_of_files = []
+    for filename in list_of_files:
+        if os.path.basename(filename) not in to_be_removed and '/pilot/' not in filename:
+            new_list_of_files.append(filename)
+
+    #logger.debug('list_of_files=%s' % str(new_list_of_files))
+    return new_list_of_files
 
 
 def get_payload_log_tail(job):
@@ -728,10 +785,14 @@ def get_payload_log_tail(job):
     stdout_tail = ""
 
     # find the latest updated log file
-    list_of_files = get_list_of_log_files()
+    # list_of_files = get_list_of_log_files()
+    # find the latest updated text file
+    list_of_files = find_text_files()
+    list_of_files = remove_pilot_logs_from_list(list_of_files)
+
     if not list_of_files:
         logger.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
-        list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]  # get_files(pattern=config.Payload.payloadstdout)
+        list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]
 
     try:
         latest_file = max(list_of_files, key=os.path.getmtime)
@@ -1026,6 +1087,10 @@ def get_dispatcher_dictionary(args):
         data['harvester_id'] = os.environ.get('HARVESTER_ID')
     if 'HARVESTER_WORKER_ID' in os.environ:
         data['worker_id'] = os.environ.get('HARVESTER_WORKER_ID')
+
+#    instruction_sets = has_instruction_sets(['AVX', 'AVX2'])
+#    if instruction_sets:
+#        data['cpuConsumptionUnit'] = instruction_sets
 
     return data
 
@@ -1478,8 +1543,7 @@ def retrieve(queues, traces, args):  # noqa: C901
     starttime = time.time()
 
     jobnumber = 0  # number of downloaded jobs
-    getjob_requests = 0  # number of getjob requests
-
+    getjob_requests = args.getjob_requests
     print_node_info()
 
     while not args.graceful_stop.is_set():
@@ -1554,9 +1618,6 @@ def retrieve(queues, traces, args):  # noqa: C901
                 jobnumber += 1
                 while not args.graceful_stop.is_set():
                     if has_job_completed(queues, args):
-                        #import signal
-                        #os.kill(os.getpid(), signal.SIGTERM)
-
                         # purge queue(s) that retains job object
                         purge_queue(queues.finished_data_in)
 

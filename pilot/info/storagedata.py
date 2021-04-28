@@ -5,7 +5,7 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
-# - Paul Nilsson, paul.nilsson@cern.ch, 2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019-21
 
 """
 The implementation of data structure to host storage data description.
@@ -20,10 +20,10 @@ The main reasons for such incapsulation are to
 :date: January 2018
 """
 import traceback
+from os import environ
 
 from pilot.util import https
 from pilot.util.config import config
-
 from .basedata import BaseData
 
 import logging
@@ -111,8 +111,8 @@ class StorageData(BaseData):
         try:
             data = {'privateKeyName': secret_key, 'publicKeyName': access_key}
             logger.info("Getting key pair: %s" % data)
-            res = https.request('{pandaserver}/server/panda/getKeyPair'.format(pandaserver=config.Pilot.pandaserver),
-                                data=data)
+            url = environ.get('PANDA_SERVER_URL', config.Pilot.pandaserver)
+            res = https.request('{pandaserver}/server/panda/getKeyPair'.format(pandaserver=url), data=data)
             if res and res['StatusCode'] == 0:
                 return {"publicKey": res["publicKey"], "privateKey": res["privateKey"]}
             else:

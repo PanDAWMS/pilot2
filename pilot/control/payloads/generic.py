@@ -8,7 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 import time
@@ -253,8 +253,8 @@ class Executor(object):
             elif label == 'postprocess':
                 err = errors.POSTPROCESSFAILURE
             else:
-                err = errors.UNKNOWNPAYLOADFAILURE
-            if exit_code != 160:  # ignore no-more-data-points exit code
+                err = 0  # ie ignore
+            if err and exit_code != 160:  # ignore no-more-data-points exit code
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(err)
 
         # write output to log files
@@ -427,12 +427,11 @@ class Executor(object):
 
         return setup
 
-    def wait_graceful(self, args, proc, job):
+    def wait_graceful(self, args, proc):
         """
         (add description)
         :param args:
         :param proc:
-        :param job:
         :return:
         """
 
@@ -467,7 +466,6 @@ class Executor(object):
             if exit_code is not None:
                 break
             else:
-                # send_state(job, args, 'running')
                 continue
 
         return exit_code
@@ -489,7 +487,7 @@ class Executor(object):
             user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user],
                               0)  # Python 2/3
             show_memory_usage()
-            cmd = user.get_payload_command(job)  # + 'sleep 480'
+            cmd = user.get_payload_command(job)  #+ 'sleep 1000'  # to test looping jobs
         except PilotException as error:
             self.post_setup(job)
             import traceback
@@ -570,6 +568,10 @@ class Executor(object):
             if exit_code:
                 if exit_code == 160:
                     exit_code = 0
+                    # wipe the output file list since there won't be any new files
+                    # any output files from previous iterations, should have been transferred already
+                    logger.debug('reset outdata since further output should not be expected after preprocess exit')
+                    self.__job.outdata = []
                 break
             if jobparams_pre != jobparams_post:
                 logger.debug('jobparams were updated by utility_before_payload()')
@@ -594,6 +596,7 @@ class Executor(object):
                     break
             else:
                 # the process is now running, update the server
+                # test 'tobekilled' from here to try payload kill
                 send_state(self.__job, self.__args, self.__job.state)
 
                 # note: when sending a state change to the server, the server might respond with 'tobekilled'
@@ -608,11 +611,9 @@ class Executor(object):
                     logger.debug('starting utility command: %s' % utility_cmd)
                     label = 'coprocess' if 'coprocess' in utility_cmd else None
                     proc_co = self.run_command(utility_cmd, label=label)
-                else:
-                    logger.debug('no command (UTILITY_AFTER_PAYLOAD_STARTED2)')
 
                 logger.info('will wait for graceful exit')
-                exit_code = self.wait_graceful(self.__args, proc, self.__job)
+                exit_code = self.wait_graceful(self.__args, proc)
                 # reset error if Raythena decided to kill payload (no error)
                 if errors.KILLPAYLOAD in self.__job.piloterrorcodes:
                     logger.debug('ignoring KILLPAYLOAD error')
@@ -667,10 +668,13 @@ class Executor(object):
         except Exception as e:
             logger.error(e)
         else:
-            if cmd_after_payload:
+            if cmd_after_payload and self.__job.postprocess:
                 cmd_after_payload = self.__job.setup + cmd_after_payload
                 logger.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
                 exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'postprocess')
+            elif cmd_after_payload:
+                logger.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
+                exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'xcache')
 
         return exit_code
 

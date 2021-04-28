@@ -157,6 +157,27 @@ def open_file(filename, mode):
     return f
 
 
+def find_text_files():
+    """
+    Find all non-binary files.
+
+    :return: list of files.
+    """
+
+    files = []
+    # -I = ignore binary files
+    cmd = r"find . -type f -exec grep -Iq . {} \; -print"
+
+    exit_code, stdout, stderr = execute(cmd)
+    if stdout:
+        # remove last \n if present
+        if stdout.endswith('\n'):
+            stdout = stdout[:-1]
+        files = stdout.split('\n')
+
+    return files
+
+
 def get_files(pattern="*.log"):
     """
     Find all files whose names follow the given pattern.
@@ -167,6 +188,7 @@ def get_files(pattern="*.log"):
 
     files = []
     cmd = "find . -name %s" % pattern
+
     exit_code, stdout, stderr = execute(cmd)
     if stdout:
         # remove last \n if present
