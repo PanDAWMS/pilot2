@@ -568,6 +568,10 @@ class Executor(object):
             if exit_code:
                 if exit_code == 160:
                     exit_code = 0
+                    # wipe the output file list since there won't be any new files
+                    # any output files from previous iterations, should have been transferred already
+                    logger.debug('reset outdata since further output should not be expected after preprocess exit')
+                    self.__job.outdata = []
                 break
             if jobparams_pre != jobparams_post:
                 logger.debug('jobparams were updated by utility_before_payload()')
