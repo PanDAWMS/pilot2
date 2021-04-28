@@ -893,7 +893,6 @@ class StageInClient(StagingClient):
             #    if '.root.' in fspec.lfn:
             #        direct_lan = True
 
-
             if not direct_lan and not direct_wan:
                 self.logger.debug('direct lan/wan transfer will not be used for lfn=%s' % fspec.lfn)
             self.logger.debug('lfn=%s, direct_lan=%s, direct_wan=%s, direct_access_lan=%s, direct_access_wan=%s, '
