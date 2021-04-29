@@ -38,7 +38,7 @@
 <span class="c1">#</span>
 <span class="c1"># Authors:</span>
 <span class="c1"># - Alexey Anisenkov, anisyonk@cern.ch, 2018</span>
-<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2019</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2019-21</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">The implementation of data structure to host storage data description.</span>
@@ -53,10 +53,10 @@
 <span class="sd">:date: January 2018</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">environ</span>
 
 <span class="kn">from</span> <span class="nn">pilot.util</span> <span class="kn">import</span> <span class="n">https</span>
 <span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
-
 <span class="kn">from</span> <span class="nn">.basedata</span> <span class="kn">import</span> <span class="n">BaseData</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
@@ -144,8 +144,8 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;privateKeyName&#39;</span><span class="p">:</span> <span class="n">secret_key</span><span class="p">,</span> <span class="s1">&#39;publicKeyName&#39;</span><span class="p">:</span> <span class="n">access_key</span><span class="p">}</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Getting key pair: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">data</span><span class="p">)</span>
-            <span class="n">res</span> <span class="o">=</span> <span class="n">https</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{pandaserver}</span><span class="s1">/server/panda/getKeyPair&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pandaserver</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">pandaserver</span><span class="p">),</span>
-                                <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PANDA_SERVER_URL&#39;</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">pandaserver</span><span class="p">)</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">https</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{pandaserver}</span><span class="s1">/server/panda/getKeyPair&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pandaserver</span><span class="o">=</span><span class="n">url</span><span class="p">),</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">res</span> <span class="ow">and</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;StatusCode&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;publicKey&quot;</span><span class="p">:</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;publicKey&quot;</span><span class="p">],</span> <span class="s2">&quot;privateKey&quot;</span><span class="p">:</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;privateKey&quot;</span><span class="p">]}</span>
             <span class="k">else</span><span class="p">:</span>

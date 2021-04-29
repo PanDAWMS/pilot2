@@ -982,6 +982,36 @@ set - fail the job. If it is set, then do not store the output, and finish ok.</
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt id="pilot.user.atlas.common.xcache_activation_command">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">xcache_activation_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">jobid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#xcache_activation_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.xcache_activation_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the xcache service activation command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>jobid</strong> – PanDA job id to guarantee that xcache process is unique (int).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>xcache command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.user.atlas.common.xcache_deactivation_command">
+<code class="sig-prename descclassname"><span class="pre">pilot.user.atlas.common.</span></code><code class="sig-name descname"><span class="pre">xcache_deactivation_command</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/common.html#xcache_deactivation_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.common.xcache_deactivation_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the xcache service deactivation command.
+This service should be stopped after the payload has finished.
+Copy the messages log before shutting down.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>workdir</strong> – payload work directory (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>xcache command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 

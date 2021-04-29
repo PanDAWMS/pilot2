@@ -242,6 +242,31 @@ Note: for size measurement to work, the object must have set the data members in
 </dd></dl>
 
 <dl class="py function">
+<dt id="pilot.util.auxiliary.has_instruction_set">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">has_instruction_set</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">instruction_set</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#has_instruction_set"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.has_instruction_set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine whether a given CPU instruction set is available.
+The function will use grep to search in /proc/cpuinfo (both in upper and lower case).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>instruction_set</strong> – instruction set (e.g. AVX2) (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Boolean</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.util.auxiliary.has_instruction_sets">
+<code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">has_instruction_sets</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">instruction_sets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#has_instruction_sets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.has_instruction_sets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine whether a given list of CPU instruction sets is available.
+The function will use grep to search in /proc/cpuinfo (both in upper and lower case).
+Example: instruction_sets = [‘AVX’, ‘AVX2’, ‘SSE4_2’, ‘XXX’] -&gt; “AVX|AVX2|SSE4_2”
+:param instruction_sets: instruction set (e.g. AVX2) (string).
+:return: Boolean</p>
+</dd></dl>
+
+<dl class="py function">
 <dt id="pilot.util.auxiliary.is_python3">
 <code class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></code><code class="sig-name descname"><span class="pre">is_python3</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#is_python3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.is_python3" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check if we are running on Python 3.</p>

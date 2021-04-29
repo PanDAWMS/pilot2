@@ -65,14 +65,14 @@
 <span class="kn">from</span> <span class="nn">pilot.util</span> <span class="kn">import</span> <span class="n">https</span>
 <span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">get_batchsystem_jobid</span><span class="p">,</span> <span class="n">get_job_scheduler_id</span><span class="p">,</span> <span class="n">get_pilot_id</span><span class="p">,</span> \
     <span class="n">set_pilot_state</span><span class="p">,</span> <span class="n">get_pilot_state</span><span class="p">,</span> <span class="n">check_for_final_server_update</span><span class="p">,</span> <span class="n">pilot_version_banner</span><span class="p">,</span> <span class="n">is_virtual_machine</span><span class="p">,</span> \
-    <span class="n">is_python3</span><span class="p">,</span> <span class="n">show_memory_usage</span>
+    <span class="n">is_python3</span><span class="p">,</span> <span class="n">show_memory_usage</span><span class="p">,</span> <span class="n">has_instruction_sets</span>
 <span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
 <span class="kn">from</span> <span class="nn">pilot.util.common</span> <span class="kn">import</span> <span class="n">should_abort</span><span class="p">,</span> <span class="n">was_pilot_killed</span>
 <span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">PILOT_MULTIJOB_START_TIME</span><span class="p">,</span> <span class="n">PILOT_PRE_GETJOB</span><span class="p">,</span> <span class="n">PILOT_POST_GETJOB</span><span class="p">,</span> <span class="n">PILOT_KILL_SIGNAL</span><span class="p">,</span> <span class="n">LOG_TRANSFER_NOT_DONE</span><span class="p">,</span> \
     <span class="n">LOG_TRANSFER_IN_PROGRESS</span><span class="p">,</span> <span class="n">LOG_TRANSFER_DONE</span><span class="p">,</span> <span class="n">LOG_TRANSFER_FAILED</span><span class="p">,</span> <span class="n">SERVER_UPDATE_TROUBLE</span><span class="p">,</span> <span class="n">SERVER_UPDATE_FINAL</span><span class="p">,</span> \
     <span class="n">SERVER_UPDATE_UPDATING</span><span class="p">,</span> <span class="n">SERVER_UPDATE_NOT_DONE</span>
 <span class="kn">from</span> <span class="nn">pilot.util.container</span> <span class="kn">import</span> <span class="n">execute</span>
-<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">get_files</span><span class="p">,</span> <span class="n">tail</span><span class="p">,</span> <span class="n">is_json</span><span class="p">,</span> <span class="n">copy</span><span class="p">,</span> <span class="n">remove</span><span class="p">,</span> <span class="n">write_json</span><span class="p">,</span> <span class="n">establish_logging</span><span class="p">,</span> <span class="n">write_file</span><span class="p">,</span> \
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">find_text_files</span><span class="p">,</span> <span class="n">tail</span><span class="p">,</span> <span class="n">is_json</span><span class="p">,</span> <span class="n">copy</span><span class="p">,</span> <span class="n">remove</span><span class="p">,</span> <span class="n">write_json</span><span class="p">,</span> <span class="n">establish_logging</span><span class="p">,</span> <span class="n">write_file</span><span class="p">,</span> \
     <span class="n">create_symlink</span>
 <span class="kn">from</span> <span class="nn">pilot.util.harvester</span> <span class="kn">import</span> <span class="n">request_new_jobs</span><span class="p">,</span> <span class="n">remove_job_request_file</span><span class="p">,</span> <span class="n">parse_job_definition_file</span><span class="p">,</span> \
     <span class="n">is_harvester_mode</span><span class="p">,</span> <span class="n">get_worker_attributes_file</span><span class="p">,</span> <span class="n">publish_job_report</span><span class="p">,</span> <span class="n">publish_work_report</span><span class="p">,</span> <span class="n">get_event_status_file</span><span class="p">,</span> \
@@ -489,10 +489,16 @@
 <span class="sd">    :return: full URL (either from pilot options or from config file)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="k">if</span> <span class="n">url</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;https://&#39;</span><span class="p">):</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;https://&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">url</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="ow">and</span> <span class="n">port</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">pandaserver</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span>
+        <span class="n">pandaserver</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">port</span><span class="p">)</span> <span class="k">if</span> <span class="s2">&quot;:&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">url</span> <span class="k">else</span> <span class="n">url</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">pandaserver</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">pandaserver</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">pandaserver</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">):</span>
+        <span class="n">pandaserver</span> <span class="o">=</span> <span class="s1">&#39;https://&#39;</span> <span class="o">+</span> <span class="n">pandaserver</span>
 
     <span class="c1"># add randomization for PanDA server</span>
     <span class="n">default</span> <span class="o">=</span> <span class="s1">&#39;pandaserver.cern.ch&#39;</span>
@@ -527,6 +533,11 @@
                         <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">,</span> <span class="n">time_stamp</span><span class="p">()))</span>
             <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s2">&quot;failed&quot;</span><span class="p">)</span>
             <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">PANDAKILL</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;killing payload process&#39;</span><span class="p">)</span>
+                <span class="n">kill_process</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;no pid to kill&#39;</span><span class="p">)</span>
             <span class="n">args</span><span class="o">.</span><span class="n">abort_job</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
         <span class="k">elif</span> <span class="s1">&#39;softkill&#39;</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;pilot received a panda server signal to softkill job </span><span class="si">%s</span><span class="s1"> at </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
@@ -542,27 +553,13 @@
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;received unknown server command via backchannel: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">))</span></div>
 
 
-<div class="viewcode-block" id="get_data_structure"><a class="viewcode-back" href="../../../components/control/job.html#pilot.control.job.get_data_structure">[docs]</a><span class="k">def</span> <span class="nf">get_data_structure</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">xml</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="add_data_structure_ids"><a class="viewcode-back" href="../../../components/control/job.html#pilot.control.job.add_data_structure_ids">[docs]</a><span class="k">def</span> <span class="nf">add_data_structure_ids</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">version_tag</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Build the data structure needed for getJob, updateJob.</span>
+<span class="sd">    Add pilot, batch and scheduler ids to the data structure for getJob, updateJob.</span>
 
-<span class="sd">    :param job: job object.</span>
-<span class="sd">    :param state: state of the job (string).</span>
-<span class="sd">    :param args:</span>
-<span class="sd">    :param xml: optional XML string.</span>
-<span class="sd">    :param metadata: job report metadata read as a string.</span>
-<span class="sd">    :return: data structure (dictionary).</span>
+<span class="sd">    :param data: data structure (dict).</span>
+<span class="sd">    :return: updated data structure (dict).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;building data structure to be sent to server with heartbeat&#39;</span><span class="p">)</span>
-
-    <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;jobId&#39;</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">,</span>
-            <span class="s1">&#39;state&#39;</span><span class="p">:</span> <span class="n">state</span><span class="p">,</span>
-            <span class="s1">&#39;timestamp&#39;</span><span class="p">:</span> <span class="n">time_stamp</span><span class="p">(),</span>
-            <span class="s1">&#39;siteName&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_SITENAME&#39;</span><span class="p">),</span>  <span class="c1"># args.site,</span>
-            <span class="s1">&#39;node&#39;</span><span class="p">:</span> <span class="n">get_node_name</span><span class="p">()}</span>
-
-    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;attemptNr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">attemptnr</span>
 
     <span class="n">schedulerid</span> <span class="o">=</span> <span class="n">get_job_scheduler_id</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">schedulerid</span><span class="p">:</span>
@@ -576,11 +573,35 @@
         <span class="n">batchsystem_type</span><span class="p">,</span> <span class="n">batchsystem_id</span> <span class="o">=</span> <span class="n">get_batchsystem_jobid</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">batchsystem_type</span><span class="p">:</span>
-            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;pilotID&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">|</span><span class="si">%s</span><span class="s2">|</span><span class="si">%s</span><span class="s2">|</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> \
-                              <span class="p">(</span><span class="n">pilotid</span><span class="p">,</span> <span class="n">batchsystem_type</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">version_tag</span><span class="p">,</span> <span class="n">pilotversion</span><span class="p">)</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;pilotID&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">|</span><span class="si">%s</span><span class="s2">|</span><span class="si">%s</span><span class="s2">|</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pilotid</span><span class="p">,</span> <span class="n">batchsystem_type</span><span class="p">,</span> <span class="n">version_tag</span><span class="p">,</span> <span class="n">pilotversion</span><span class="p">)</span>
             <span class="n">data</span><span class="p">[</span><span class="s1">&#39;batchID&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">batchsystem_id</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;pilotID&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">|</span><span class="si">%s</span><span class="s2">|</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pilotid</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">version_tag</span><span class="p">,</span> <span class="n">pilotversion</span><span class="p">)</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;pilotID&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">|</span><span class="si">%s</span><span class="s2">|</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pilotid</span><span class="p">,</span> <span class="n">version_tag</span><span class="p">,</span> <span class="n">pilotversion</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="get_data_structure"><a class="viewcode-back" href="../../../components/control/job.html#pilot.control.job.get_data_structure">[docs]</a><span class="k">def</span> <span class="nf">get_data_structure</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">xml</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build the data structure needed for getJob, updateJob.</span>
+
+<span class="sd">    :param job: job object.</span>
+<span class="sd">    :param state: state of the job (string).</span>
+<span class="sd">    :param args:</span>
+<span class="sd">    :param xml: optional XML string.</span>
+<span class="sd">    :param metadata: job report metadata read as a string.</span>
+<span class="sd">    :return: data structure (dictionary).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;jobId&#39;</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">,</span>
+            <span class="s1">&#39;state&#39;</span><span class="p">:</span> <span class="n">state</span><span class="p">,</span>
+            <span class="s1">&#39;timestamp&#39;</span><span class="p">:</span> <span class="n">time_stamp</span><span class="p">(),</span>
+            <span class="s1">&#39;siteName&#39;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_SITENAME&#39;</span><span class="p">),</span>  <span class="c1"># args.site,</span>
+            <span class="s1">&#39;node&#39;</span><span class="p">:</span> <span class="n">get_node_name</span><span class="p">(),</span>
+            <span class="s1">&#39;attemptNr&#39;</span><span class="p">:</span> <span class="n">job</span><span class="o">.</span><span class="n">attemptnr</span><span class="p">}</span>
+
+    <span class="c1"># add pilot, batch and scheduler ids to the data structure</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">add_data_structure_ids</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">version_tag</span><span class="p">)</span>
 
     <span class="n">starttime</span> <span class="o">=</span> <span class="n">get_postgetjob_time</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">starttime</span><span class="p">:</span>
@@ -621,8 +642,15 @@
     <span class="n">constime</span> <span class="o">=</span> <span class="n">get_cpu_consumption_time</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptiontime</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">constime</span> <span class="ow">and</span> <span class="n">constime</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;cpuConsumptionTime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">constime</span>
-        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;cpuConsumptionUnit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptionunit</span> <span class="o">+</span> <span class="s2">&quot;+&quot;</span> <span class="o">+</span> <span class="n">get_cpu_model</span><span class="p">()</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;cpuConversionFactor&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconversionfactor</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;cpuConsumptionUnit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptionunit</span> <span class="o">+</span> <span class="s2">&quot;+&quot;</span> <span class="o">+</span> <span class="n">get_cpu_model</span><span class="p">()</span>
+
+    <span class="n">instruction_sets</span> <span class="o">=</span> <span class="n">has_instruction_sets</span><span class="p">([</span><span class="s1">&#39;AVX2&#39;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">instruction_sets</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;cpuConsumptionUnit&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;cpuConsumptionUnit&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="s1">&#39;+&#39;</span> <span class="o">+</span> <span class="n">instruction_sets</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;cpuConsumptionUnit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">instruction_sets</span>
 
     <span class="c1"># add memory information if available</span>
     <span class="n">add_memory_info</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">memorymonitor</span><span class="p">)</span>
@@ -736,18 +764,47 @@
         <span class="k">pass</span></div>
 
 
-<div class="viewcode-block" id="get_list_of_log_files"><a class="viewcode-back" href="../../../components/control/job.html#pilot.control.job.get_list_of_log_files">[docs]</a><span class="k">def</span> <span class="nf">get_list_of_log_files</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Return a list of log files produced by the payload.</span>
+<span class="c1">#def get_list_of_log_files():</span>
+<span class="c1">#    &quot;&quot;&quot;</span>
+<span class="c1">#    Return a list of log files produced by the payload.</span>
+<span class="c1">#</span>
+<span class="c1">#    :return: list of log files.</span>
+<span class="c1">#    &quot;&quot;&quot;</span>
+<span class="c1">#</span>
+<span class="c1">#    list_of_files = get_files()</span>
+<span class="c1">#    if not list_of_files:  # some TRFs produce logs with different naming scheme</span>
+<span class="c1">#        list_of_files = get_files(pattern=&quot;log.*&quot;)</span>
+<span class="c1">#</span>
+<span class="c1">#    return list_of_files</span>
 
-<span class="sd">    :return: list of log files.</span>
+
+<div class="viewcode-block" id="remove_pilot_logs_from_list"><a class="viewcode-back" href="../../../components/control/job.html#pilot.control.job.remove_pilot_logs_from_list">[docs]</a><span class="k">def</span> <span class="nf">remove_pilot_logs_from_list</span><span class="p">(</span><span class="n">list_of_files</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove any pilot logs from the list of last updated files.</span>
+
+<span class="sd">    :param list_of_files: list of last updated files (list).</span>
+<span class="sd">    :return: list of files (list).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">list_of_files</span> <span class="o">=</span> <span class="n">get_files</span><span class="p">()</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">list_of_files</span><span class="p">:</span>  <span class="c1"># some TRFs produce logs with different naming scheme</span>
-        <span class="n">list_of_files</span> <span class="o">=</span> <span class="n">get_files</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;log.*&quot;</span><span class="p">)</span>
+    <span class="c1"># ignore the pilot log files</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">to_be_removed</span> <span class="o">=</span> <span class="p">[</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">pilotlog</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">stageinlog</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">stageoutlog</span><span class="p">,</span>
+                         <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">timing_file</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">remotefileverification_dictionary</span><span class="p">,</span>
+                         <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">remotefileverification_log</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">base_trace_report</span><span class="p">,</span>
+                         <span class="n">config</span><span class="o">.</span><span class="n">Container</span><span class="o">.</span><span class="n">container_script</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Container</span><span class="o">.</span><span class="n">release_setup</span><span class="p">,</span>
+                         <span class="n">config</span><span class="o">.</span><span class="n">Container</span><span class="o">.</span><span class="n">stagein_status_dictionary</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Container</span><span class="o">.</span><span class="n">stagein_replica_dictionary</span><span class="p">,</span>
+                         <span class="s1">&#39;eventLoopHeartBeat.txt&#39;</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">to_be_removed</span> <span class="o">=</span> <span class="p">[]</span>
 
-    <span class="k">return</span> <span class="n">list_of_files</span></div>
+    <span class="n">new_list_of_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">list_of_files</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">to_be_removed</span> <span class="ow">and</span> <span class="s1">&#39;/pilot/&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">filename</span><span class="p">:</span>
+            <span class="n">new_list_of_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="c1">#logger.debug(&#39;list_of_files=%s&#39; % str(new_list_of_files))</span>
+    <span class="k">return</span> <span class="n">new_list_of_files</span></div>
 
 
 <div class="viewcode-block" id="get_payload_log_tail"><a class="viewcode-back" href="../../../components/control/job.html#pilot.control.job.get_payload_log_tail">[docs]</a><span class="k">def</span> <span class="nf">get_payload_log_tail</span><span class="p">(</span><span class="n">job</span><span class="p">):</span>
@@ -761,10 +818,14 @@
     <span class="n">stdout_tail</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 
     <span class="c1"># find the latest updated log file</span>
-    <span class="n">list_of_files</span> <span class="o">=</span> <span class="n">get_list_of_log_files</span><span class="p">()</span>
+    <span class="c1"># list_of_files = get_list_of_log_files()</span>
+    <span class="c1"># find the latest updated text file</span>
+    <span class="n">list_of_files</span> <span class="o">=</span> <span class="n">find_text_files</span><span class="p">()</span>
+    <span class="n">list_of_files</span> <span class="o">=</span> <span class="n">remove_pilot_logs_from_list</span><span class="p">(</span><span class="n">list_of_files</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="ow">not</span> <span class="n">list_of_files</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;no log files were found (will use default </span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">payloadstdout</span><span class="p">)</span>
-        <span class="n">list_of_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">payloadstdout</span><span class="p">)]</span>  <span class="c1"># get_files(pattern=config.Payload.payloadstdout)</span>
+        <span class="n">list_of_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">payloadstdout</span><span class="p">)]</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">latest_file</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">list_of_files</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">)</span>
@@ -1059,6 +1120,10 @@
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;harvester_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HARVESTER_ID&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="s1">&#39;HARVESTER_WORKER_ID&#39;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;worker_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HARVESTER_WORKER_ID&#39;</span><span class="p">)</span>
+
+<span class="c1">#    instruction_sets = has_instruction_sets([&#39;AVX&#39;, &#39;AVX2&#39;])</span>
+<span class="c1">#    if instruction_sets:</span>
+<span class="c1">#        data[&#39;cpuConsumptionUnit&#39;] = instruction_sets</span>
 
     <span class="k">return</span> <span class="n">data</span></div>
 
@@ -1511,8 +1576,7 @@
     <span class="n">starttime</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
 
     <span class="n">jobnumber</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># number of downloaded jobs</span>
-    <span class="n">getjob_requests</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># number of getjob requests</span>
-
+    <span class="n">getjob_requests</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">getjob_requests</span>
     <span class="n">print_node_info</span><span class="p">()</span>
 
     <span class="k">while</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
@@ -1587,9 +1651,6 @@
                 <span class="n">jobnumber</span> <span class="o">+=</span> <span class="mi">1</span>
                 <span class="k">while</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
                     <span class="k">if</span> <span class="n">has_job_completed</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-                        <span class="c1">#import signal</span>
-                        <span class="c1">#os.kill(os.getpid(), signal.SIGTERM)</span>
-
                         <span class="c1"># purge queue(s) that retains job object</span>
                         <span class="n">purge_queue</span><span class="p">(</span><span class="n">queues</span><span class="o">.</span><span class="n">finished_data_in</span><span class="p">)</span>
 

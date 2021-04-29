@@ -38,7 +38,7 @@
 <span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
 <span class="c1">#</span>
 <span class="c1"># Authors:</span>
-<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021</span>
 <span class="c1"># - Wen Guan, wen.guan@cern.ch, 2018</span>
 
 <span class="kn">import</span> <span class="nn">os</span>
@@ -55,7 +55,7 @@
 
 <span class="kn">from</span> <span class="nn">.container</span> <span class="kn">import</span> <span class="n">create_root_container_command</span>
 <span class="kn">from</span> <span class="nn">.dbrelease</span> <span class="kn">import</span> <span class="n">get_dbrelease_version</span><span class="p">,</span> <span class="n">create_dbrelease</span>
-<span class="kn">from</span> <span class="nn">.setup</span> <span class="kn">import</span> <span class="n">should_pilot_prepare_setup</span><span class="p">,</span> <span class="n">is_standard_atlas_job</span><span class="p">,</span>\
+<span class="kn">from</span> <span class="nn">.setup</span> <span class="kn">import</span> <span class="n">should_pilot_prepare_setup</span><span class="p">,</span> <span class="n">is_standard_atlas_job</span><span class="p">,</span> <span class="n">get_asetup</span><span class="p">,</span>\
     <span class="n">set_inds</span><span class="p">,</span> <span class="n">get_analysis_trf</span><span class="p">,</span> <span class="n">get_payload_environment_variables</span><span class="p">,</span> <span class="n">replace_lfns_with_turls</span>
 <span class="kn">from</span> <span class="nn">.utilities</span> <span class="kn">import</span> <span class="n">get_memory_monitor_setup</span><span class="p">,</span> <span class="n">get_network_monitor_setup</span><span class="p">,</span> <span class="n">post_memory_monitor_action</span><span class="p">,</span>\
     <span class="n">get_memory_monitor_summary_filename</span><span class="p">,</span> <span class="n">get_prefetcher_setup</span><span class="p">,</span> <span class="n">get_benchmark_setup</span><span class="p">,</span> <span class="n">get_memory_monitor_output_filename</span><span class="p">,</span>\
@@ -67,7 +67,8 @@
 <span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">is_python3</span>
 <span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
 <span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">UTILITY_BEFORE_PAYLOAD</span><span class="p">,</span> <span class="n">UTILITY_WITH_PAYLOAD</span><span class="p">,</span> <span class="n">UTILITY_AFTER_PAYLOAD_STARTED</span><span class="p">,</span>\
-    <span class="n">UTILITY_AFTER_PAYLOAD</span><span class="p">,</span> <span class="n">UTILITY_AFTER_PAYLOAD_FINISHED</span><span class="p">,</span> <span class="n">UTILITY_WITH_STAGEIN</span><span class="p">,</span> <span class="n">UTILITY_AFTER_PAYLOAD_STARTED2</span>
+    <span class="n">UTILITY_AFTER_PAYLOAD</span><span class="p">,</span> <span class="n">UTILITY_AFTER_PAYLOAD_FINISHED</span><span class="p">,</span> <span class="n">UTILITY_AFTER_PAYLOAD_STARTED2</span><span class="p">,</span>\
+    <span class="n">UTILITY_BEFORE_STAGEIN</span>
 <span class="kn">from</span> <span class="nn">pilot.util.container</span> <span class="kn">import</span> <span class="n">execute</span>
 <span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">remove</span><span class="p">,</span> <span class="n">get_guid</span><span class="p">,</span> <span class="n">remove_dir_tree</span><span class="p">,</span> <span class="n">read_list</span><span class="p">,</span> <span class="n">remove_core_dumps</span><span class="p">,</span> <span class="n">copy</span><span class="p">,</span>\
     <span class="n">copy_pilot_source</span><span class="p">,</span> <span class="n">write_file</span><span class="p">,</span> <span class="n">read_json</span><span class="p">,</span> <span class="n">read_file</span><span class="p">,</span> <span class="n">update_extension</span><span class="p">,</span> <span class="n">get_local_file_size</span><span class="p">,</span> <span class="n">calculate_checksum</span>
@@ -1680,6 +1681,7 @@
                 <span class="s2">&quot;singularity/*&quot;</span><span class="p">,</span>  <span class="c1"># new</span>
                 <span class="s2">&quot;/cores&quot;</span><span class="p">,</span>  <span class="c1"># new</span>
                 <span class="s2">&quot;/work&quot;</span><span class="p">,</span>  <span class="c1"># new</span>
+                <span class="s2">&quot;docs/&quot;</span><span class="p">,</span>  <span class="c1"># new</span>
                 <span class="s2">&quot;/pilot2&quot;</span><span class="p">]</span>  <span class="c1"># new</span>
 
     <span class="k">return</span> <span class="n">dir_list</span></div>
@@ -1883,32 +1885,78 @@
 <span class="sd">    :return: dictionary of utilities to be executed in parallel with the payload.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">if</span> <span class="n">order</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="n">UTILITY_BEFORE_PAYLOAD</span> <span class="ow">and</span> <span class="n">job</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">preprocess</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">preprocess</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
-                <span class="k">return</span> <span class="n">download_command</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">preprocess</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="n">UTILITY_WITH_PAYLOAD</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;command&#39;</span><span class="p">:</span> <span class="s1">&#39;NetworkMonitor&#39;</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
-        <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="n">UTILITY_AFTER_PAYLOAD_STARTED</span><span class="p">:</span>
-            <span class="n">cmd</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">utility_after_payload_started</span>
-            <span class="k">if</span> <span class="n">cmd</span><span class="p">:</span>
-                <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;command&#39;</span><span class="p">:</span> <span class="n">cmd</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
-        <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="n">UTILITY_AFTER_PAYLOAD_STARTED2</span> <span class="ow">and</span> <span class="n">job</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">coprocess</span><span class="p">:</span>
-            <span class="c1"># cmd = config.Pilot.utility_after_payload_started  DEPRECATED</span>
-            <span class="c1"># if cmd:</span>
-            <span class="c1">#    return {&#39;command&#39;: cmd, &#39;args&#39;: &#39;&#39;}</span>
-            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">coprocess</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
-                <span class="k">return</span> <span class="n">download_command</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">coprocess</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="n">UTILITY_AFTER_PAYLOAD</span> <span class="ow">and</span> <span class="n">job</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">postprocess</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">postprocess</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
-                <span class="k">return</span> <span class="n">download_command</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">postprocess</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="n">UTILITY_AFTER_PAYLOAD_FINISHED</span> <span class="ow">and</span> <span class="n">job</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">postprocess</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">postprocess</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
-                <span class="k">return</span> <span class="n">download_command</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">postprocess</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="n">UTILITY_WITH_STAGEIN</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;command&#39;</span><span class="p">:</span> <span class="s1">&#39;Benchmark&#39;</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
+    <span class="n">com</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="k">return</span> <span class="p">{}</span></div>
+    <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="n">UTILITY_BEFORE_PAYLOAD</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">preprocess</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">preprocess</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
+            <span class="n">com</span> <span class="o">=</span> <span class="n">download_command</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">preprocess</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="n">UTILITY_WITH_PAYLOAD</span><span class="p">:</span>
+        <span class="n">com</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;command&#39;</span><span class="p">:</span> <span class="s1">&#39;NetworkMonitor&#39;</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="n">UTILITY_AFTER_PAYLOAD_STARTED</span><span class="p">:</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">utility_after_payload_started</span>
+        <span class="k">if</span> <span class="n">cmd</span><span class="p">:</span>
+            <span class="n">com</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;command&#39;</span><span class="p">:</span> <span class="n">cmd</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="n">UTILITY_AFTER_PAYLOAD_STARTED2</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">coprocess</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">coprocess</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
+            <span class="n">com</span> <span class="o">=</span> <span class="n">download_command</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">coprocess</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="n">UTILITY_AFTER_PAYLOAD</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">postprocess</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">postprocess</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
+            <span class="n">com</span> <span class="o">=</span> <span class="n">download_command</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">postprocess</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="n">UTILITY_AFTER_PAYLOAD_FINISHED</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">postprocess</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">postprocess</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
+            <span class="n">com</span> <span class="o">=</span> <span class="n">download_command</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">postprocess</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="s1">&#39;pilotXcache&#39;</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">catchall</span><span class="p">:</span>
+            <span class="n">com</span> <span class="o">=</span> <span class="n">xcache_deactivation_command</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="n">UTILITY_BEFORE_STAGEIN</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;pilotXcache&#39;</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">catchall</span><span class="p">:</span>
+            <span class="n">com</span> <span class="o">=</span> <span class="n">xcache_activation_command</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">com</span></div>
+
+
+<div class="viewcode-block" id="xcache_activation_command"><a class="viewcode-back" href="../../../../components/user/atlas/common.html#pilot.user.atlas.common.xcache_activation_command">[docs]</a><span class="k">def</span> <span class="nf">xcache_activation_command</span><span class="p">(</span><span class="n">jobid</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the xcache service activation command.</span>
+
+<span class="sd">    :param jobid: PanDA job id to guarantee that xcache process is unique (int).</span>
+<span class="sd">    :return: xcache command (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># a successful startup will set ALRB_XCACHE_PROXY and ALRB_XCACHE_PROXY_REMOTE</span>
+    <span class="c1"># so any file access with root://...  should be replaced with one of the above</span>
+    <span class="c1"># (depending on whether you are on the same machine or not)</span>
+    <span class="c1"># example:</span>
+    <span class="c1"># ${ALRB_XCACHE_PROXY}root://atlasxrootd-kit.gridka.de:1094//pnfs/gridka.de/../DAOD_FTAG4.24348858._000020.pool.root.1</span>
+    <span class="n">command</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="n">get_asetup</span><span class="p">(</span><span class="n">asetup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="c1"># add &#39;xcache list&#39; which will also kill any orphaned processes lingering in the system</span>
+    <span class="n">command</span> <span class="o">+=</span> <span class="s2">&quot;lsetup xcache; xcache list; xcache start -d $PWD/</span><span class="si">%s</span><span class="s2">/xcache -C centos7 --disklow 4g --diskhigh 5g&quot;</span> <span class="o">%</span> <span class="n">jobid</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;command&#39;</span><span class="p">:</span> <span class="n">command</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="xcache_deactivation_command"><a class="viewcode-back" href="../../../../components/user/atlas/common.html#pilot.user.atlas.common.xcache_deactivation_command">[docs]</a><span class="k">def</span> <span class="nf">xcache_deactivation_command</span><span class="p">(</span><span class="n">workdir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the xcache service deactivation command.</span>
+<span class="sd">    This service should be stopped after the payload has finished.</span>
+<span class="sd">    Copy the messages log before shutting down.</span>
+
+<span class="sd">    :param workdir: payload work directory (string).</span>
+<span class="sd">    :return: xcache command (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ALRB_XCACHE_LOG&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">path</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;copying xcache messages log file (</span><span class="si">%s</span><span class="s1">) to work dir (</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">workdir</span><span class="p">))</span>
+        <span class="n">dest</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="s1">&#39;xcache-messages.log&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">copy</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught copying xcache log: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+
+    <span class="n">command</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="n">get_asetup</span><span class="p">(</span><span class="n">asetup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">command</span> <span class="o">+=</span> <span class="s2">&quot;lsetup xcache; xcache kill&quot;</span>  <span class="c1"># -C centos7</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;command&#39;</span><span class="p">:</span> <span class="n">command</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">:</span> <span class="s1">&#39;-p all&#39;</span><span class="p">}</span></div>
 
 
 <div class="viewcode-block" id="get_utility_command_setup"><a class="viewcode-back" href="../../../../components/user/atlas/common.html#pilot.user.atlas.common.get_utility_command_setup">[docs]</a><span class="k">def</span> <span class="nf">get_utility_command_setup</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">setup</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>

@@ -133,6 +133,7 @@
     <span class="n">memorymonitor</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>             <span class="c1"># memory monitor name, e.g. prmon</span>
     <span class="n">actualcorecount</span> <span class="o">=</span> <span class="mi">0</span>            <span class="c1"># number of cores actually used by the payload</span>
     <span class="n">corecounts</span> <span class="o">=</span> <span class="p">[]</span>                <span class="c1"># keep track of all actual core count measurements</span>
+    <span class="n">looping_check</span> <span class="o">=</span> <span class="kc">True</span>           <span class="c1"># perform looping payload check</span>
 
     <span class="c1"># time variable used for on-the-fly cpu consumption time measurements done by job monitoring</span>
     <span class="n">t0</span> <span class="o">=</span> <span class="kc">None</span>                      <span class="c1"># payload startup time</span>
@@ -192,7 +193,8 @@
              <span class="nb">list</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;piloterrorcodes&#39;</span><span class="p">,</span> <span class="s1">&#39;piloterrordiags&#39;</span><span class="p">,</span> <span class="s1">&#39;workdirsizes&#39;</span><span class="p">,</span> <span class="s1">&#39;zombies&#39;</span><span class="p">,</span> <span class="s1">&#39;corecounts&#39;</span><span class="p">],</span>
              <span class="nb">dict</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;fileinfo&#39;</span><span class="p">,</span> <span class="s1">&#39;metadata&#39;</span><span class="p">,</span> <span class="s1">&#39;utilities&#39;</span><span class="p">,</span> <span class="s1">&#39;overwrite_queuedata&#39;</span><span class="p">,</span> <span class="s1">&#39;sizes&#39;</span><span class="p">,</span> <span class="s1">&#39;preprocess&#39;</span><span class="p">,</span>
                     <span class="s1">&#39;postprocess&#39;</span><span class="p">,</span> <span class="s1">&#39;coprocess&#39;</span><span class="p">,</span> <span class="s1">&#39;containeroptions&#39;</span><span class="p">],</span>
-             <span class="nb">bool</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;is_eventservice&#39;</span><span class="p">,</span> <span class="s1">&#39;is_eventservicemerge&#39;</span><span class="p">,</span> <span class="s1">&#39;is_hpo&#39;</span><span class="p">,</span> <span class="s1">&#39;noexecstrcnv&#39;</span><span class="p">,</span> <span class="s1">&#39;debug&#39;</span><span class="p">,</span> <span class="s1">&#39;usecontainer&#39;</span><span class="p">,</span> <span class="s1">&#39;use_vp&#39;</span><span class="p">]</span>
+             <span class="nb">bool</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;is_eventservice&#39;</span><span class="p">,</span> <span class="s1">&#39;is_eventservicemerge&#39;</span><span class="p">,</span> <span class="s1">&#39;is_hpo&#39;</span><span class="p">,</span> <span class="s1">&#39;noexecstrcnv&#39;</span><span class="p">,</span> <span class="s1">&#39;debug&#39;</span><span class="p">,</span> <span class="s1">&#39;usecontainer&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;use_vp&#39;</span><span class="p">,</span> <span class="s1">&#39;looping_check&#39;</span><span class="p">]</span>
              <span class="p">}</span>
 
 <div class="viewcode-block" id="JobData.__init__"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">use_kmap</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -381,9 +383,11 @@
         <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
             <span class="n">ksources</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean_listdata</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span> <span class="nb">list</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="p">[])]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">kmap</span><span class="o">.</span><span class="n">itervalues</span><span class="p">())</span>  <span class="c1"># Python 2</span>
 
-        <span class="c1"># unify scopeOut structure: add scope of log file</span>
-        <span class="n">log_lfn</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;logFile&#39;</span><span class="p">)</span>
+        <span class="c1"># take the logfile name from the environment first (in case of raythena and aborted pilots)</span>
+        <span class="n">pilot_logfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_LOGFILE&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">log_lfn</span> <span class="o">=</span> <span class="n">pilot_logfile</span> <span class="k">if</span> <span class="n">pilot_logfile</span> <span class="k">else</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;logFile&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">log_lfn</span><span class="p">:</span>
+            <span class="c1"># unify scopeOut structure: add scope of log file</span>
             <span class="n">scope_out</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">lfn</span> <span class="ow">in</span> <span class="n">ksources</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;outFiles&#39;</span><span class="p">,</span> <span class="p">[]):</span>
                 <span class="k">if</span> <span class="n">lfn</span> <span class="o">==</span> <span class="n">log_lfn</span><span class="p">:</span>
@@ -500,7 +504,8 @@
             <span class="s1">&#39;maxcpucount&#39;</span><span class="p">:</span> <span class="s1">&#39;maxCpuCount&#39;</span><span class="p">,</span>
             <span class="s1">&#39;allownooutput&#39;</span><span class="p">:</span> <span class="s1">&#39;allowNoOutput&#39;</span><span class="p">,</span>
             <span class="s1">&#39;imagename_jobdef&#39;</span><span class="p">:</span> <span class="s1">&#39;container_name&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;containeroptions&#39;</span><span class="p">:</span> <span class="s1">&#39;containerOptions&#39;</span>
+            <span class="s1">&#39;containeroptions&#39;</span><span class="p">:</span> <span class="s1">&#39;containerOptions&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;looping_check&#39;</span><span class="p">:</span> <span class="s1">&#39;loopingCheck&#39;</span>
         <span class="p">}</span> <span class="k">if</span> <span class="n">use_kmap</span> <span class="k">else</span> <span class="p">{}</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_load_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">kmap</span><span class="p">)</span></div>

@@ -228,10 +228,13 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">job</span> <span class="o">=</span> <span class="n">queues</span><span class="o">.</span><span class="n">validated_payloads</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
+            <span class="c1">#q_snapshot = list(queues.finished_data_in.queue) if queues.finished_data_in else []</span>
+            <span class="c1">#peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]</span>
+            <span class="c1">#if job.jobid not in q_snapshot:</span>
+
             <span class="n">q_snapshot</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">queues</span><span class="o">.</span><span class="n">finished_data_in</span><span class="o">.</span><span class="n">queue</span><span class="p">)</span>
             <span class="n">peek</span> <span class="o">=</span> <span class="p">[</span><span class="n">s_job</span> <span class="k">for</span> <span class="n">s_job</span> <span class="ow">in</span> <span class="n">q_snapshot</span> <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span> <span class="o">==</span> <span class="n">s_job</span><span class="o">.</span><span class="n">jobid</span><span class="p">]</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">peek</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="c1">#queues.validated_payloads.put(job)</span>
                 <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">validated_payloads</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>  <span class="c1"># Python 3</span>
                     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>

@@ -45,7 +45,6 @@
 <span class="kn">from</span> <span class="nn">sys</span> <span class="kn">import</span> <span class="n">version_info</span>
 
 <span class="kn">from</span> <span class="nn">pilot.common.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
-<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -95,7 +94,6 @@
     <span class="c1"># Note: the container.wrapper() function must at least be declared</span>
     <span class="k">if</span> <span class="n">usecontainer</span><span class="p">:</span>
         <span class="n">executable</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">containerise_executable</span><span class="p">(</span><span class="n">executable</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;exe=</span><span class="si">%s</span><span class="s1"> , diag=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">executable</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">))</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">executable</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">returnproc</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">diagnostics</span>
 
@@ -155,7 +153,7 @@
         <span class="c1"># should a container really be used?</span>
         <span class="n">do_use_container</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">usecontainer</span> <span class="k">if</span> <span class="n">job</span> <span class="k">else</span> <span class="n">container</span><span class="o">.</span><span class="n">do_use_container</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="c1"># overrule for event service</span>
-        <span class="k">if</span> <span class="n">job</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">is_eventservice</span> <span class="ow">and</span> <span class="n">do_use_container</span> <span class="ow">and</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">executor_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s1">&#39;raythena&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">job</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">is_eventservice</span> <span class="ow">and</span> <span class="n">do_use_container</span> <span class="ow">and</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_ES_EXECUTOR_TYPE&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="s1">&#39;raythena&#39;</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;overruling container decision for event service grid job&#39;</span><span class="p">)</span>
             <span class="n">do_use_container</span> <span class="o">=</span> <span class="kc">False</span>
 

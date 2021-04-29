@@ -179,6 +179,7 @@
     <span class="n">REMOTEFILECOULDNOTBEOPENED</span> <span class="o">=</span> <span class="mi">1361</span>
     <span class="n">XRDCPERROR</span> <span class="o">=</span> <span class="mi">1362</span>
     <span class="n">KILLPAYLOAD</span> <span class="o">=</span> <span class="mi">1363</span>  <span class="c1"># note, not a failure but a kill instruction from Raythena</span>
+    <span class="n">MISSINGCREDENTIALS</span> <span class="o">=</span> <span class="mi">1364</span>
 
     <span class="n">_error_messages</span> <span class="o">=</span> <span class="p">{</span>
         <span class="n">GENERALERROR</span><span class="p">:</span> <span class="s2">&quot;General pilot error, consult batch log&quot;</span><span class="p">,</span>
@@ -303,7 +304,8 @@
         <span class="n">IMAGENOTFOUND</span><span class="p">:</span> <span class="s2">&quot;Image not found&quot;</span><span class="p">,</span>
         <span class="n">REMOTEFILECOULDNOTBEOPENED</span><span class="p">:</span> <span class="s2">&quot;Remote file could not be opened&quot;</span><span class="p">,</span>
         <span class="n">XRDCPERROR</span><span class="p">:</span> <span class="s2">&quot;Xrdcp was unable to open file&quot;</span><span class="p">,</span>
-        <span class="n">KILLPAYLOAD</span><span class="p">:</span> <span class="s2">&quot;Raythena has decided to kill payload&quot;</span>
+        <span class="n">KILLPAYLOAD</span><span class="p">:</span> <span class="s2">&quot;Raythena has decided to kill payload&quot;</span><span class="p">,</span>
+        <span class="n">MISSINGCREDENTIALS</span><span class="p">:</span> <span class="s2">&quot;Unable to locate credentials for S3 transfer&quot;</span>
     <span class="p">}</span>
 
     <span class="n">put_error_codes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1135</span><span class="p">,</span> <span class="mi">1136</span><span class="p">,</span> <span class="mi">1137</span><span class="p">,</span> <span class="mi">1141</span><span class="p">,</span> <span class="mi">1152</span><span class="p">,</span> <span class="mi">1181</span><span class="p">]</span>

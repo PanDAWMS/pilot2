@@ -49,6 +49,20 @@
 </dd></dl>
 
 <dl class="py function">
+<dt id="pilot.control.job.add_data_structure_ids">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></code><code class="sig-name descname"><span class="pre">add_data_structure_ids</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version_tag</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#add_data_structure_ids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.add_data_structure_ids" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add pilot, batch and scheduler ids to the data structure for getJob, updateJob.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>data</strong> – data structure (dict).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated data structure (dict).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="pilot.control.job.add_error_codes">
 <code class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></code><code class="sig-name descname"><span class="pre">add_error_codes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#add_error_codes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.add_error_codes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add error codes to data structure.</p>
@@ -475,17 +489,6 @@ StatusCode  0: succeeded</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.control.job.get_list_of_log_files">
-<code class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></code><code class="sig-name descname"><span class="pre">get_list_of_log_files</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#get_list_of_log_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.get_list_of_log_files" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of log files produced by the payload.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>list of log files.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt id="pilot.control.job.get_panda_server">
 <code class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></code><code class="sig-name descname"><span class="pre">get_panda_server</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#get_panda_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.get_panda_server" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the URL for the PanDA server.</p>
@@ -788,6 +791,20 @@ This function monitors queue activity, specifically if a job has finished or fai
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.job.remove_pilot_logs_from_list">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></code><code class="sig-name descname"><span class="pre">remove_pilot_logs_from_list</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_of_files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#remove_pilot_logs_from_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.remove_pilot_logs_from_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove any pilot logs from the list of last updated files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>list_of_files</strong> – list of last updated files (list).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of files (list).</p>
 </dd>
 </dl>
 </dd></dl>

@@ -243,6 +243,8 @@
         <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">UNREACHABLENETWORK</span><span class="p">,</span> <span class="s1">&#39;NETWORK_UNREACHABLE&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
     <span class="k">elif</span> <span class="s2">&quot;Run: [ERROR] Server responded with an error&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">XRDCPERROR</span><span class="p">,</span> <span class="s1">&#39;XRDCP_ERROR&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s2">&quot;Unable to locate credentials&quot;</span> <span class="ow">in</span> <span class="n">output</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">get_error_info</span><span class="p">(</span><span class="n">ErrorCodes</span><span class="o">.</span><span class="n">MISSINGCREDENTIALS</span><span class="p">,</span> <span class="s1">&#39;S3_ERROR&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
 
     <span class="c1"># reg exp the output to get real error message</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="n">output_line_scan</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>

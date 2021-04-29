@@ -41,7 +41,7 @@
 <span class="c1"># - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017</span>
 <span class="c1"># - Daniel Drizhuk, d.drizhuk@gmail.com, 2017</span>
 <span class="c1"># - Tobias Wegner, tobias.wegner@cern.ch, 2017</span>
-<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021</span>
 <span class="c1"># - Wen Guan, wen.guan@cern.ch, 2018</span>
 
 <span class="kn">import</span> <span class="nn">time</span>
@@ -286,8 +286,8 @@
             <span class="k">elif</span> <span class="n">label</span> <span class="o">==</span> <span class="s1">&#39;postprocess&#39;</span><span class="p">:</span>
                 <span class="n">err</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">POSTPROCESSFAILURE</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">err</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">UNKNOWNPAYLOADFAILURE</span>
-            <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">160</span><span class="p">:</span>  <span class="c1"># ignore no-more-data-points exit code</span>
+                <span class="n">err</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># ie ignore</span>
+            <span class="k">if</span> <span class="n">err</span> <span class="ow">and</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">160</span><span class="p">:</span>  <span class="c1"># ignore no-more-data-points exit code</span>
                 <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
 
         <span class="c1"># write output to log files</span>
@@ -460,12 +460,11 @@
 
         <span class="k">return</span> <span class="n">setup</span></div>
 
-<div class="viewcode-block" id="Executor.wait_graceful"><a class="viewcode-back" href="../../../../components/control/payloads/generic.html#pilot.control.payloads.generic.Executor.wait_graceful">[docs]</a>    <span class="k">def</span> <span class="nf">wait_graceful</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">proc</span><span class="p">,</span> <span class="n">job</span><span class="p">):</span>
+<div class="viewcode-block" id="Executor.wait_graceful"><a class="viewcode-back" href="../../../../components/control/payloads/generic.html#pilot.control.payloads.generic.Executor.wait_graceful">[docs]</a>    <span class="k">def</span> <span class="nf">wait_graceful</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">proc</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        (add description)</span>
 <span class="sd">        :param args:</span>
 <span class="sd">        :param proc:</span>
-<span class="sd">        :param job:</span>
 <span class="sd">        :return:</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -500,7 +499,6 @@
             <span class="k">if</span> <span class="n">exit_code</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">break</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># send_state(job, args, &#39;running&#39;)</span>
                 <span class="k">continue</span>
 
         <span class="k">return</span> <span class="n">exit_code</span></div>
@@ -522,7 +520,7 @@
             <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.common&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span>
                               <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
             <span class="n">show_memory_usage</span><span class="p">()</span>
-            <span class="n">cmd</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get_payload_command</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>  <span class="c1"># + &#39;sleep 480&#39;</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get_payload_command</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>  <span class="c1">#+ &#39;sleep 1000&#39;  # to test looping jobs</span>
         <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">post_setup</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
             <span class="kn">import</span> <span class="nn">traceback</span>
@@ -603,6 +601,10 @@
             <span class="k">if</span> <span class="n">exit_code</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">160</span><span class="p">:</span>
                     <span class="n">exit_code</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="c1"># wipe the output file list since there won&#39;t be any new files</span>
+                    <span class="c1"># any output files from previous iterations, should have been transferred already</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;reset outdata since further output should not be expected after preprocess exit&#39;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="o">.</span><span class="n">outdata</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="k">break</span>
             <span class="k">if</span> <span class="n">jobparams_pre</span> <span class="o">!=</span> <span class="n">jobparams_post</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;jobparams were updated by utility_before_payload()&#39;</span><span class="p">)</span>
@@ -627,6 +629,7 @@
                     <span class="k">break</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># the process is now running, update the server</span>
+                <span class="c1"># test &#39;tobekilled&#39; from here to try payload kill</span>
                 <span class="n">send_state</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__args</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
 
                 <span class="c1"># note: when sending a state change to the server, the server might respond with &#39;tobekilled&#39;</span>
@@ -641,11 +644,9 @@
                     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;starting utility command: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">utility_cmd</span><span class="p">)</span>
                     <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;coprocess&#39;</span> <span class="k">if</span> <span class="s1">&#39;coprocess&#39;</span> <span class="ow">in</span> <span class="n">utility_cmd</span> <span class="k">else</span> <span class="kc">None</span>
                     <span class="n">proc_co</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_command</span><span class="p">(</span><span class="n">utility_cmd</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;no command (UTILITY_AFTER_PAYLOAD_STARTED2)&#39;</span><span class="p">)</span>
 
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;will wait for graceful exit&#39;</span><span class="p">)</span>
-                <span class="n">exit_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wait_graceful</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__args</span><span class="p">,</span> <span class="n">proc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">)</span>
+                <span class="n">exit_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wait_graceful</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__args</span><span class="p">,</span> <span class="n">proc</span><span class="p">)</span>
                 <span class="c1"># reset error if Raythena decided to kill payload (no error)</span>
                 <span class="k">if</span> <span class="n">errors</span><span class="o">.</span><span class="n">KILLPAYLOAD</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">:</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;ignoring KILLPAYLOAD error&#39;</span><span class="p">)</span>
@@ -700,10 +701,13 @@
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">cmd_after_payload</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cmd_after_payload</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="o">.</span><span class="n">postprocess</span><span class="p">:</span>
                 <span class="n">cmd_after_payload</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="o">.</span><span class="n">setup</span> <span class="o">+</span> <span class="n">cmd_after_payload</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">postprocess execution command:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">cmd_after_payload</span><span class="p">)</span>
                 <span class="n">exit_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute_utility_command</span><span class="p">(</span><span class="n">cmd_after_payload</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">,</span> <span class="s1">&#39;postprocess&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">cmd_after_payload</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">postprocess execution command:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">cmd_after_payload</span><span class="p">)</span>
+                <span class="n">exit_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute_utility_command</span><span class="p">(</span><span class="n">cmd_after_payload</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">,</span> <span class="s1">&#39;xcache&#39;</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">exit_code</span></div>
 

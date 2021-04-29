@@ -62,14 +62,14 @@
 <div class="viewcode-block" id="TraceReport.__init__"><a class="viewcode-back" href="../../../components/util/tracereport.html#pilot.util.tracereport.TraceReport.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 
         <span class="n">event_version</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">+</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">get_pilot_version</span><span class="p">(),</span> <span class="n">get_rucio_client_version</span><span class="p">())</span>
-        <span class="n">defs</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">&#39;eventType&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>                <span class="c1"># sitemover</span>
+        <span class="n">defs</span> <span class="o">=</span> <span class="p">{</span>  <span class="c1"># for reference, see Tracing report document in wiki area of Pilot GitHub repository</span>
+            <span class="s1">&#39;eventType&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
             <span class="s1">&#39;eventVersion&#39;</span><span class="p">:</span> <span class="n">event_version</span><span class="p">,</span>  <span class="c1"># Pilot+Rucio client version</span>
             <span class="s1">&#39;protocol&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>               <span class="c1"># set by specific copy tool</span>
             <span class="s1">&#39;clientState&#39;</span><span class="p">:</span> <span class="s1">&#39;INIT_REPORT&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;localSite&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>                <span class="c1"># localsite</span>
-            <span class="s1">&#39;remoteSite&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>               <span class="c1"># equals remotesite</span>
-            <span class="s1">&#39;timeStart&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>              <span class="c1"># time to start</span>
+            <span class="s1">&#39;localSite&#39;</span><span class="p">:</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;RUCIO_LOCAL_SITE_ID&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;remoteSite&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;timeStart&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
             <span class="s1">&#39;catStart&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
             <span class="s1">&#39;relativeStart&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
             <span class="s1">&#39;transferStart&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
@@ -90,7 +90,8 @@
             <span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
             <span class="s1">&#39;stateReason&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
             <span class="s1">&#39;uuid&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="s1">&#39;taskid&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span>
+            <span class="s1">&#39;taskid&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;pq&#39;</span><span class="p">:</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_SITENAME&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
         <span class="p">}</span>
 
         <span class="nb">super</span><span class="p">(</span><span class="n">TraceReport</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">defs</span><span class="p">)</span>
@@ -148,6 +149,11 @@
             <span class="n">state_reason</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">stateReason</span><span class="o">=</span><span class="n">state_reason</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
 
+        <span class="c1"># overwrite any localSite if RUCIO_LOCAL_SITE_ID is set</span>
+        <span class="n">localsite</span> <span class="o">=</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;RUCIO_LOCAL_SITE_ID&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">localsite</span><span class="p">:</span>
+            <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;localSite&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">localsite</span>
+
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;eventType&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;localSite&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;remoteSite&#39;</span><span class="p">]:</span>
             <span class="k">return</span> <span class="kc">False</span>
         <span class="k">else</span><span class="p">:</span>
@@ -180,7 +186,7 @@
             <span class="c1"># create the command</span>
             <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;curl --connect-timeout 20 --max-time 120 --cacert </span><span class="si">%s</span><span class="s1"> -v -k -d </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> \
                   <span class="p">(</span><span class="n">ssl_certificate</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
-            <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+            <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">exit_code</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to send traces to rucio: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">stdout</span><span class="p">)</span>
             <span class="c1">#request(url, loaded)</span>

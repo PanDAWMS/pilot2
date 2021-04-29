@@ -40,7 +40,7 @@
 <span class="c1"># Authors:</span>
 <span class="c1"># - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018</span>
 <span class="c1"># - Alexey Anisenkov, anisyonk@cern.ch, 2018</span>
-<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018-2021</span>
 <span class="c1"># - Tomas Javurek, tomas.javurek@cern.ch, 2019</span>
 <span class="c1"># - David Cameron, david.cameron@cern.ch, 2019</span>
 
@@ -132,11 +132,15 @@
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
             <span class="n">error_msg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
             <span class="n">error_details</span> <span class="o">=</span> <span class="n">handle_rucio_error</span><span class="p">(</span><span class="n">error_msg</span><span class="p">,</span> <span class="n">trace_report</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">,</span> <span class="n">fspec</span><span class="p">,</span> <span class="n">stagein</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
+            <span class="n">protocol</span> <span class="o">=</span> <span class="n">get_protocol</span><span class="p">(</span><span class="n">trace_report_out</span><span class="p">)</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">protocol</span><span class="o">=</span><span class="n">protocol</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">ignore_errors</span><span class="p">:</span>
                 <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
                 <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39; </span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1"> from </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">,</span> <span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">))</span>
                 <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rcode&#39;</span><span class="p">),</span> <span class="n">state</span><span class="o">=</span><span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">protocol</span> <span class="o">=</span> <span class="n">get_protocol</span><span class="p">(</span><span class="n">trace_report_out</span><span class="p">)</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">protocol</span><span class="o">=</span><span class="n">protocol</span><span class="p">)</span>
 
         <span class="c1"># make sure there was no missed failure (only way to deal with this until rucio API has been fixed)</span>
         <span class="c1"># (using the timeout decorator prevents the trace_report_out from being updated - rucio API should return</span>
@@ -177,6 +181,23 @@
         <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="n">files</span></div>
+
+
+<div class="viewcode-block" id="get_protocol"><a class="viewcode-back" href="../../../components/copytool/rucio.html#pilot.copytool.rucio.get_protocol">[docs]</a><span class="k">def</span> <span class="nf">get_protocol</span><span class="p">(</span><span class="n">trace_report_out</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract the protocol used for the transdfer from the dictionary returned by rucio.</span>
+
+<span class="sd">    :param trace_report_out: returned rucio transfer dictionary (dictionary).</span>
+<span class="sd">    :return: protocol (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">trace_report_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;protocol&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="k">return</span> <span class="n">p</span></div>
 
 
 <div class="viewcode-block" id="handle_rucio_error"><a class="viewcode-back" href="../../../components/copytool/rucio.html#pilot.copytool.rucio.handle_rucio_error">[docs]</a><span class="k">def</span> <span class="nf">handle_rucio_error</span><span class="p">(</span><span class="n">error_msg</span><span class="p">,</span> <span class="n">trace_report</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">,</span> <span class="n">fspec</span><span class="p">,</span> <span class="n">stagein</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -261,6 +282,8 @@
         <span class="c1"># getting the trace for given file</span>
         <span class="c1"># if one trace is missing, the whould stagin gets failed</span>
         <span class="n">trace_candidates</span> <span class="o">=</span> <span class="n">_get_trace</span><span class="p">(</span><span class="n">fspec</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">)</span>
+        <span class="n">protocol</span> <span class="o">=</span> <span class="n">get_protocol</span><span class="p">(</span><span class="n">trace_report_out</span><span class="p">)</span>  <span class="c1"># note this is probably not correct (using [0])</span>
+        <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">protocol</span><span class="o">=</span><span class="n">protocol</span><span class="p">)</span>
         <span class="n">trace_report</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;unknown&#39;</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">trace_candidates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -377,7 +400,8 @@
         <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
             <span class="n">error_msg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
             <span class="n">error_details</span> <span class="o">=</span> <span class="n">handle_rucio_error</span><span class="p">(</span><span class="n">error_msg</span><span class="p">,</span> <span class="n">trace_report</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">,</span> <span class="n">fspec</span><span class="p">,</span> <span class="n">stagein</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
+            <span class="n">protocol</span> <span class="o">=</span> <span class="n">get_protocol</span><span class="p">(</span><span class="n">trace_report_out</span><span class="p">)</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">protocol</span><span class="o">=</span><span class="n">protocol</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">ignore_errors</span><span class="p">:</span>
                 <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
                 <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39; </span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1"> to </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">,</span> <span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">))</span>
@@ -385,11 +409,15 @@
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
             <span class="n">error_msg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
             <span class="n">error_details</span> <span class="o">=</span> <span class="n">handle_rucio_error</span><span class="p">(</span><span class="n">error_msg</span><span class="p">,</span> <span class="n">trace_report</span><span class="p">,</span> <span class="n">trace_report_out</span><span class="p">,</span> <span class="n">fspec</span><span class="p">,</span> <span class="n">stagein</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
+            <span class="n">protocol</span> <span class="o">=</span> <span class="n">get_protocol</span><span class="p">(</span><span class="n">trace_report_out</span><span class="p">)</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">protocol</span><span class="o">=</span><span class="n">protocol</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">ignore_errors</span><span class="p">:</span>
                 <span class="n">trace_report</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
                 <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39; </span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1"> to </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">scope</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">,</span> <span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">))</span>
                 <span class="k">raise</span> <span class="n">PilotException</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rcode&#39;</span><span class="p">),</span> <span class="n">state</span><span class="o">=</span><span class="n">error_details</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">protocol</span> <span class="o">=</span> <span class="n">get_protocol</span><span class="p">(</span><span class="n">trace_report_out</span><span class="p">)</span>
+            <span class="n">trace_report</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">protocol</span><span class="o">=</span><span class="n">protocol</span><span class="p">)</span>
 
         <span class="c1"># make sure there was no missed failure (only way to deal with this until rucio API has been fixed)</span>
         <span class="c1"># (using the timeout decorator prevents the trace_report_out from being updated - rucio API should return</span>

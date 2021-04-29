@@ -315,6 +315,11 @@
 <span class="sd">    :return: exit code (int), error diagnostics (string).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="c1"># only perform looping job check if desired</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">job</span><span class="o">.</span><span class="n">looping_check</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;looping check not desired&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
+
     <span class="n">looping_verification_time</span> <span class="o">=</span> <span class="n">convert_to_int</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">looping_verification_time</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">600</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">mt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ct_looping&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">looping_verification_time</span><span class="p">:</span>
         <span class="c1"># is the job looping?</span>

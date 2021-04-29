@@ -126,17 +126,22 @@ Perform stage-out as soon as a job object can be extracted from the data_out que
 
 <dl class="py function">
 <dt id="pilot.control.data.create_log">
-<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">create_log</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tarball_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#create_log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.create_log" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">create_log</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tarball_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cleanup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_looping</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#create_log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.create_log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create the tarball for the job.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>job</strong> – </p></li>
-<li><p><strong>logfile</strong> – </p></li>
-<li><p><strong>tarball_name</strong> – </p></li>
+<li><p><strong>workdir</strong> – work directory for the job (string).</p></li>
+<li><p><strong>logfile_name</strong> – log file name (string).</p></li>
+<li><p><strong>tarball_name</strong> – tarball name (string).</p></li>
+<li><p><strong>cleanup</strong> – perform cleanup (Boolean).</p></li>
+<li><p><strong>input_files</strong> – list of input files to remove (list).</p></li>
+<li><p><strong>output_files</strong> – list of output files to remove (list).</p></li>
+<li><p><strong>is_looping</strong> – True for looping jobs, False by default (Boolean).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises</dt>
-<dd class="field-even"><p><a class="reference internal" href="../common/exception.html#pilot.common.exception.LogFileCreationFailure" title="pilot.common.exception.LogFileCreationFailure"><strong>LogFileCreationFailure</strong></a> – in case of log file creation problem</p>
+<dd class="field-even"><p><a class="reference internal" href="../common/exception.html#pilot.common.exception.LogFileCreationFailure" title="pilot.common.exception.LogFileCreationFailure"><strong>LogFileCreationFailure</strong></a> – in case of log file creation problem.</p>
 </dd>
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p></p>
@@ -258,6 +263,16 @@ files enters the stage-out more than once.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt id="pilot.control.data.set_xcache_log">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">set_xcache_log</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">line</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#set_xcache_log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.set_xcache_log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.set_xcache_proxy">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">set_xcache_proxy</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">line</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#set_xcache_proxy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.set_xcache_proxy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt id="pilot.control.data.skip_special_files">
 <code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">skip_special_files</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#skip_special_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.skip_special_files" title="Permalink to this definition">¶</a></dt>
 <dd><p>Consult user defined code if any files should be skipped during stage-in.
@@ -308,6 +323,11 @@ some operational experience with it first.</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py function">
+<dt id="pilot.control.data.xcache_proxy">
+<code class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></code><code class="sig-name descname"><span class="pre">xcache_proxy</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#xcache_proxy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.xcache_proxy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </div>
 

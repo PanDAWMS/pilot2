@@ -528,6 +528,50 @@
         <span class="n">txt</span> <span class="o">=</span> <span class="n">txt</span><span class="p">[:</span><span class="n">cutat</span><span class="p">]</span> <span class="o">+</span> <span class="n">separator</span> <span class="o">+</span> <span class="n">txt</span><span class="p">[</span><span class="o">-</span><span class="n">cutat</span><span class="p">:]</span>
 
     <span class="k">return</span> <span class="n">txt</span></div>
+
+
+<div class="viewcode-block" id="has_instruction_set"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.has_instruction_set">[docs]</a><span class="k">def</span> <span class="nf">has_instruction_set</span><span class="p">(</span><span class="n">instruction_set</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determine whether a given CPU instruction set is available.</span>
+<span class="sd">    The function will use grep to search in /proc/cpuinfo (both in upper and lower case).</span>
+
+<span class="sd">    :param instruction_set: instruction set (e.g. AVX2) (string).</span>
+<span class="sd">    :return: Boolean</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;grep -o \&#39;</span><span class="si">%s</span><span class="s2">[^ ]*\|</span><span class="si">%s</span><span class="s2">[^ ]*\&#39; /proc/cpuinfo&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">instruction_set</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">instruction_set</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">exit_code</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">stderr</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">instruction_set</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">stdout</span><span class="o">.</span><span class="n">split</span><span class="p">()</span> <span class="ow">or</span> <span class="n">instruction_set</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">stdout</span><span class="o">.</span><span class="n">split</span><span class="p">():</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">status</span></div>
+
+
+<div class="viewcode-block" id="has_instruction_sets"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.has_instruction_sets">[docs]</a><span class="k">def</span> <span class="nf">has_instruction_sets</span><span class="p">(</span><span class="n">instruction_sets</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determine whether a given list of CPU instruction sets is available.</span>
+<span class="sd">    The function will use grep to search in /proc/cpuinfo (both in upper and lower case).</span>
+<span class="sd">    Example: instruction_sets = [&#39;AVX&#39;, &#39;AVX2&#39;, &#39;SSE4_2&#39;, &#39;XXX&#39;] -&gt; &quot;AVX|AVX2|SSE4_2&quot;</span>
+<span class="sd">    :param instruction_sets: instruction set (e.g. AVX2) (string).</span>
+<span class="sd">    :return: Boolean</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ret</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">instruction_sets</span><span class="p">:</span>
+        <span class="n">r</span> <span class="o">+=</span> <span class="sa">r</span><span class="s1">&#39;\|</span><span class="si">%s</span><span class="s1">[^ ]*\|</span><span class="si">%s</span><span class="s1">[^ ]*&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">i</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span> <span class="k">if</span> <span class="n">r</span> <span class="k">else</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">[^ ]*\|</span><span class="si">%s</span><span class="s1">[^ ]*&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">i</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;grep -o </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> /proc/cpuinfo&quot;</span> <span class="o">%</span> <span class="n">r</span>
+
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">exit_code</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">stderr</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">instruction_sets</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">stdout</span><span class="o">.</span><span class="n">split</span><span class="p">()</span> <span class="ow">or</span> <span class="n">i</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="ow">in</span> <span class="n">stdout</span><span class="o">.</span><span class="n">split</span><span class="p">():</span>
+                <span class="n">ret</span> <span class="o">+=</span> <span class="s1">&#39;|</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">if</span> <span class="n">ret</span> <span class="k">else</span> <span class="n">i</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">ret</span></div>
 </pre></div>
 
           </div>

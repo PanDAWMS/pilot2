@@ -59,13 +59,13 @@
 <span class="kn">from</span> <span class="nn">pilot.control.job</span> <span class="kn">import</span> <span class="n">send_state</span>
 <span class="kn">from</span> <span class="nn">pilot.common.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
 <span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">ExcThread</span><span class="p">,</span> <span class="n">PilotException</span><span class="p">,</span> <span class="n">LogFileCreationFailure</span>
-<span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="c1">#from pilot.util.config import config</span>
 <span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">set_pilot_state</span><span class="p">,</span> <span class="n">check_for_final_server_update</span>  <span class="c1">#, abort_jobs_in_queues</span>
 <span class="kn">from</span> <span class="nn">pilot.util.common</span> <span class="kn">import</span> <span class="n">should_abort</span>
 <span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">PILOT_PRE_STAGEIN</span><span class="p">,</span> <span class="n">PILOT_POST_STAGEIN</span><span class="p">,</span> <span class="n">PILOT_PRE_STAGEOUT</span><span class="p">,</span> <span class="n">PILOT_POST_STAGEOUT</span><span class="p">,</span> <span class="n">LOG_TRANSFER_IN_PROGRESS</span><span class="p">,</span>\
-    <span class="n">LOG_TRANSFER_DONE</span><span class="p">,</span> <span class="n">LOG_TRANSFER_NOT_DONE</span><span class="p">,</span> <span class="n">LOG_TRANSFER_FAILED</span><span class="p">,</span> <span class="n">SERVER_UPDATE_RUNNING</span><span class="p">,</span> <span class="n">MAX_KILL_WAIT_TIME</span>
+    <span class="n">LOG_TRANSFER_DONE</span><span class="p">,</span> <span class="n">LOG_TRANSFER_NOT_DONE</span><span class="p">,</span> <span class="n">LOG_TRANSFER_FAILED</span><span class="p">,</span> <span class="n">SERVER_UPDATE_RUNNING</span><span class="p">,</span> <span class="n">MAX_KILL_WAIT_TIME</span><span class="p">,</span> <span class="n">UTILITY_BEFORE_STAGEIN</span>
 <span class="kn">from</span> <span class="nn">pilot.util.container</span> <span class="kn">import</span> <span class="n">execute</span>
-<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">remove</span><span class="p">,</span> <span class="n">get_local_file_size</span>
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">remove</span>
 <span class="kn">from</span> <span class="nn">pilot.util.processes</span> <span class="kn">import</span> <span class="n">threads_aborted</span>
 <span class="kn">from</span> <span class="nn">pilot.util.queuehandling</span> <span class="kn">import</span> <span class="n">declare_failed_by_kill</span><span class="p">,</span> <span class="n">put_in_queue</span>
 <span class="kn">from</span> <span class="nn">pilot.util.timing</span> <span class="kn">import</span> <span class="n">add_to_pilot_timing</span>
@@ -448,6 +448,38 @@
     <span class="k">return</span> <span class="n">files</span></div>
 
 
+<div class="viewcode-block" id="xcache_proxy"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.xcache_proxy">[docs]</a><span class="k">def</span> <span class="nf">xcache_proxy</span><span class="p">(</span><span class="n">output</span><span class="p">):</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">output</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;ALRB_XCACHE_PROXY&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="n">set_xcache_proxy</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">remote</span><span class="o">=</span><span class="s1">&#39;REMOTE&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;Messages logged in&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="n">set_xcache_log</span><span class="p">(</span><span class="n">line</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="set_xcache_proxy"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.set_xcache_proxy">[docs]</a><span class="k">def</span> <span class="nf">set_xcache_proxy</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">remote</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+    <span class="kn">import</span> <span class="nn">re</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;\ export\ ALRB_XCACHE_PROXY_REMOTE\=\&quot;(.+)\&quot;&#39;</span> <span class="k">if</span> <span class="n">remote</span> <span class="k">else</span> <span class="sa">r</span><span class="s1">&#39;\ export\ ALRB_XCACHE_PROXY\=\&quot;(.+)\&quot;&#39;</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">remote</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;ALRB_XCACHE_PROXY_REMOTE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;ALRB_XCACHE_PROXY&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="set_xcache_log"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.set_xcache_log">[docs]</a><span class="k">def</span> <span class="nf">set_xcache_log</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+
+    <span class="kn">import</span> <span class="nn">re</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;xcache\ started\ successfully.\ \ Messages\ logged\ in\ (.+)&#39;</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;ALRB_XCACHE_LOG&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
 <div class="viewcode-block" id="copytool_in"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.copytool_in">[docs]</a><span class="k">def</span> <span class="nf">copytool_in</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">traces</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Call the stage-in function and put the job object in the proper queue.</span>
@@ -469,9 +501,24 @@
 
             <span class="c1"># extract a job to stage-in its input</span>
             <span class="n">job</span> <span class="o">=</span> <span class="n">queues</span><span class="o">.</span><span class="n">data_in</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># does the user want to execute any special commands before stage-in?</span>
+            <span class="n">pilot_user</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USER&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.common&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get_utility_commands</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">UTILITY_BEFORE_STAGEIN</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">cmd</span><span class="p">:</span>
+                <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;exit_code=</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">exit_code</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;stderr=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">stderr</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;stdout=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">stdout</span><span class="p">)</span>
+                <span class="c1"># move code to user area</span>
+                <span class="n">xcache_proxy</span><span class="p">(</span><span class="n">stdout</span><span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;ALRB_XCACHE_PROXY=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ALRB_XCACHE_PROXY&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;not set&gt;&#39;</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;ALRB_XCACHE_PROXY_REMOTE=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ALRB_XCACHE_PROXY_REMOTE&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;not set&gt;&#39;</span><span class="p">))</span>
+
             <span class="c1"># place it in the current stage-in queue (used by the jobs&#39; queue monitoring)</span>
-            <span class="k">if</span> <span class="n">job</span><span class="p">:</span>
-                <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">current_data_in</span><span class="p">)</span>
+            <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">current_data_in</span><span class="p">)</span>
 
             <span class="c1"># ready to set the job in running state</span>
             <span class="n">send_state</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="s1">&#39;running&#39;</span><span class="p">)</span>
@@ -505,13 +552,17 @@
                     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;job </span><span class="si">%s</span><span class="s1"> has been removed from the current_data_in queue&#39;</span> <span class="o">%</span> <span class="n">_job</span><span class="o">.</span><span class="n">jobid</span><span class="p">)</span>
 
                 <span class="c1"># now create input file metadata if required by the payload</span>
-                <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">executor_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s1">&#39;raythena&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_ES_EXECUTOR_TYPE&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;generic&#39;</span><span class="p">:</span>
                     <span class="n">pilot_user</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USER&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
                     <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.metadata&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
                     <span class="n">file_dictionary</span> <span class="o">=</span> <span class="n">get_input_file_dictionary</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">indata</span><span class="p">)</span>
                     <span class="n">xml</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">create_input_file_metadata</span><span class="p">(</span><span class="n">file_dictionary</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;created input file metadata:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">xml</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># remove the job from the current stage-in queue</span>
+                <span class="n">_job</span> <span class="o">=</span> <span class="n">queues</span><span class="o">.</span><span class="n">current_data_in</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">_job</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;job </span><span class="si">%s</span><span class="s1"> has been removed from the current_data_in queue&#39;</span> <span class="o">%</span> <span class="n">_job</span><span class="o">.</span><span class="n">jobid</span><span class="p">)</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;stage-in failed, adding job object to failed_data_in queue&#39;</span><span class="p">)</span>
                 <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">STAGEINFAILED</span><span class="p">)</span>
                 <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s2">&quot;failed&quot;</span><span class="p">)</span>
@@ -687,87 +738,62 @@
     <span class="k">return</span> <span class="n">filtered_files</span></div>
 
 
-<div class="viewcode-block" id="create_log"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.create_log">[docs]</a><span class="k">def</span> <span class="nf">create_log</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">logfile</span><span class="p">,</span> <span class="n">tarball_name</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="create_log"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data.create_log">[docs]</a><span class="k">def</span> <span class="nf">create_log</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">logfile_name</span><span class="p">,</span> <span class="n">tarball_name</span><span class="p">,</span> <span class="n">cleanup</span><span class="p">,</span> <span class="n">input_files</span><span class="o">=</span><span class="p">[],</span> <span class="n">output_files</span><span class="o">=</span><span class="p">[],</span> <span class="n">is_looping</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create the tarball for the job.</span>
 
-<span class="sd">    :param job:</span>
-<span class="sd">    :param logfile:</span>
-<span class="sd">    :param tarball_name:</span>
-<span class="sd">    :raises LogFileCreationFailure: in case of log file creation problem</span>
+<span class="sd">    :param workdir: work directory for the job (string).</span>
+<span class="sd">    :param logfile_name: log file name (string).</span>
+<span class="sd">    :param tarball_name: tarball name (string).</span>
+<span class="sd">    :param cleanup: perform cleanup (Boolean).</span>
+<span class="sd">    :param input_files: list of input files to remove (list).</span>
+<span class="sd">    :param output_files: list of output files to remove (list).</span>
+<span class="sd">    :param is_looping: True for looping jobs, False by default (Boolean).</span>
+<span class="sd">    :raises LogFileCreationFailure: in case of log file creation problem.</span>
 <span class="sd">    :return:</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;preparing to create log file&#39;</span><span class="p">)</span>
+    <span class="c1"># PILOT_HOME is the launch directory of the pilot (or the one specified in pilot options as pilot workdir)</span>
     <span class="n">pilot_home</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">())</span>
     <span class="n">current_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">pilot_home</span> <span class="o">!=</span> <span class="n">current_dir</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;cd from </span><span class="si">%s</span><span class="s1"> to </span><span class="si">%s</span><span class="s1"> for log creation&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">current_dir</span><span class="p">,</span> <span class="n">pilot_home</span><span class="p">))</span>
         <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">pilot_home</span><span class="p">)</span>
 
     <span class="c1"># perform special cleanup (user specific) prior to log file creation</span>
-    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">cleanup</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">cleanup</span><span class="p">:</span>
         <span class="n">pilot_user</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USER&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.common&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
-        <span class="n">user</span><span class="o">.</span><span class="n">remove_redundant_files</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">islooping</span><span class="o">=</span><span class="n">errors</span><span class="o">.</span><span class="n">LOOPINGJOB</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;user specific cleanup not performed&#39;</span><span class="p">)</span>
-
-    <span class="n">input_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span><span class="o">.</span><span class="n">lfn</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">indata</span><span class="p">]</span>
-    <span class="n">output_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span><span class="o">.</span><span class="n">lfn</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">outdata</span><span class="p">]</span>
+        <span class="n">user</span><span class="o">.</span><span class="n">remove_redundant_files</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">islooping</span><span class="o">=</span><span class="n">is_looping</span><span class="p">)</span>
 
     <span class="c1"># remove any present input/output files before tarring up workdir</span>
     <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">input_files</span> <span class="o">+</span> <span class="n">output_files</span><span class="p">:</span>
-        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;removing file: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
             <span class="n">remove</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
     <span class="c1"># rename the workdir for the tarball creation</span>
-    <span class="n">newworkdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">),</span> <span class="n">tarball_name</span><span class="p">)</span>
-    <span class="n">orgworkdir</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;renaming </span><span class="si">%s</span><span class="s1"> to </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">newworkdir</span><span class="p">))</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">newworkdir</span><span class="p">)</span>
-    <span class="n">job</span><span class="o">.</span><span class="n">workdir</span> <span class="o">=</span> <span class="n">newworkdir</span>
+    <span class="n">newworkdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">workdir</span><span class="p">),</span> <span class="n">tarball_name</span><span class="p">)</span>
+    <span class="n">orgworkdir</span> <span class="o">=</span> <span class="n">workdir</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">newworkdir</span><span class="p">)</span>
+    <span class="n">workdir</span> <span class="o">=</span> <span class="n">newworkdir</span>
 
-    <span class="n">fullpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">logfile</span><span class="o">.</span><span class="n">lfn</span><span class="p">)</span>  <span class="c1"># /some/path/to/dirname/log.tgz</span>
-
+    <span class="n">fullpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">logfile_name</span><span class="p">)</span>  <span class="c1"># /some/path/to/dirname/log.tgz</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;will create archive </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">fullpath</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="c1">#newdirnm = &quot;tarball_PandaJob_%s&quot; % job.jobid</span>
-        <span class="c1">#tarballnm = &quot;%s.tar.gz&quot; % newdirnm</span>
-        <span class="c1">#os.rename(job.workdir, newdirnm)</span>
         <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;pwd;tar cvfz </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2"> --dereference --one-file-system; echo $?&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fullpath</span><span class="p">,</span> <span class="n">tarball_name</span><span class="p">)</span>
         <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
-
-        <span class="c1">#with closing(tarfile.open(name=fullpath, mode=&#39;w:gz&#39;, dereference=True)) as archive:</span>
-        <span class="c1">#    archive.add(os.path.basename(job.workdir), recursive=True)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">LogFileCreationFailure</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">pilot_home</span> <span class="o">!=</span> <span class="n">current_dir</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;cd from </span><span class="si">%s</span><span class="s1"> to </span><span class="si">%s</span><span class="s1"> after log creation&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pilot_home</span><span class="p">,</span> <span class="n">current_dir</span><span class="p">))</span>
             <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">pilot_home</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;stdout = </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">stdout</span><span class="p">)</span>
-
-        <span class="c1"># verify the size of the log file</span>
-        <span class="n">size</span> <span class="o">=</span> <span class="n">get_local_file_size</span><span class="p">(</span><span class="n">fullpath</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">size</span> <span class="o">&lt;</span> <span class="mi">1024</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;log file size too small: </span><span class="si">%d</span><span class="s1"> B&#39;</span> <span class="o">%</span> <span class="n">size</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;log file size: </span><span class="si">%d</span><span class="s1"> B&#39;</span> <span class="o">%</span> <span class="n">size</span><span class="p">)</span>
-
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;renaming </span><span class="si">%s</span><span class="s1"> back to </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">orgworkdir</span><span class="p">))</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">orgworkdir</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">orgworkdir</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
-    <span class="n">job</span><span class="o">.</span><span class="n">workdir</span> <span class="o">=</span> <span class="n">orgworkdir</span></div>
-
-    <span class="c1">#fullpath = os.path.join(job.workdir, logfile.lfn)  # reset fullpath since workdir has changed since above</span>
-    <span class="c1">#return {&#39;scope&#39;: logfile.scope,</span>
-    <span class="c1">#        &#39;name&#39;: logfile.lfn,</span>
-    <span class="c1">#        &#39;guid&#39;: logfile.guid,</span>
-    <span class="c1">#        &#39;bytes&#39;: os.stat(fullpath).st_size}</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="_do_stageout"><a class="viewcode-back" href="../../../components/control/data.html#pilot.control.data._do_stageout">[docs]</a><span class="k">def</span> <span class="nf">_do_stageout</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">xdata</span><span class="p">,</span> <span class="n">activity</span><span class="p">,</span> <span class="n">queue</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
@@ -880,7 +906,12 @@
         <span class="n">logfile</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">logdata</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">create_log</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">logfile</span><span class="p">,</span> <span class="s1">&#39;tarball_PandaJob_</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">pandaqueue</span><span class="p">),</span> <span class="n">args</span><span class="p">)</span>
+            <span class="n">tarball_name</span> <span class="o">=</span> <span class="s1">&#39;tarball_PandaJob_</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">pandaqueue</span><span class="p">)</span>
+            <span class="n">input_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span> <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">indata</span><span class="p">]</span>
+            <span class="n">output_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span> <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">outdata</span><span class="p">]</span>
+            <span class="n">create_log</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">logfile</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">tarball_name</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">cleanup</span><span class="p">,</span>
+                       <span class="n">input_files</span><span class="o">=</span><span class="n">input_files</span><span class="p">,</span> <span class="n">output_files</span><span class="o">=</span><span class="n">output_files</span><span class="p">,</span>
+                       <span class="n">is_looping</span><span class="o">=</span><span class="n">errors</span><span class="o">.</span><span class="n">LOOPINGJOB</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">LogFileCreationFailure</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to create tar file: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
             <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s2">&quot;failed&quot;</span><span class="p">)</span>
