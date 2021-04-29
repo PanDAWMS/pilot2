@@ -11,7 +11,6 @@
 import os
 import threading
 
-from pilot.util.config import config
 from pilot.common.pluginfactory import PluginFactory
 from pilot.control.job import create_job
 from pilot.eventservice.communicationmanager.communicationmanager import CommunicationManager
@@ -120,7 +119,7 @@ class BaseExecutor(threading.Thread, PluginFactory):
         return self.payload['job'] if self.payload and 'job' in list(self.payload.keys()) else None  # Python 2/3
 
     def get_event_ranges(self, num_event_ranges=1, queue_factor=2):
-        if config.Payload.executor_type.lower() == 'raythena':
+        if os.environ.get('PILOT_ES_EXECUTOR_TYPE', 'generic') == 'raythena':
             old_queue_factor = queue_factor
             queue_factor = 1
             logger.info("raythena - Changing queue_factor from %s to %s" % (old_queue_factor, queue_factor))

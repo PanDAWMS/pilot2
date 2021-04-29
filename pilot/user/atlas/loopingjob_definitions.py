@@ -46,6 +46,7 @@ def remove_unwanted_files(workdir, files):
                 "runjob" in _file or
                 "memory_" in _file or
                 "mem." in _file or
+                "docs/" in _file or
                 "DBRelease-" in _file):
             _files.append(_file)
 

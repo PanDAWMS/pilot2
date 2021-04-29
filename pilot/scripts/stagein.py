@@ -311,20 +311,21 @@ class Job:
         self.jobdefinitionid = jobdefinitionid
 
 
-def add_to_dictionary(dictionary, key, value1, value2, value3):
+def add_to_dictionary(dictionary, key, value1, value2, value3, value4):
     """
-    Add key: [value1, value2] to dictionary.
-    In practice; lfn: [status, status_code].
+    Add key: [value1, value2, ..] to dictionary.
+    In practice; lfn: [status, status_code, turl, DDM endpoint].
 
     :param dictionary: dictionary to be updated.
     :param key: lfn key to be added (string).
     :param value1: status to be added to list belonging to key (string).
     :param value2: status_code to be added to list belonging to key (string).
     :param value3: turl (string).
+    :param value4: DDM endpoint (string).
     :return: updated dictionary.
     """
 
-    dictionary[key] = [value1, value2, value3]
+    dictionary[key] = [value1, value2, value3, value4]
     return dictionary
 
 
@@ -461,14 +462,14 @@ if __name__ == '__main__':
     if xfiles:
         message('stagein script summary of transferred files:')
         for fspec in xfiles:
-            add_to_dictionary(file_dictionary, fspec.lfn, fspec.status, fspec.status_code, fspec.turl)
+            add_to_dictionary(file_dictionary, fspec.lfn, fspec.status, fspec.status_code, fspec.turl, fspec.ddmendpoint)
             status = fspec.status if fspec.status else "(not transferred)"
-            message(" -- lfn=%s, status_code=%s, status=%s" % (fspec.lfn, fspec.status_code, status))
+            message(" -- lfn=%s, ddmendpoint=%s, status_code=%s, status=%s" % (fspec.lfn, fspec.ddmendpoint, fspec.status_code, status))
 
     # add error info, if any
     if err:
         errcode, err = extract_error_info(err)
-    add_to_dictionary(file_dictionary, 'error', err, errcode, None)
+    add_to_dictionary(file_dictionary, 'error', err, errcode, None, None)
     _status = write_json(os.path.join(args.workdir, config.Container.stagein_status_dictionary), file_dictionary)
     if err:
         message("containerised file transfers failed: %s" % err)

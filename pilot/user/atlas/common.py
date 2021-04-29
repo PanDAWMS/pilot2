@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 import os
@@ -22,7 +22,7 @@ except Exception:
 
 from .container import create_root_container_command
 from .dbrelease import get_dbrelease_version, create_dbrelease
-from .setup import should_pilot_prepare_setup, is_standard_atlas_job,\
+from .setup import should_pilot_prepare_setup, is_standard_atlas_job, get_asetup,\
     set_inds, get_analysis_trf, get_payload_environment_variables, replace_lfns_with_turls
 from .utilities import get_memory_monitor_setup, get_network_monitor_setup, post_memory_monitor_action,\
     get_memory_monitor_summary_filename, get_prefetcher_setup, get_benchmark_setup, get_memory_monitor_output_filename,\
@@ -34,7 +34,8 @@ from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import is_python3
 from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
-    UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_WITH_STAGEIN, UTILITY_AFTER_PAYLOAD_STARTED2
+    UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_AFTER_PAYLOAD_STARTED2,\
+    UTILITY_BEFORE_STAGEIN
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy,\
     copy_pilot_source, write_file, read_json, read_file, update_extension, get_local_file_size, calculate_checksum
@@ -1647,6 +1648,7 @@ def get_redundants():
                 "singularity/*",  # new
                 "/cores",  # new
                 "/work",  # new
+                "docs/",  # new
                 "/pilot2"]  # new
 
     return dir_list
@@ -1850,32 +1852,78 @@ def get_utility_commands(order=None, job=None):
     :return: dictionary of utilities to be executed in parallel with the payload.
     """
 
-    if order:
-        if order == UTILITY_BEFORE_PAYLOAD and job and job.preprocess:
-            if job.preprocess.get('command', ''):
-                return download_command(job.preprocess, job.workdir)
-        elif order == UTILITY_WITH_PAYLOAD:
-            return {'command': 'NetworkMonitor', 'args': ''}
-        elif order == UTILITY_AFTER_PAYLOAD_STARTED:
-            cmd = config.Pilot.utility_after_payload_started
-            if cmd:
-                return {'command': cmd, 'args': ''}
-        elif order == UTILITY_AFTER_PAYLOAD_STARTED2 and job and job.coprocess:
-            # cmd = config.Pilot.utility_after_payload_started  DEPRECATED
-            # if cmd:
-            #    return {'command': cmd, 'args': ''}
-            if job.coprocess.get('command', ''):
-                return download_command(job.coprocess, job.workdir)
-        elif order == UTILITY_AFTER_PAYLOAD and job and job.postprocess:
-            if job.postprocess.get('command', ''):
-                return download_command(job.postprocess, job.workdir)
-        elif order == UTILITY_AFTER_PAYLOAD_FINISHED and job and job.postprocess:
-            if job.postprocess.get('command', ''):
-                return download_command(job.postprocess, job.workdir)
-        elif order == UTILITY_WITH_STAGEIN:
-            return {'command': 'Benchmark', 'args': ''}
+    com = {}
 
-    return {}
+    if order == UTILITY_BEFORE_PAYLOAD and job.preprocess:
+        if job.preprocess.get('command', ''):
+            com = download_command(job.preprocess, job.workdir)
+    elif order == UTILITY_WITH_PAYLOAD:
+        com = {'command': 'NetworkMonitor', 'args': ''}
+    elif order == UTILITY_AFTER_PAYLOAD_STARTED:
+        cmd = config.Pilot.utility_after_payload_started
+        if cmd:
+            com = {'command': cmd, 'args': ''}
+    elif order == UTILITY_AFTER_PAYLOAD_STARTED2 and job.coprocess:
+        if job.coprocess.get('command', ''):
+            com = download_command(job.coprocess, job.workdir)
+    elif order == UTILITY_AFTER_PAYLOAD and job.postprocess:
+        if job.postprocess.get('command', ''):
+            com = download_command(job.postprocess, job.workdir)
+    elif order == UTILITY_AFTER_PAYLOAD_FINISHED:
+        if job.postprocess and job.postprocess.get('command', ''):
+            com = download_command(job.postprocess, job.workdir)
+        elif 'pilotXcache' in job.infosys.queuedata.catchall:
+            com = xcache_deactivation_command(job.workdir)
+    elif order == UTILITY_BEFORE_STAGEIN:
+        if 'pilotXcache' in job.infosys.queuedata.catchall:
+            com = xcache_activation_command(job.jobid)
+
+    return com
+
+
+def xcache_activation_command(jobid):
+    """
+    Return the xcache service activation command.
+
+    :param jobid: PanDA job id to guarantee that xcache process is unique (int).
+    :return: xcache command (string).
+    """
+
+    # a successful startup will set ALRB_XCACHE_PROXY and ALRB_XCACHE_PROXY_REMOTE
+    # so any file access with root://...  should be replaced with one of the above
+    # (depending on whether you are on the same machine or not)
+    # example:
+    # ${ALRB_XCACHE_PROXY}root://atlasxrootd-kit.gridka.de:1094//pnfs/gridka.de/../DAOD_FTAG4.24348858._000020.pool.root.1
+    command = "%s " % get_asetup(asetup=False)
+    # add 'xcache list' which will also kill any orphaned processes lingering in the system
+    command += "lsetup xcache; xcache list; xcache start -d $PWD/%s/xcache -C centos7 --disklow 4g --diskhigh 5g" % jobid
+
+    return {'command': command, 'args': ''}
+
+
+def xcache_deactivation_command(workdir):
+    """
+    Return the xcache service deactivation command.
+    This service should be stopped after the payload has finished.
+    Copy the messages log before shutting down.
+
+    :param workdir: payload work directory (string).
+    :return: xcache command (string).
+    """
+
+    path = os.environ.get('ALRB_XCACHE_LOG', None)
+    if path and os.path.exists(path):
+        logger.debug('copying xcache messages log file (%s) to work dir (%s)' % (path, workdir))
+        dest = os.path.join(workdir, 'xcache-messages.log')
+        try:
+            copy(path, dest)
+        except Exception as e:
+            logger.warning('exception caught copying xcache log: %s' % e)
+
+    command = "%s " % get_asetup(asetup=False)
+    command += "lsetup xcache; xcache kill"  # -C centos7
+
+    return {'command': command, 'args': '-p all'}
 
 
 def get_utility_command_setup(name, job, setup=None):
