@@ -6,11 +6,12 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
-# - Paul Nilsson, paul.nilsson@cern.ch, 2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2020-21
 
 import json
 import threading
 import traceback
+from os import environ
 
 from pilot.common import exception
 from pilot.util import https
@@ -74,8 +75,8 @@ class PandaCommunicator(BaseCommunicator):
 
             for i in range(req.num_jobs):
                 logger.info("Getting jobs: %s" % data)
-                res = https.request('{pandaserver}/server/panda/getJob'.format(pandaserver=config.Pilot.pandaserver),
-                                    data=data)
+                url = environ.get('PANDA_SERVER_URL', config.Pilot.pandaserver)
+                res = https.request('{pandaserver}/server/panda/getJob'.format(pandaserver=url), data=data)
                 logger.info("Got jobs returns: %s" % res)
 
                 if res is None:
@@ -144,8 +145,8 @@ class PandaCommunicator(BaseCommunicator):
                     'nRanges': req.num_ranges}
 
             logger.info("Downloading new event ranges: %s" % data)
-            res = https.request('{pandaserver}/server/panda/getEventRanges'.format(pandaserver=config.Pilot.pandaserver),
-                                data=data)
+            url = environ.get('PANDA_SERVER_URL', config.Pilot.pandaserver)
+            res = https.request('{pandaserver}/server/panda/getEventRanges'.format(pandaserver=url), data=data)
             logger.info("Downloaded event ranges: %s" % res)
 
             if res is None:
@@ -190,9 +191,8 @@ class PandaCommunicator(BaseCommunicator):
         resp = None
         try:
             logger.info("Updating events: %s" % req)
-
-            res = https.request('{pandaserver}/server/panda/updateEventRanges'.format(pandaserver=config.Pilot.pandaserver),
-                                data=req.update_events)
+            url = environ.get('PANDA_SERVER_URL', config.Pilot.pandaserver)
+            res = https.request('{pandaserver}/server/panda/updateEventRanges'.format(pandaserver=url), data=req.update_events)
 
             logger.info("Updated event ranges status: %s" % res)
             resp_attrs = {'status': 0, 'content': res, 'exception': None}
@@ -224,8 +224,8 @@ class PandaCommunicator(BaseCommunicator):
 
         try:
             logger.info("Updating job: %s" % job)
-            res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=config.Pilot.pandaserver),
-                                data=job)
+            url = environ.get('PANDA_SERVER_URL', config.Pilot.pandaserver)
+            res = https.request('{pandaserver}/server/panda/updateJob'.format(pandaserver=url), data=job)
 
             logger.info("Updated jobs status: %s" % res)
             return res
@@ -262,13 +262,11 @@ class PandaCommunicator(BaseCommunicator):
         """
         self.update_jobs_lock.acquire()
 
-        resp = None
         try:
             logger.info("Updating jobs: %s" % req)
             data = {'jobList': json.dumps(req.jobs)}
-
-            res = https.request('{pandaserver}/server/panda/updateJobsInBulk'.format(pandaserver=config.Pilot.pandaserver),
-                                data=data)
+            url = environ.get('PANDA_SERVER_URL', config.Pilot.pandaserver)
+            res = https.request('{pandaserver}/server/panda/updateJobsInBulk'.format(pandaserver=url), data=data)
 
             logger.info("Updated jobs status: %s" % res)
             resp_attrs = {'status': 0, 'content': res, 'exception': None}

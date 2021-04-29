@@ -255,6 +255,20 @@ def get_args():
                             default=True,
                             help='Disable proxy verification')
 
+    arg_parser.add_argument('-u',
+                            dest='verify_payload_proxy',
+                            action='store_false',
+                            default=True,
+                            help='Disable payload proxy verification')
+
+    # graciously stop pilot process after hard limit
+    arg_parser.add_argument('-v',
+                            dest='getjob_requests',
+                            default=2,
+                            required=False,
+                            type=int,
+                            help='Number of getjob requests')
+
     # SSL certificates
     arg_parser.add_argument('--cacert',
                             dest='cacert',
@@ -270,7 +284,7 @@ def get_args():
     # Server URLs and ports
     arg_parser.add_argument('--url',
                             dest='url',
-                            default='',  # the proper default is stored in config.cfg
+                            default='',  # the proper default is stored in default.cfg
                             help='PanDA server URL')
     arg_parser.add_argument('-p',
                             dest='port',
@@ -375,6 +389,10 @@ def get_args():
                             dest='hpc_mode',
                             default='manytoone',
                             help='HPC mode (manytoone, jumbojobs)')
+    arg_parser.add_argument('--es-executor-type',
+                            dest='executor_type',
+                            default='generic',
+                            help='Event service executor type (generic, raythena)')
 
     return arg_parser.parse_args()
 
@@ -441,7 +459,7 @@ def set_environment_variables(args, mainworkdir):
 
     # proxy verifications
     environ['PILOT_PROXY_VERIFICATION'] = '%s' % args.verify_proxy
-#    environ['PILOT_PAYLOAD_PROXY_VERIFICATION'] = '%s' % args.verify_payload_proxy
+    environ['PILOT_PAYLOAD_PROXY_VERIFICATION'] = '%s' % args.verify_payload_proxy
 
     # keep track of the server updates, if any
     environ['SERVER_UPDATE'] = SERVER_UPDATE_NOT_DONE
@@ -449,7 +467,13 @@ def set_environment_variables(args, mainworkdir):
     # set the (HPC) resource name (if set in options)
     environ['PILOT_RESOURCE_NAME'] = args.hpc_resource
 
-    # keep track of the PanDA server url
+    # event service executor type
+    environ['PILOT_ES_EXECUTOR_TYPE'] = args.executor_type
+
+    # keep track of the server urls
+    _port = ":%s" % args.port
+    url = args.url if _port in args.url else args.url + _port
+    environ['PANDA_SERVER_URL'] = url
     environ['QUEUEDATA_SERVER_URL'] = '%s' % args.queuedata_url
 
 

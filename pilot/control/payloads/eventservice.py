@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
-# - Paul Nilsson, paul.nilsson@cern.ch, 2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2021
 
 
 import os
@@ -15,7 +15,6 @@ import time
 from pilot.common import exception
 from pilot.control.payloads import generic
 from pilot.eventservice.workexecutor.workexecutor import WorkExecutor
-from pilot.util.config import config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -61,7 +60,7 @@ class Executor(generic.Executor):
             logger.debug("payload: %s" % payload)
 
             logger.info("Starting EventService WorkExecutor")
-            executor_type = self.get_executor_type(job)
+            executor_type = self.get_executor_type()
             executor = WorkExecutor(args=executor_type)
             executor.set_payload(payload)
             executor.start()
@@ -79,28 +78,25 @@ class Executor(generic.Executor):
 
         return executor
 
-    def get_executor_type(self, job):
+    def get_executor_type(self):
         """
         Get the executor type.
         This is usually the 'generic' type, which means normal event service. It can also be 'raythena' if specified
-        in the pilot config file, and can also be dynamically decided using the job object (in the case of interceptor
-        job).
+        in the Pilot options.
 
-        :param job: job object.
         :return: executor type dictionary.
         """
 
-        # executor_type = 'hpo' if job.is_hpo else config.Payload.executor_type
+        # executor_type = 'hpo' if job.is_hpo else os.environ.get('PILOT_ES_EXECUTOR_TYPE', 'generic')
         # return {'executor_type': executor_type}
-        return {'executor_type': config.Payload.executor_type}
+        return {'executor_type': os.environ.get('PILOT_ES_EXECUTOR_TYPE', 'generic')}
 
-    def wait_graceful(self, args, proc, job):
+    def wait_graceful(self, args, proc):
         """
         (add description)
 
         :param args:
         :param proc:
-        :param job:
         :return:
         """
 

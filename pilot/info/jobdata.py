@@ -100,6 +100,7 @@ class JobData(BaseData):
     memorymonitor = ""             # memory monitor name, e.g. prmon
     actualcorecount = 0            # number of cores actually used by the payload
     corecounts = []                # keep track of all actual core count measurements
+    looping_check = True           # perform looping payload check
 
     # time variable used for on-the-fly cpu consumption time measurements done by job monitoring
     t0 = None                      # payload startup time
@@ -159,7 +160,8 @@ class JobData(BaseData):
              list: ['piloterrorcodes', 'piloterrordiags', 'workdirsizes', 'zombies', 'corecounts'],
              dict: ['status', 'fileinfo', 'metadata', 'utilities', 'overwrite_queuedata', 'sizes', 'preprocess',
                     'postprocess', 'coprocess', 'containeroptions'],
-             bool: ['is_eventservice', 'is_eventservicemerge', 'is_hpo', 'noexecstrcnv', 'debug', 'usecontainer', 'use_vp']
+             bool: ['is_eventservice', 'is_eventservicemerge', 'is_hpo', 'noexecstrcnv', 'debug', 'usecontainer',
+                    'use_vp', 'looping_check']
              }
 
     def __init__(self, data, use_kmap=True):
@@ -348,9 +350,11 @@ class JobData(BaseData):
         except Exception:
             ksources = dict([k, self.clean_listdata(data.get(k, ''), list, k, [])] for k in kmap.itervalues())  # Python 2
 
-        # unify scopeOut structure: add scope of log file
-        log_lfn = data.get('logFile')
+        # take the logfile name from the environment first (in case of raythena and aborted pilots)
+        pilot_logfile = os.environ.get('PILOT_LOGFILE', None)
+        log_lfn = pilot_logfile if pilot_logfile else data.get('logFile')
         if log_lfn:
+            # unify scopeOut structure: add scope of log file
             scope_out = []
             for lfn in ksources.get('outFiles', []):
                 if lfn == log_lfn:
@@ -467,7 +471,8 @@ class JobData(BaseData):
             'maxcpucount': 'maxCpuCount',
             'allownooutput': 'allowNoOutput',
             'imagename_jobdef': 'container_name',
-            'containeroptions': 'containerOptions'
+            'containeroptions': 'containerOptions',
+            'looping_check': 'loopingCheck'
         } if use_kmap else {}
 
         self._load_data(data, kmap)

@@ -144,7 +144,9 @@ def put_in_queue(obj, queue):
     if isinstance(obj, JobData):
         obj.add_size(obj.get_size())
 
-    queue.put(obj)
+    # only put the object in the queue if it is not there already
+    if obj not in [_obj for _obj in list(queue.queue)]:
+        queue.put(obj)
 
 
 def purge_queue(queue):

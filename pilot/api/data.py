@@ -45,13 +45,16 @@ class StagingClient(object):
                         'gfalcopy': {'module_name': 'gfal'},
                         'xrdcp': {'module_name': 'xrdcp'},
                         'mv': {'module_name': 'mv'},
+                        'objectstore': {'module_name': 'objectstore'},
+                        's3': {'module_name': 's3'},
+                        'gs': {'module_name': 'gs'},
                         'lsm': {'module_name': 'lsm'}
                         }
 
     # list of allowed schemas to be used for direct acccess mode from REMOTE replicas
     direct_remoteinput_allowed_schemas = ['root', 'https']
     # list of schemas to be used for direct acccess mode from LOCAL replicas
-    direct_localinput_allowed_schemas = ['root', 'dcache', 'dcap', 'file', 'https']
+    direct_localinput_allowed_schemas = ['root', 'dcache', 'dcap', 'file', 'https', 'davs']
     # list of allowed schemas to be used for transfers from REMOTE sites
     remoteinput_allowed_schemas = ['root', 'gsiftp', 'dcap', 'davs', 'srm', 'storm', 'https']
 
@@ -454,7 +457,7 @@ class StagingClient(object):
             if fspec.ddm_activity:  # skip already initialized data
                 continue
             if self.mode == 'stage-in':
-                if config.Payload.executor_type.lower() == 'raythena':
+                if os.environ.get('PILOT_ES_EXECUTOR_TYPE', 'generic') == 'raythena':
                     fspec.status = 'no_transfer'
 
                 try:
@@ -499,7 +502,7 @@ class StagingClient(object):
                 continue
 
             try:
-                self.logger.debug('kwargs=%s' % str(kwargs))
+                #self.logger.debug('kwargs=%s' % str(kwargs))
                 result = self.transfer_files(copytool, remain_files, activity, **kwargs)
                 self.logger.debug('transfer_files() using copytool=%s completed with result=%s' % (copytool, str(result)))
                 show_memory_usage()
@@ -585,9 +588,9 @@ class StagingClient(object):
                 resolve_surl = self.resolve_surl
 
             r = resolve_surl(fspec, protocol, ddmconf, local_dir=local_dir)  # pass ddmconf for possible custom look up at the level of copytool
-            self.logger.debug('r=%s' % str(r))
             if r.get('surl'):
                 fspec.turl = r['surl']
+
             if r.get('ddmendpoint'):
                 fspec.ddmendpoint = r['ddmendpoint']
 
@@ -883,18 +886,27 @@ class StageInClient(StagingClient):
             direct_lan = (fspec.domain == 'lan' and fspec.direct_access_lan and
                           fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.direct_localinput_allowed_schemas))
             direct_wan = (fspec.domain == 'wan' and fspec.direct_access_wan and
-                          fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.remoteinput_allowed_schemas))
+                          fspec.is_directaccess(ensure_replica=True, allowed_replica_schemas=self.direct_remoteinput_allowed_schemas))
+
+            # testing direct acess
+            #if 'CYFRONET' in os.environ.get('PILOT_SITENAME', ''):
+            #    if '.root.' in fspec.lfn:
+            #        direct_lan = True
 
             if not direct_lan and not direct_wan:
                 self.logger.debug('direct lan/wan transfer will not be used for lfn=%s' % fspec.lfn)
             self.logger.debug('lfn=%s, direct_lan=%s, direct_wan=%s, direct_access_lan=%s, direct_access_wan=%s, '
                               'direct_localinput_allowed_schemas=%s, remoteinput_allowed_schemas=%s' %
                               (fspec.lfn, direct_lan, direct_wan, fspec.direct_access_lan, fspec.direct_access_wan,
-                               str(self.direct_localinput_allowed_schemas), str(self.remoteinput_allowed_schemas)))
+                               str(self.direct_localinput_allowed_schemas), str(self.direct_remoteinput_allowed_schemas)))
 
             if direct_lan or direct_wan:
                 fspec.status_code = 0
                 fspec.status = 'remote_io'
+
+                alrb_xcache_proxy = os.environ.get('ALRB_XCACHE_PROXY', None)
+                if alrb_xcache_proxy and direct_lan:  #fspec.is_directaccess(ensure_replica=False):
+                    fspec.turl = '${ALRB_XCACHE_PROXY}' + fspec.turl
 
                 self.logger.info('stage-in: direct access (remote i/o) will be used for lfn=%s (direct_lan=%s, direct_wan=%s), turl=%s' %
                                  (fspec.lfn, direct_lan, direct_wan, fspec.turl))

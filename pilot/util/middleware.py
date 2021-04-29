@@ -52,7 +52,7 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
     except PilotException as e:
         raise e
 
-    if config.Container.use_middleware_container and container_type == 'container':
+    if container_type == 'container':
         # add bits and pieces needed to run the cmd in a container
         pilot_user = environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
@@ -90,18 +90,19 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
             else:
                 raise StageOutFailure(msg)
 
-    # handle errors and file statuses (the stage-in/out scripts write errors and file status to a json file)
+    # handle errors, file statuses, etc (the stage-in/out scripts write errors and file status to a json file)
     try:
-        handle_containerised_errors(job, xdata, label=label)
+        handle_updated_job_object(job, xdata, label=label)
     except PilotException as e:
         raise e
 
 
 def get_script_path(script):
     """
+    Return the path for the script.
 
-    :param script:
-    :return:
+    :param script: script name (string).
+    :return: path (string).
     """
 
     srcdir = environ.get('PILOT_SOURCE_DIR', '.')
@@ -165,7 +166,7 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, ext
     full_script_path = path.join(path.join(job.workdir, script_path))
     copy(full_script_path, final_script_path)
 
-    if config.Container.use_middleware_container and container_type == 'container':
+    if container_type == 'container':
         # correct the path when containers have been used
         final_script_path = path.join('.', script)
         workdir = '/srv'
@@ -183,7 +184,7 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, ext
           (final_script_path, workdir, queue, eventtype, localsite, remotesite, job.produserid.replace(' ', '%20'), job.jobid)
 
     if label == 'stage-in':
-        cmd += "--eventservicemerge=%s --usepcache=%s --usevp=%s --replicadictionary=%s" % \
+        cmd += " --eventservicemerge=%s --usepcache=%s --usevp=%s --replicadictionary=%s" % \
                (job.is_eventservicemerge, job.infosys.queuedata.use_pcache, job.use_vp, config.Container.stagein_replica_dictionary)
         if external_dir:
             cmd += ' --inputdir=%s' % external_dir
@@ -204,8 +205,9 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, ext
     return cmd
 
 
-def handle_containerised_errors(job, xdata, label='stage-in'):
+def handle_updated_job_object(job, xdata, label='stage-in'):
     """
+    Handle updated job object fields.
 
     :param job: job object.
     :param xdata: list of FileSpec objects.
@@ -230,6 +232,7 @@ def handle_containerised_errors(job, xdata, label='stage-in'):
                 fspec.status_code = file_dictionary[fspec.lfn][1]
                 if label == 'stage-in':
                     fspec.turl = file_dictionary[fspec.lfn][2]
+                    fspec.ddmendpoint = file_dictionary[fspec.lfn][3]
                 else:
                     fspec.surl = file_dictionary[fspec.lfn][2]
                     fspec.turl = file_dictionary[fspec.lfn][3]

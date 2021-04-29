@@ -39,8 +39,8 @@ def get_payload_proxy(proxy_outfile_name, voms_role='atlas'):
     """
     try:
         # it assumes that https_setup() was done already
-        res = https.request('{pandaserver}/server/panda/getProxy'.format(pandaserver=config.Pilot.pandaserver),
-                            data={'role': voms_role})
+        url = os.environ.get('PANDA_SERVER_URL', config.Pilot.pandaserver)
+        res = https.request('{pandaserver}/server/panda/getProxy'.format(pandaserver=url), data={'role': voms_role})
 
         if res is None:
             logger.error("Unable to get proxy with role '%s' from panda server" % voms_role)
@@ -325,8 +325,8 @@ def update_for_user_proxy(_cmd, cmd, is_analysis=False):
         # add it instead to the container setup command:
 
         # download and verify payload proxy from the server if desired
-        proxy_verification = os.environ.get('PILOT_PROXY_VERIFICATION', 'True')
-        if config.Pilot.payload_proxy_from_server and is_analysis and proxy_verification == 'True':
+        proxy_verification = os.environ.get('PILOT_PROXY_VERIFICATION') == 'True' and os.environ.get('PILOT_PAYLOAD_PROXY_VERIFICATION') == 'True'
+        if proxy_verification and config.Pilot.payload_proxy_from_server and is_analysis:
             exit_code, diagnostics, x509 = get_and_verify_payload_proxy_from_server(x509)
             if exit_code != 0:  # do not return non-zero exit code if only download fails
                 logger.warning('payload proxy verification failed')
@@ -401,7 +401,7 @@ def get_container_options(container_options):
     :return: updated container command (string).
     """
 
-    is_raythena = config.Payload.executor_type.lower() == 'raythena'
+    is_raythena = os.environ.get('PILOT_ES_EXECUTOR_TYPE', 'generic') == 'raythena'
 
     opts = ''
     # Set the singularity options
