@@ -1896,7 +1896,7 @@ def xcache_activation_command(jobid):
     # ${ALRB_XCACHE_PROXY}root://atlasxrootd-kit.gridka.de:1094//pnfs/gridka.de/../DAOD_FTAG4.24348858._000020.pool.root.1
     command = "%s " % get_asetup(asetup=False)
     # add 'xcache list' which will also kill any orphaned processes lingering in the system
-    command += "lsetup xcache; xcache list; xcache start -d $PWD/%s/xcache -C centos7 --disklow 4g --diskhigh 5g %s" % jobid
+    command += "lsetup xcache; xcache list; xcache start -d $PWD/%s/xcache -C centos7 --disklow 4g --diskhigh 5g" % jobid
 
     return {'command': command, 'args': ''}
 
