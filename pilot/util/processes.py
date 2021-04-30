@@ -322,6 +322,29 @@ def get_number_of_child_processes(pid):
     return n
 
 
+def killpg(pid, sig, args):
+    """
+    Kill given process group with given signal.
+
+    :param pid: process group id (int).
+    :param sig: signal (int).
+    :return:
+    """
+
+    try:
+        os.killpg(int(pid), sig)
+    except Exception as e:
+        logger.warning("failed to execute killpg(): %s" % e)
+        cmd = 'kill -%d %s' % (sig, pid)
+        exit_code, rs, stderr = execute(cmd)
+        if exit_code != 0:
+            logger.warning(rs)
+        else:
+            logger.info("killed orphaned process %s (%s)" % (pid, args))
+    else:
+        logger.info("killed orphaned process group %s (%s)" % (pid, args))
+
+
 def kill_orphans():
     """
     Find and kill all orphan processes belonging to current pilot user.
@@ -359,22 +382,14 @@ def kill_orphans():
             elif ppid == '1':
                 count += 1
                 logger.info("found orphan process: pid=%s, ppid=%s, args='%s'" % (pid, ppid, args))
-                #if args.endswith('bash'):
                 if 'bash' in args or ('python' in args and 'pilot.py' in args):
                     logger.info("will not kill bash process")
                 else:
-                    try:
-                        os.killpg(int(pid), signal.SIGKILL)
-                    except Exception as e:
-                        logger.warning("failed to execute killpg(): %s" % e)
-                        cmd = 'kill -9 %s' % (pid)
-                        exit_code, rs, stderr = execute(cmd)
-                        if exit_code != 0:
-                            logger.warning(rs)
-                        else:
-                            logger.info("killed orphaned process %s (%s)" % (pid, args))
-                    else:
-                        logger.info("killed orphaned process group %s (%s)" % (pid, args))
+                    killpg(pid, signal.SIGTERM, args)
+                    _t = 10
+                    logger.info("sleeping %d s to allow processes to exit" % _t)
+                    time.sleep(_t)
+                    killpg(pid, signal.SIGKILL, args)
 
     if count == 0:
         logger.info("did not find any orphan processes")
