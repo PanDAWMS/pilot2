@@ -264,25 +264,35 @@ def kill_process(pid):
 
     status = False
 
-    try:
-        os.kill(pid, signal.SIGTERM)
-    except Exception as e:
-        logger.warning("exception thrown when killing child process %d with SIGTERM: %s" % (pid, e))
-    else:
-        logger.info("killed process %d with SIGTERM" % pid)
+    # start with soft kill (ignore any returned status)
+    kill(pid, signal.SIGTERM)
 
     _t = 10
     logger.info("sleeping %d s to allow process to exit" % _t)
     time.sleep(_t)
 
     # now do a hard kill just in case some processes haven't gone away
+    status = kill(pid, signal.SIGKILL)
+
+    return status
+
+
+def kill(pid, sig):
+    """
+    Kill the given process with the given signal.
+
+    :param pid: process id (int).
+    :param sig: signal (int).
+    :return status: True when successful (Boolean).
+    """
+
+    status = False
     try:
-        os.kill(pid, signal.SIGKILL)
+        os.kill(pid, sig)
     except Exception as e:
-        logger.warning("exception thrown when killing child process %d with SIGKILL,"
-                       "ignore this if it was already killed by previous SIGTERM: %s" % (pid, e))
+        logger.warning("exception thrown when killing process %d with signal=%d: %s" % (pid, sig, e))
     else:
-        logger.info("killed process %d with SIGKILL" % pid)
+        logger.info("killed process %d with signal=%d" % (pid, sig))
         status = True
 
     return status
