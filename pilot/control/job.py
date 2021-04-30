@@ -1138,8 +1138,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, max_ge
 
     maximum_getjob_requests = 60 if harvester else max_getjob_requests  # 1 s apart (if harvester)
     if getjob_requests > int(maximum_getjob_requests):
-        logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' %
-                       config.Pilot.maximum_getjob_requests)
+        logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' % maximum_getjob_requests)
         # use singleton:
         # instruct the pilot to wrap up quickly
         os.environ['PILOT_WRAP_UP'] = 'QUICKLY'
