@@ -187,7 +187,7 @@ class JobData(BaseData):
 
         # overwrites
         if self.imagename_jobdef and not self.imagename:
-            logger.debug('using imagename_jobdef as imagename (\"%s\")' % (self.imagename_jobdef))
+            logger.debug('using imagename_jobdef as imagename (\"%s\")' % self.imagename_jobdef)
             self.imagename = self.imagename_jobdef
         elif self.imagename_jobdef and self.imagename:
             logger.debug('using imagename from jobparams (ignoring imagename_jobdef)')
@@ -352,7 +352,10 @@ class JobData(BaseData):
 
         # take the logfile name from the environment first (in case of raythena and aborted pilots)
         pilot_logfile = os.environ.get('PILOT_LOGFILE', None)
-        log_lfn = pilot_logfile if pilot_logfile else data.get('logFile')
+        if pilot_logfile:
+            # update the data with the new name
+            data['logFile'] = pilot_logfile
+        log_lfn = data.get('logFile')
         if log_lfn:
             # unify scopeOut structure: add scope of log file
             scope_out = []
