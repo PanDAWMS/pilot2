@@ -61,7 +61,6 @@ def job_monitor_tasks(job, mt, args):
             return exit_code, diagnostics
         else:
             job.cpuconsumptiontime = int(round(cpuconsumptiontime))
-            job.cpuconsumptionunit = "s"
             job.cpuconversionfactor = 1.0
             logger.info('CPU consumption time for pid=%d: %f (rounded to %d)' % (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
 

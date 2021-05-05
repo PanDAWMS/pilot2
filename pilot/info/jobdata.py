@@ -82,7 +82,7 @@ class JobData(BaseData):
     serverstate = ""               # server job states; starting, running, finished, holding, failed
     stageout = ""                  # stage-out identifier, e.g. log
     metadata = {}                  # payload metadata (job report)
-    cpuconsumptionunit = ""        #
+    cpuconsumptionunit = "s"       #
     cpuconsumptiontime = -1        #
     cpuconversionfactor = 1        #
     nevents = 0                    # number of events
@@ -354,7 +354,14 @@ class JobData(BaseData):
         pilot_logfile = os.environ.get('PILOT_LOGFILE', None)
         if pilot_logfile:
             # update the data with the new name
+            old_logfile = data.get('logFile')
             data['logFile'] = pilot_logfile
+            # note: the logFile also appears in the outFiles list
+            outfiles = ksources.get('outFiles', None)
+            if outfiles and old_logfile in outfiles:
+                # search and replace the old logfile name with the new from the environment
+                ksources['outFiles'] = [pilot_logfile if x == old_logfile else x for x in ksources.get('outFiles')]
+
         log_lfn = data.get('logFile')
         if log_lfn:
             # unify scopeOut structure: add scope of log file

@@ -610,7 +610,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     if constime and constime != -1:
         data['cpuConsumptionTime'] = constime
         data['cpuConversionFactor'] = job.cpuconversionfactor
-        data['cpuConsumptionUnit'] = job.cpuconsumptionunit + "+" + get_cpu_model()
+    data['cpuConsumptionUnit'] = job.cpuconsumptionunit + "+" + get_cpu_model()
 
     instruction_sets = has_instruction_sets(['AVX2'])
     if instruction_sets:
