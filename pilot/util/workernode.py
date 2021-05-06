@@ -31,7 +31,7 @@ def get_local_disk_space(path):
 
     disk = 0.0
     # -mP = blocks of 1024*1024 (MB) and POSIX format
-    diskpipe = os.popen("df -mP %s" % (path))
+    diskpipe = os.popen("df -mP %s" % path)
     disks = diskpipe.read()
     if not diskpipe.close():
         try:

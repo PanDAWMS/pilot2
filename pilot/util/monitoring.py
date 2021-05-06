@@ -517,9 +517,9 @@ def check_payload_stdout(job):
                         # remove any lingering input files from the work dir
                         exit_code = remove_files(job.workdir, lfns)
                 else:
-                    logger.info("payload stdout (%s) within allowed size limit (%d B): %d B" % (_stdout, localsizelimit_stdout, fsize))
+                    logger.info("payload log (%s) within allowed size limit (%d B): %d B" % (os.path.basename(filename), localsizelimit_stdout, fsize))
         else:
-            logger.info("skipping file size check of payload stdout file (%s) since it has not been created yet" % _stdout)
+            logger.info("skipping file size check of payload stdout file (%s) since it has not been created yet" % filename)
 
     return exit_code, diagnostics
 
