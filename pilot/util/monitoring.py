@@ -484,6 +484,7 @@ def check_payload_stdout(job):
     # now loop over all files and check each individually (any large enough file will fail the job)
     for filename in file_list:
 
+        logger.debug('check_payload_stdout: filename=%s' % filename)
         if "job.log.tgz" in filename:
             logger.info("skipping file size check of file (%s) since it is a special log file" % (filename))
             continue
@@ -523,10 +524,13 @@ def check_payload_stdout(job):
     return exit_code, diagnostics
 
 
-def check_local_space():
+def check_local_space(initial=True):
     """
     Do we have enough local disk space left to run the job?
+    For the initial local space check, the Pilot will require 2 GB of free space, but during running
+    this can be lowered to 1 GB.
 
+    :param initial: True means a 2 GB limit, False means a 1 GB limit (optional Boolean)
     :return: pilot error code (0 if success, NOLOCALSPACE if failure)
     """
 
@@ -537,7 +541,7 @@ def check_local_space():
     cwd = os.getcwd()
     logger.debug('checking local space on %s' % cwd)
     spaceleft = convert_mb_to_b(get_local_disk_space(cwd))  # B (diskspace is in MB)
-    free_space_limit = human2bytes(config.Pilot.free_space_limit)
+    free_space_limit = human2bytes(config.Pilot.free_space_limit) if initial else human2bytes(config.Pilot.free_space_limit_running)
     if spaceleft <= free_space_limit:
         diagnostics = 'too little space left on local disk to run job: %d B (need > %d B)' %\
                       (spaceleft, free_space_limit)
