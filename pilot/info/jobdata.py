@@ -89,6 +89,7 @@ class JobData(BaseData):
     neventsw = 0                   # number of events written
     dbtime = None                  #
     dbdata = None                  #
+    resimevents = 0                # ReSim events from job report (ATLAS)
     payload = ""                   # payload name
     utilities = {}                 # utility processes { <name>: [<process handle>, number of launches, command string], .. }
     pid = None                     # payload pid

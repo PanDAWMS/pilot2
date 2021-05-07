@@ -330,7 +330,7 @@ def verify_disk_usage(current_time, mt, job):
             return exit_code, diagnostics
 
         # check the local space, if it's enough left to keep running the job
-        exit_code, diagnostics = check_local_space()
+        exit_code, diagnostics = check_local_space(initial=False)
         if exit_code != 0:
             return exit_code, diagnostics
 
@@ -542,6 +542,7 @@ def check_local_space(initial=True):
     logger.debug('checking local space on %s' % cwd)
     spaceleft = convert_mb_to_b(get_local_disk_space(cwd))  # B (diskspace is in MB)
     free_space_limit = human2bytes(config.Pilot.free_space_limit) if initial else human2bytes(config.Pilot.free_space_limit_running)
+
     if spaceleft <= free_space_limit:
         diagnostics = 'too little space left on local disk to run job: %d B (need > %d B)' %\
                       (spaceleft, free_space_limit)

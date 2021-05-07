@@ -2321,8 +2321,8 @@ def fail_monitored_job(job, exit_code, diagnostics, queues, traces):
     """
 
     set_pilot_state(job=job, state="failed")
-    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
-    job.pilorerrordiag = diagnostics
+    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code, msg=diagnostics)
+    job.piloterrordiag = diagnostics
     traces.pilot['error_code'] = exit_code
     put_in_queue(job, queues.failed_payloads)
     logger.info('aborting job monitoring since job state=%s' % job.state)

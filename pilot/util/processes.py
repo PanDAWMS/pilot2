@@ -367,6 +367,26 @@ def kill_orphans():
     #pattern = re.compile(r'(\d+)\s+(\d+)\s+(\S+)')  # Python 3 (added r)
     pattern = re.compile(r'(\d+)\s+(\d+)\s+([\S\s]+)')  # Python 3 (added r)
 
+    # first identify pilot process - any earlier processes should be ignored
+    pilot_pid = None
+    for line in _processes.split('\n'):
+        ids = pattern.search(line)
+        if ids:
+            pid = ids.group(1)
+            args = ids.group(3)
+            try:
+                pid = int(pid)
+            except Exception as e:
+                logger.warning('failed to convert pid to int: %s' % e)
+                continue
+            if 'pilot.py' in args and 'python' in args:
+                pilot_pid = pid
+                break
+
+    # only continue if pilot process was identified
+    if not pilot_pid:
+        return
+
     count = 0
     for line in _processes.split('\n'):
         ids = pattern.search(line)
@@ -374,6 +394,14 @@ def kill_orphans():
             pid = ids.group(1)
             ppid = ids.group(2)
             args = ids.group(3)
+            try:
+                pid = int(pid)
+            except Exception as e:
+                logger.warning('failed to convert pid to int: %s' % e)
+                continue
+            if pid <= pilot_pid:
+                logger.debug('skipping pid=%s (args=%s)' % (pid, args))
+                continue
             if 'cvmfs2' in args:
                 logger.info("ignoring possible orphan process running cvmfs2: pid=%s, ppid=%s, args=\'%s\'" %
                             (pid, ppid, args))
