@@ -1574,7 +1574,7 @@ def retrieve(queues, traces, args):  # noqa: C901
         getjob_requests += 1
 
         if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.getjob_requests,
-                                   args.update_server, args.harvester_submit, args.harvester, args.verify_proxy, traces):
+                                   args.update_server, args.harvester_submitmode, args.harvester, args.verify_proxy, traces):
             # do not set graceful stop if pilot has not finished sending the final job update
             # i.e. wait until SERVER_UPDATE is DONE_FINAL
             check_for_final_server_update(args.update_server)
