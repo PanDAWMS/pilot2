@@ -626,7 +626,6 @@ class Executor(object):
                     state = 'finished' if exit_code == 0 else 'failed'
                 set_pilot_state(job=self.__job, state=state)
                 logger.info('\n\nfinished pid=%s exit_code=%s state=%s\n' % (proc.pid, exit_code, self.__job.state))
-                show_memory_usage()
 
                 # stop the utility command (e.g. a coprocess if necessary
                 if proc_co:
@@ -646,7 +645,7 @@ class Executor(object):
                 if self.__job.utilities != {}:
                     self.stop_utilities()
 
-            if self.__job.is_hpo:
+            if self.__job.is_hpo and state != 'failed':
                 # in case there are more hyper-parameter points, move away the previous log files
                 #self.rename_log_files(iteration)
                 iteration += 1
