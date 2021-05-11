@@ -376,6 +376,20 @@ class JobData(BaseData):
                     scope_out.append(ksources['scopeOut'].pop(0))
             ksources['scopeOut'] = scope_out
 
+        return self._get_all_output(ksources, kmap, log_lfn, data)
+
+    def _get_all_output(self, ksources, kmap, log_lfn, data):
+        """
+        Create lists of FileSpecs for output + log files.
+        Helper function for prepare_output().
+
+        :param ksources:
+        :param kmap:
+        :param log_lfn: log file name (string).
+        :param data:
+        :return: ret_output (list of FileSpec), ret_log (list of FileSpec)
+        """
+
         ret_output, ret_log = [], []
 
         lfns = set()
