@@ -345,6 +345,33 @@ def killpg(pid, sig, args):
         logger.info("killed orphaned process group %s (%s)" % (pid, args))
 
 
+def get_pilot_pid_from_processes(_processes, pattern):
+    """
+    Identify the pilot pid from the list of processes.
+
+    :param _processes: ps output (string).
+    :param pattern: regex pattern (compiled regex string).
+    :return: pilot pid (int or None).
+    """
+
+    pilot_pid = None
+    for line in _processes.split('\n'):
+        ids = pattern.search(line)
+        if ids:
+            pid = ids.group(1)
+            args = ids.group(3)
+            try:
+                pid = int(pid)
+            except Exception as e:
+                logger.warning('failed to convert pid to int: %s' % e)
+                continue
+            if 'pilot.py' in args and 'python' in args:
+                pilot_pid = pid
+                break
+
+    return pilot_pid
+
+
 def kill_orphans():
     """
     Find and kill all orphan processes belonging to current pilot user.
@@ -368,20 +395,7 @@ def kill_orphans():
     pattern = re.compile(r'(\d+)\s+(\d+)\s+([\S\s]+)')  # Python 3 (added r)
 
     # first identify pilot process - any earlier processes should be ignored
-    pilot_pid = None
-    for line in _processes.split('\n'):
-        ids = pattern.search(line)
-        if ids:
-            pid = ids.group(1)
-            args = ids.group(3)
-            try:
-                pid = int(pid)
-            except Exception as e:
-                logger.warning('failed to convert pid to int: %s' % e)
-                continue
-            if 'pilot.py' in args and 'python' in args:
-                pilot_pid = pid
-                break
+    pilot_pid = get_pilot_pid_from_processes(_processes, pattern)
 
     # only continue if pilot process was identified
     if not pilot_pid:
