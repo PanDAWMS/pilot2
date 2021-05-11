@@ -612,6 +612,16 @@ class JobData(BaseData):
 
         logger.info('cleaning jobparams: %s' % value)
 
+        # user specific pre-filtering
+        # (return list of strings not to be filtered, which will be put back in the post-filtering below)
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        try:
+            user = __import__('pilot.user.%s.jobdata' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+            exclusion_list, value = user.jobparams_prefiltering(value)
+        except Exception as e:
+            logger.warning('caught exception in user code: %s' % e)
+            exclusion_list = []
+
         ## clean job params from Pilot1 old-formatted options
         ret = re.sub(r"--overwriteQueuedata={.*?}", "", value)
 
@@ -620,10 +630,6 @@ class JobData(BaseData):
                                              '--overwriteStorageData': lambda x: ast.literal_eval(x) if x else {}}, remove=True)
         self.overwrite_queuedata = options.get('--overwriteQueueData', {})
         self.overwrite_storagedata = options.get('--overwriteStorageData', {})
-
-        #logger.debug('ret(1) = %s' % ret)
-        #ret = ret.replace("\'\"\'\"\'", '\\\"')
-        #logger.debug('ret(2) = %s' % ret)
 
         # extract zip map  ## TO BE FIXED? better to pass it via dedicated sub-option in jobParams from PanDA side: e.g. using --zipmap "content"
         # so that the zip_map can be handles more gracefully via parse_args
@@ -642,9 +648,10 @@ class JobData(BaseData):
         if imagename != "":
             self.imagename = imagename
 
-        # change any replaced " with ' back to " since it will cause problems when executing a container
-        # yes, but this creates a problem for user jobs to run..
-        # ret = ret.replace("\'", '\"')
+        try:
+            ret = user.jobparams_postfiltering(ret, exclusion_list=exclusion_list)
+        except Exception as e:
+            logger.warning('caught exception in user code: %s' % e)
 
         logger.info('cleaned jobparams: %s' % ret)
 
