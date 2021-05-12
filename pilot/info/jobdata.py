@@ -610,6 +610,7 @@ class JobData(BaseData):
         :return: updated job parameters (string).
         """
 
+        #value += ' --athenaopts "HITtoRDO:--nprocs=$ATHENA_CORE_NUMBER" someblah'
         logger.info('cleaning jobparams: %s' % value)
 
         # user specific pre-filtering
@@ -617,10 +618,10 @@ class JobData(BaseData):
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         try:
             user = __import__('pilot.user.%s.jobdata' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
-            exclusion_list, value = user.jobparams_prefiltering(value)
+            exclusions, value = user.jobparams_prefiltering(value)
         except Exception as e:
             logger.warning('caught exception in user code: %s' % e)
-            exclusion_list = []
+            exclusions = {}
 
         ## clean job params from Pilot1 old-formatted options
         ret = re.sub(r"--overwriteQueuedata={.*?}", "", value)
@@ -649,7 +650,7 @@ class JobData(BaseData):
             self.imagename = imagename
 
         try:
-            ret = user.jobparams_postfiltering(ret, exclusion_list=exclusion_list)
+            ret = user.jobparams_postfiltering(ret, exclusions=exclusions)
         except Exception as e:
             logger.warning('caught exception in user code: %s' % e)
 

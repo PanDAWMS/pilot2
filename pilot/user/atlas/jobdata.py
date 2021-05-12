@@ -21,33 +21,34 @@ def jobparams_prefiltering(value):
     ' --athenaopts 'HITtoRDO:--nprocs=$ATHENA_CORE_NUMBER' ' which will prevent the environmental variable to be unfolded.
 
     :param value: job parameters (string).
-    :return: list of fields excluded from job parameters (list), updated job parameters (string).
+    :return: dictionary of fields excluded from job parameters (dictionary), updated job parameters (string).
     """
 
-    exclusion_list = []
+    exclusions = {}
     pattern = re.compile(r' (\-\-athenaopts\ \"?\'?[^"]+\"?\'?)')
     result = re.findall(pattern, value)
     if result:
-        exclusion_list.append(result[0])
+        exclusions['TOBEREPLACED1'] = result[0]
         # remove zip map from final jobparams
-        value = re.sub(pattern, '', value)
+        value = re.sub(pattern, ' TOBEREPLACED1 ', value)  # do not remove the space
 
-    # add more items to the exclusion list as necessary
+    # add more items to the exclusions as necessary
 
-    return exclusion_list, value
+    logger.debug('exclusions = %s' % str(exclusions))
+    return exclusions, value
 
 
-def jobparams_postfiltering(value, exclusion_list=[]):
+def jobparams_postfiltering(value, exclusions={}):
     """
     Perform post-filtering of raw job parameters.
     Any items in the optional exclusion list will be added (space separated) at the end of the job parameters.
 
     :param value: job parameters (string).
-    :param optional exclusion_list: exlusion list from pre-filtering function (list).
+    :param optional exclusion: exclusion dictionary from pre-filtering function (dictinoary).
     :return: updated job parameters (string).
     """
 
-    for item in exclusion_list:
-        value += ' ' + item
+    for item in exclusions:
+        value = value.replace(item, exclusions[item])
 
     return value

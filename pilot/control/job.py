@@ -1150,7 +1150,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, max_ge
     # note: do not run this test at this point if submit mode=PUSH and we are in truePilot mode on ARC
     # (available local space will in this case be checked after the job definition has been read from file, so the
     # pilot can report the error with a server update)
-    proceed_with_local_space_check = False if (submitmode == 'PUSH' and update_server) else True
+    proceed_with_local_space_check = False if (submitmode.lower() == 'push' and update_server) else True
     if proceed_with_local_space_check:
         ec, diagnostics = check_local_space()
         if ec != 0:

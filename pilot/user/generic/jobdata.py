@@ -25,20 +25,20 @@ def jobparams_prefiltering(value):
     :return: list of fields excluded from job parameters (list), updated job parameters (string).
     """
 
-    exclusion_list = []
+    exclusions = {}
 
     # Add regex patterns here
 
-    return exclusion_list, value
+    return exclusions, value
 
 
-def jobparams_postfiltering(value, exclusion_list=[]):
+def jobparams_postfiltering(value, exclusions={}):
     """
     Perform post-filtering of raw job parameters.
     Any items in the optional exclusion list will be added (space separated) at the end of the job parameters.
 
     :param value: job parameters (string).
-    :param optional exclusion_list: exlusion list from pre-filtering function (list).
+    :param optional exclusions: exlusions dictionary from pre-filtering function (dictionary).
     :return: updated job parameters (string).
     """
 
