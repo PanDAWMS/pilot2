@@ -610,7 +610,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     if constime and constime != -1:
         data['cpuConsumptionTime'] = constime
         data['cpuConversionFactor'] = job.cpuconversionfactor
-        data['cpuConsumptionUnit'] = job.cpuconsumptionunit + "+" + get_cpu_model()
+    data['cpuConsumptionUnit'] = job.cpuconsumptionunit + "+" + get_cpu_model()
 
     instruction_sets = has_instruction_sets(['AVX2'])
     if instruction_sets:
@@ -867,7 +867,7 @@ def validate(queues, traces, args):
 
             create_symlink(from_path='../%s' % config.Pilot.pilotlog, to_path=os.path.join(job_dir, config.Pilot.pilotlog))
 
-        # pre-cleanup
+            # pre-cleanup
             pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
             utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user],
                                    0)  # Python 2/3
@@ -879,7 +879,21 @@ def validate(queues, traces, args):
             # store the PanDA job id for the wrapper to pick up
             store_jobid(job.jobid, args.sourcedir)
 
-            put_in_queue(job, queues.validated_jobs)
+            # run the delayed space check now
+            proceed_with_local_space_check = True if (args.harvester_submitmode.lower() == 'push' and args.update_server) else False
+            if proceed_with_local_space_check:
+                logger.debug('pilot will not perform delayed space check')
+                ec, diagnostics = check_local_space()
+                if ec != 0:
+                    traces.pilot['error_code'] = errors.NOLOCALSPACE
+                    # set the corresponding error code
+                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOLOCALSPACE, msg=diagnostics)
+                    logger.debug('Failed to validate job=%s' % job.jobid)
+                    put_in_queue(job, queues.failed_jobs)
+                else:
+                    put_in_queue(job, queues.validated_jobs)
+            else:
+                put_in_queue(job, queues.validated_jobs)
 
         else:
             logger.debug('Failed to validate job=%s' % job.jobid)
@@ -1095,20 +1109,22 @@ def get_dispatcher_dictionary(args):
     return data
 
 
-def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harvester, verify_proxy, traces):
+def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, max_getjob_requests, update_server, submitmode, harvester, verify_proxy, traces):
     """
-    Can we proceed with getjob?
+    Can we proceed with getJob?
     We may not proceed if we have run out of time (timefloor limit), if the proxy is too short, if disk space is too
     small or if we have already proceed enough jobs.
 
-    :param timefloor: timefloor limit (s)
-    :param starttime: start time of retrieve() (s)
-    :param jobnumber: number of downloaded jobs
-    :param getjob_requests: number of getjob requests
-    :param harvester: True if Harvester is used, False otherwise. Affects the max number of getjob reads (from file).
-    :param verify_proxy: True if the proxy should be verified. False otherwise.
+    :param timefloor: timefloor limit (s) (int).
+    :param starttime: start time of retrieve() (s) (int).
+    :param jobnumber: number of downloaded jobs (int).
+    :param getjob_requests: number of getjob requests (int).
+    :param update_server: should pilot update server? (Boolean).
+    :param submitmode: Harvester submit mode, PULL or PUSH (string).
+    :param harvester: True if Harvester is used, False otherwise. Affects the max number of getjob reads (from file) (Boolean).
+    :param verify_proxy: True if the proxy should be verified. False otherwise (Boolean).
     :param traces: traces object (to be able to propagate a proxy error all the way back to the wrapper).
-    :return: Boolean.
+    :return: True if pilot should proceed with getJob (Boolean).
     """
 
     # use for testing thread exceptions. the exception will be picked up by ExcThread run() and caught in job.control()
@@ -1131,15 +1147,21 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, harves
             return False
 
     # is there enough local space to run a job?
-    ec, diagnostics = check_local_space()
-    if ec != 0:
-        traces.pilot['error_code'] = errors.NOLOCALSPACE
-        return False
+    # note: do not run this test at this point if submit mode=PUSH and we are in truePilot mode on ARC
+    # (available local space will in this case be checked after the job definition has been read from file, so the
+    # pilot can report the error with a server update)
+    proceed_with_local_space_check = False if (submitmode.lower() == 'push' and update_server) else True
+    if proceed_with_local_space_check:
+        ec, diagnostics = check_local_space()
+        if ec != 0:
+            traces.pilot['error_code'] = errors.NOLOCALSPACE
+            return False
+    else:
+        logger.debug('pilot will delay local space check until after job definition has been read from file')
 
-    maximum_getjob_requests = 60 if harvester else config.Pilot.maximum_getjob_requests  # 1 s apart (if harvester)
+    maximum_getjob_requests = 60 if harvester else max_getjob_requests  # 1 s apart (if harvester)
     if getjob_requests > int(maximum_getjob_requests):
-        logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' %
-                       config.Pilot.maximum_getjob_requests)
+        logger.warning('reached maximum number of getjob requests (%s) -- will abort pilot' % maximum_getjob_requests)
         # use singleton:
         # instruct the pilot to wrap up quickly
         os.environ['PILOT_WRAP_UP'] = 'QUICKLY'
@@ -1543,7 +1565,7 @@ def retrieve(queues, traces, args):  # noqa: C901
     starttime = time.time()
 
     jobnumber = 0  # number of downloaded jobs
-    getjob_requests = args.getjob_requests
+    getjob_requests = 0
     print_node_info()
 
     while not args.graceful_stop.is_set():
@@ -1551,7 +1573,8 @@ def retrieve(queues, traces, args):  # noqa: C901
         time.sleep(0.5)
         getjob_requests += 1
 
-        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.harvester, args.verify_proxy, traces):
+        if not proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, args.getjob_requests,
+                                   args.update_server, args.harvester_submitmode, args.harvester, args.verify_proxy, traces):
             # do not set graceful stop if pilot has not finished sending the final job update
             # i.e. wait until SERVER_UPDATE is DONE_FINAL
             check_for_final_server_update(args.update_server)
@@ -2322,8 +2345,8 @@ def fail_monitored_job(job, exit_code, diagnostics, queues, traces):
     """
 
     set_pilot_state(job=job, state="failed")
-    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
-    job.pilorerrordiag = diagnostics
+    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code, msg=diagnostics)
+    job.piloterrordiag = diagnostics
     traces.pilot['error_code'] = exit_code
     put_in_queue(job, queues.failed_payloads)
     logger.info('aborting job monitoring since job state=%s' % job.state)

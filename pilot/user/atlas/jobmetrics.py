@@ -11,7 +11,7 @@ from pilot.api import analytics
 from pilot.util.jobmetrics import get_job_metrics_entry
 
 from .cpu import get_core_count
-from .common import get_db_info
+from .common import get_db_info, get_resimevents
 from .utilities import get_memory_monitor_output_filename
 
 import os
@@ -49,10 +49,13 @@ def get_job_metrics_string(job):
     # add metadata from job report
     if job.metadata:
         job.dbtime, job.dbdata = get_db_info(job.metadata)
+        job.resimevents = get_resimevents(job.metadata)
     if job.dbtime and job.dbtime != "":
         job_metrics += get_job_metrics_entry("dbTime", job.dbtime)
     if job.dbdata and job.dbdata != "":
         job_metrics += get_job_metrics_entry("dbData", job.dbdata)
+    if job.resimevents:
+        job_metrics += get_job_metrics_entry("resimevents", job.resimevents)
 
     # get the max disk space used by the payload (at the end of a job)
     if job.state == "finished" or job.state == "failed" or job.state == "holding":
