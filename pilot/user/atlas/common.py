@@ -1402,6 +1402,31 @@ def get_number_of_events_deprecated(jobreport_dictionary):  # TODO: remove this 
     return nmax
 
 
+def get_resimevents(jobreport_dictionary):
+    """
+    Extract and add up the resimevents from the job report.
+    This information is reported with the jobMetrics.
+
+    :param jobreport_dictionary: job report dictionary.
+    :return: resimevents (int)
+    """
+
+    resimevents = 0
+
+    executor_dictionary = get_executor_dictionary(jobreport_dictionary)
+    if executor_dictionary != {}:
+        for format in list(executor_dictionary.keys()):  # "ReSim", Python 2/3
+            if 'resimevents' in executor_dictionary[format]:
+                try:
+                    resimevents = int(executor_dictionary[format]['resimevents'])
+                except Exception:
+                    pass
+                else:
+                    break
+
+    return resimevents
+
+
 def get_db_info(jobreport_dictionary):
     """
     Extract and add up the DB info from the job report.
@@ -1428,14 +1453,14 @@ def get_db_info(jobreport_dictionary):
                 except Exception:
                     pass
             else:
-                logger.warning("format %s has no such key: dbData" % (format))
+                logger.warning("format %s has no such key: dbData" % format)
             if 'dbTime' in executor_dictionary[format]:
                 try:
                     db_time += executor_dictionary[format]['dbTime']
                 except Exception:
                     pass
             else:
-                logger.warning("format %s has no such key: dbTime" % (format))
+                logger.warning("format %s has no such key: dbTime" % format)
 
     return db_time, db_data
 

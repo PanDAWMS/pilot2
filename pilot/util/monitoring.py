@@ -61,7 +61,6 @@ def job_monitor_tasks(job, mt, args):
             return exit_code, diagnostics
         else:
             job.cpuconsumptiontime = int(round(cpuconsumptiontime))
-            job.cpuconsumptionunit = "s"
             job.cpuconversionfactor = 1.0
             logger.info('CPU consumption time for pid=%d: %f (rounded to %d)' % (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
 
@@ -331,7 +330,7 @@ def verify_disk_usage(current_time, mt, job):
             return exit_code, diagnostics
 
         # check the local space, if it's enough left to keep running the job
-        exit_code, diagnostics = check_local_space()
+        exit_code, diagnostics = check_local_space(initial=False)
         if exit_code != 0:
             return exit_code, diagnostics
 
@@ -485,6 +484,7 @@ def check_payload_stdout(job):
     # now loop over all files and check each individually (any large enough file will fail the job)
     for filename in file_list:
 
+        logger.debug('check_payload_stdout: filename=%s' % filename)
         if "job.log.tgz" in filename:
             logger.info("skipping file size check of file (%s) since it is a special log file" % (filename))
             continue
@@ -517,17 +517,20 @@ def check_payload_stdout(job):
                         # remove any lingering input files from the work dir
                         exit_code = remove_files(job.workdir, lfns)
                 else:
-                    logger.info("payload stdout (%s) within allowed size limit (%d B): %d B" % (_stdout, localsizelimit_stdout, fsize))
+                    logger.info("payload log (%s) within allowed size limit (%d B): %d B" % (os.path.basename(filename), localsizelimit_stdout, fsize))
         else:
-            logger.info("skipping file size check of payload stdout file (%s) since it has not been created yet" % _stdout)
+            logger.info("skipping file size check of payload stdout file (%s) since it has not been created yet" % filename)
 
     return exit_code, diagnostics
 
 
-def check_local_space():
+def check_local_space(initial=True):
     """
     Do we have enough local disk space left to run the job?
+    For the initial local space check, the Pilot will require 2 GB of free space, but during running
+    this can be lowered to 1 GB.
 
+    :param initial: True means a 2 GB limit, False means a 1 GB limit (optional Boolean)
     :return: pilot error code (0 if success, NOLOCALSPACE if failure)
     """
 
@@ -538,7 +541,8 @@ def check_local_space():
     cwd = os.getcwd()
     logger.debug('checking local space on %s' % cwd)
     spaceleft = convert_mb_to_b(get_local_disk_space(cwd))  # B (diskspace is in MB)
-    free_space_limit = human2bytes(config.Pilot.free_space_limit)
+    free_space_limit = human2bytes(config.Pilot.free_space_limit) if initial else human2bytes(config.Pilot.free_space_limit_running)
+
     if spaceleft <= free_space_limit:
         diagnostics = 'too little space left on local disk to run job: %d B (need > %d B)' %\
                       (spaceleft, free_space_limit)

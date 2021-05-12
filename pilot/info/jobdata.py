@@ -82,13 +82,14 @@ class JobData(BaseData):
     serverstate = ""               # server job states; starting, running, finished, holding, failed
     stageout = ""                  # stage-out identifier, e.g. log
     metadata = {}                  # payload metadata (job report)
-    cpuconsumptionunit = ""        #
+    cpuconsumptionunit = "s"       #
     cpuconsumptiontime = -1        #
     cpuconversionfactor = 1        #
     nevents = 0                    # number of events
     neventsw = 0                   # number of events written
     dbtime = None                  #
     dbdata = None                  #
+    resimevents = 0                # ReSim events from job report (ATLAS)
     payload = ""                   # payload name
     utilities = {}                 # utility processes { <name>: [<process handle>, number of launches, command string], .. }
     pid = None                     # payload pid
@@ -187,7 +188,7 @@ class JobData(BaseData):
 
         # overwrites
         if self.imagename_jobdef and not self.imagename:
-            logger.debug('using imagename_jobdef as imagename (\"%s\")' % (self.imagename_jobdef))
+            logger.debug('using imagename_jobdef as imagename (\"%s\")' % self.imagename_jobdef)
             self.imagename = self.imagename_jobdef
         elif self.imagename_jobdef and self.imagename:
             logger.debug('using imagename from jobparams (ignoring imagename_jobdef)')
@@ -352,7 +353,17 @@ class JobData(BaseData):
 
         # take the logfile name from the environment first (in case of raythena and aborted pilots)
         pilot_logfile = os.environ.get('PILOT_LOGFILE', None)
-        log_lfn = pilot_logfile if pilot_logfile else data.get('logFile')
+        if pilot_logfile:
+            # update the data with the new name
+            old_logfile = data.get('logFile')
+            data['logFile'] = pilot_logfile
+            # note: the logFile also appears in the outFiles list
+            outfiles = ksources.get('outFiles', None)
+            if outfiles and old_logfile in outfiles:
+                # search and replace the old logfile name with the new from the environment
+                ksources['outFiles'] = [pilot_logfile if x == old_logfile else x for x in ksources.get('outFiles')]
+
+        log_lfn = data.get('logFile')
         if log_lfn:
             # unify scopeOut structure: add scope of log file
             scope_out = []
@@ -364,6 +375,20 @@ class JobData(BaseData):
                         raise Exception('Failed to extract scopeOut parameter from Job structure sent by Panda, please check input format!')
                     scope_out.append(ksources['scopeOut'].pop(0))
             ksources['scopeOut'] = scope_out
+
+        return self._get_all_output(ksources, kmap, log_lfn, data)
+
+    def _get_all_output(self, ksources, kmap, log_lfn, data):
+        """
+        Create lists of FileSpecs for output + log files.
+        Helper function for prepare_output().
+
+        :param ksources:
+        :param kmap:
+        :param log_lfn: log file name (string).
+        :param data:
+        :return: ret_output (list of FileSpec), ret_log (list of FileSpec)
+        """
 
         ret_output, ret_log = [], []
 
@@ -585,7 +610,18 @@ class JobData(BaseData):
         :return: updated job parameters (string).
         """
 
+        #value += ' --athenaopts "HITtoRDO:--nprocs=$ATHENA_CORE_NUMBER" someblah'
         logger.info('cleaning jobparams: %s' % value)
+
+        # user specific pre-filtering
+        # (return list of strings not to be filtered, which will be put back in the post-filtering below)
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        try:
+            user = __import__('pilot.user.%s.jobdata' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+            exclusions, value = user.jobparams_prefiltering(value)
+        except Exception as e:
+            logger.warning('caught exception in user code: %s' % e)
+            exclusions = {}
 
         ## clean job params from Pilot1 old-formatted options
         ret = re.sub(r"--overwriteQueuedata={.*?}", "", value)
@@ -595,10 +631,6 @@ class JobData(BaseData):
                                              '--overwriteStorageData': lambda x: ast.literal_eval(x) if x else {}}, remove=True)
         self.overwrite_queuedata = options.get('--overwriteQueueData', {})
         self.overwrite_storagedata = options.get('--overwriteStorageData', {})
-
-        #logger.debug('ret(1) = %s' % ret)
-        #ret = ret.replace("\'\"\'\"\'", '\\\"')
-        #logger.debug('ret(2) = %s' % ret)
 
         # extract zip map  ## TO BE FIXED? better to pass it via dedicated sub-option in jobParams from PanDA side: e.g. using --zipmap "content"
         # so that the zip_map can be handles more gracefully via parse_args
@@ -617,9 +649,10 @@ class JobData(BaseData):
         if imagename != "":
             self.imagename = imagename
 
-        # change any replaced " with ' back to " since it will cause problems when executing a container
-        # yes, but this creates a problem for user jobs to run..
-        # ret = ret.replace("\'", '\"')
+        try:
+            ret = user.jobparams_postfiltering(ret, exclusions=exclusions)
+        except Exception as e:
+            logger.warning('caught exception in user code: %s' % e)
 
         logger.info('cleaned jobparams: %s' % ret)
 
