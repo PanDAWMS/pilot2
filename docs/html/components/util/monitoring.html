@@ -4,11 +4,12 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>monitoring &#8212; Pilot 2  documentation</title>
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
     <script src="../../_static/doctools.js"></script>
@@ -32,22 +33,27 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="module-pilot.util.monitoring">
+  <section id="module-pilot.util.monitoring">
 <span id="monitoring"></span><h1>monitoring<a class="headerlink" href="#module-pilot.util.monitoring" title="Permalink to this headline">¶</a></h1>
 <dl class="py function">
-<dt id="pilot.util.monitoring.check_local_space">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">check_local_space</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#check_local_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.check_local_space" title="Permalink to this definition">¶</a></dt>
-<dd><p>Do we have enough local disk space left to run the job?</p>
+<dt class="sig sig-object py" id="pilot.util.monitoring.check_local_space">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">check_local_space</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">initial</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#check_local_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.check_local_space" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do we have enough local disk space left to run the job?
+For the initial local space check, the Pilot will require 2 GB of free space, but during running
+this can be lowered to 1 GB.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>pilot error code (0 if success, NOLOCALSPACE if failure)</p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>initial</strong> – True means a 2 GB limit, False means a 1 GB limit (optional Boolean)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>pilot error code (0 if success, NOLOCALSPACE if failure)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.check_output_file_sizes">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">check_output_file_sizes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#check_output_file_sizes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.check_output_file_sizes" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.check_output_file_sizes">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">check_output_file_sizes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#check_output_file_sizes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.check_output_file_sizes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Are the output files within the allowed size limits?</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -60,8 +66,8 @@
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.check_payload_stdout">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">check_payload_stdout</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#check_payload_stdout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.check_payload_stdout" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.check_payload_stdout">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">check_payload_stdout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#check_payload_stdout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.check_payload_stdout" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check the size of the payload stdout.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -74,8 +80,8 @@
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.check_work_dir">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">check_work_dir</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#check_work_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.check_work_dir" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.check_work_dir">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">check_work_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#check_work_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.check_work_dir" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check the size of the work directory.
 The function also updates the workdirsizes list in the job object.</p>
 <dl class="field-list simple">
@@ -89,8 +95,8 @@ The function also updates the workdirsizes list in the job object.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.display_oom_info">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">display_oom_info</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">payload_pid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#display_oom_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.display_oom_info" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.display_oom_info">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">display_oom_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">payload_pid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#display_oom_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.display_oom_info" title="Permalink to this definition">¶</a></dt>
 <dd><p>Display OOM process info.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -100,8 +106,8 @@ The function also updates the workdirsizes list in the job object.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.get_exception_error_code">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">get_exception_error_code</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">diagnostics</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#get_exception_error_code"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.get_exception_error_code" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.get_exception_error_code">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">get_exception_error_code</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">diagnostics</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#get_exception_error_code"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.get_exception_error_code" title="Permalink to this definition">¶</a></dt>
 <dd><p>Identify a suitable error code to a given exception.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -114,8 +120,8 @@ The function also updates the workdirsizes list in the job object.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.get_local_size_limit_stdout">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">get_local_size_limit_stdout</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#get_local_size_limit_stdout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.get_local_size_limit_stdout" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.get_local_size_limit_stdout">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">get_local_size_limit_stdout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bytes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#get_local_size_limit_stdout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.get_local_size_limit_stdout" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a proper value for the local size limit for payload stdout (from config file).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -128,8 +134,8 @@ The function also updates the workdirsizes list in the job object.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.get_max_allowed_work_dir_size">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">get_max_allowed_work_dir_size</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queuedata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#get_max_allowed_work_dir_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.get_max_allowed_work_dir_size" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.get_max_allowed_work_dir_size">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">get_max_allowed_work_dir_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queuedata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#get_max_allowed_work_dir_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.get_max_allowed_work_dir_size" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the maximum allowed size of the work directory.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -142,8 +148,8 @@ The function also updates the workdirsizes list in the job object.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.get_max_input_size">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">get_max_input_size</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queuedata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">megabyte</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#get_max_input_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.get_max_input_size" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.get_max_input_size">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">get_max_input_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queuedata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">megabyte</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#get_max_input_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.get_max_input_size" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a proper maxinputsize value.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -159,8 +165,8 @@ The function also updates the workdirsizes list in the job object.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.get_score">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">get_score</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#get_score"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.get_score" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.get_score">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">get_score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#get_score"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.get_score" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the OOM process score.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -173,8 +179,8 @@ The function also updates the workdirsizes list in the job object.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.job_monitor_tasks">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">job_monitor_tasks</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#job_monitor_tasks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.job_monitor_tasks" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.job_monitor_tasks">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">job_monitor_tasks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#job_monitor_tasks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.job_monitor_tasks" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform the tasks for the job monitoring.
 The function is called once a minute. Individual checks will be performed at any desired time interval (&gt;= 1
 minute).</p>
@@ -193,8 +199,8 @@ minute).</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.set_number_used_cores">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">set_number_used_cores</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#set_number_used_cores"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.set_number_used_cores" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.set_number_used_cores">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">set_number_used_cores</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#set_number_used_cores"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.set_number_used_cores" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the number of cores used by the payload.
 The number of actual used cores is reported with job metrics (if set).</p>
 <dl class="field-list simple">
@@ -208,8 +214,8 @@ The number of actual used cores is reported with job metrics (if set).</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.should_abort_payload">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">should_abort_payload</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#should_abort_payload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.should_abort_payload" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.should_abort_payload">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">should_abort_payload</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#should_abort_payload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.should_abort_payload" title="Permalink to this definition">¶</a></dt>
 <dd><p>Should the pilot abort the payload?
 In the case of Raythena, the Driver is monitoring the time to end jobs and may decide
 that the pilot should abort the payload. Internally, this is achieved by letting the Actors
@@ -229,8 +235,8 @@ in the run directory.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.utility_monitor">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">utility_monitor</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#utility_monitor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.utility_monitor" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.utility_monitor">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">utility_monitor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#utility_monitor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.utility_monitor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make sure that any utility commands are still running.
 In case a utility tool has crashed, this function may restart the process.
 The function is used by the job monitor thread.</p>
@@ -245,8 +251,8 @@ The function is used by the job monitor thread.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.verify_disk_usage">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">verify_disk_usage</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#verify_disk_usage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.verify_disk_usage" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.verify_disk_usage">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">verify_disk_usage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#verify_disk_usage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.verify_disk_usage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Verify the disk usage.
 The function checks 1) payload stdout size, 2) local space, 3) work directory size, 4) output file sizes.</p>
 <dl class="field-list simple">
@@ -264,8 +270,8 @@ The function checks 1) payload stdout size, 2) local space, 3) work directory si
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.verify_looping_job">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">verify_looping_job</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#verify_looping_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.verify_looping_job" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.verify_looping_job">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">verify_looping_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#verify_looping_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.verify_looping_job" title="Permalink to this definition">¶</a></dt>
 <dd><p>Verify that the job is not looping.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -282,8 +288,8 @@ The function checks 1) payload stdout size, 2) local space, 3) work directory si
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.verify_memory_usage">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">verify_memory_usage</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#verify_memory_usage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.verify_memory_usage" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.verify_memory_usage">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">verify_memory_usage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#verify_memory_usage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.verify_memory_usage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Verify the memory usage (optional).
 Note: this function relies on a stand-alone memory monitor tool that may be executed by the Pilot.</p>
 <dl class="field-list simple">
@@ -301,8 +307,8 @@ Note: this function relies on a stand-alone memory monitor tool that may be exec
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.verify_running_processes">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">verify_running_processes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#verify_running_processes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.verify_running_processes" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.verify_running_processes">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">verify_running_processes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#verify_running_processes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.verify_running_processes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Verify the number of running processes.
 The function sets the environmental variable PILOT_MAXNPROC to the maximum number of found (child) processes
 corresponding to the main payload process id.
@@ -322,8 +328,8 @@ The function does not return an error code (always returns exit code 0).</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.monitoring.verify_user_proxy">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></code><code class="sig-name descname"><span class="pre">verify_user_proxy</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#verify_user_proxy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.verify_user_proxy" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.monitoring.verify_user_proxy">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.monitoring.</span></span><span class="sig-name descname"><span class="pre">verify_user_proxy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/monitoring.html#verify_user_proxy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.monitoring.verify_user_proxy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Verify the user proxy.
 This function is called by the job_monitor_tasks() function.</p>
 <dl class="field-list simple">
@@ -339,7 +345,7 @@ This function is called by the job_monitor_tasks() function.</p>
 </dl>
 </dd></dl>
 
-</div>
+</section>
 
 
           </div>
@@ -413,7 +419,7 @@ This function is called by the job_monitor_tasks() function.</p>
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

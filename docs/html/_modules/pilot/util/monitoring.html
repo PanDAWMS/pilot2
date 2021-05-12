@@ -6,9 +6,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>pilot.util.monitoring &#8212; Pilot 2  documentation</title>
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
     <script src="../../../_static/jquery.js"></script>
     <script src="../../../_static/underscore.js"></script>
     <script src="../../../_static/doctools.js"></script>
@@ -94,7 +94,6 @@
             <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptiontime</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">cpuconsumptiontime</span><span class="p">))</span>
-            <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptionunit</span> <span class="o">=</span> <span class="s2">&quot;s&quot;</span>
             <span class="n">job</span><span class="o">.</span><span class="n">cpuconversionfactor</span> <span class="o">=</span> <span class="mf">1.0</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;CPU consumption time for pid=</span><span class="si">%d</span><span class="s1">: </span><span class="si">%f</span><span class="s1"> (rounded to </span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">cpuconsumptiontime</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptiontime</span><span class="p">))</span>
 
@@ -364,7 +363,7 @@
             <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
 
         <span class="c1"># check the local space, if it&#39;s enough left to keep running the job</span>
-        <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">check_local_space</span><span class="p">()</span>
+        <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">check_local_space</span><span class="p">(</span><span class="n">initial</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
 
@@ -518,6 +517,7 @@
     <span class="c1"># now loop over all files and check each individually (any large enough file will fail the job)</span>
     <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">file_list</span><span class="p">:</span>
 
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;check_payload_stdout: filename=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">filename</span><span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;job.log.tgz&quot;</span> <span class="ow">in</span> <span class="n">filename</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;skipping file size check of file (</span><span class="si">%s</span><span class="s2">) since it is a special log file&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">filename</span><span class="p">))</span>
             <span class="k">continue</span>
@@ -550,17 +550,20 @@
                         <span class="c1"># remove any lingering input files from the work dir</span>
                         <span class="n">exit_code</span> <span class="o">=</span> <span class="n">remove_files</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">lfns</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;payload stdout (</span><span class="si">%s</span><span class="s2">) within allowed size limit (</span><span class="si">%d</span><span class="s2"> B): </span><span class="si">%d</span><span class="s2"> B&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_stdout</span><span class="p">,</span> <span class="n">localsizelimit_stdout</span><span class="p">,</span> <span class="n">fsize</span><span class="p">))</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;payload log (</span><span class="si">%s</span><span class="s2">) within allowed size limit (</span><span class="si">%d</span><span class="s2"> B): </span><span class="si">%d</span><span class="s2"> B&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">filename</span><span class="p">),</span> <span class="n">localsizelimit_stdout</span><span class="p">,</span> <span class="n">fsize</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;skipping file size check of payload stdout file (</span><span class="si">%s</span><span class="s2">) since it has not been created yet&quot;</span> <span class="o">%</span> <span class="n">_stdout</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;skipping file size check of payload stdout file (</span><span class="si">%s</span><span class="s2">) since it has not been created yet&quot;</span> <span class="o">%</span> <span class="n">filename</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span></div>
 
 
-<div class="viewcode-block" id="check_local_space"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.check_local_space">[docs]</a><span class="k">def</span> <span class="nf">check_local_space</span><span class="p">():</span>
+<div class="viewcode-block" id="check_local_space"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.check_local_space">[docs]</a><span class="k">def</span> <span class="nf">check_local_space</span><span class="p">(</span><span class="n">initial</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Do we have enough local disk space left to run the job?</span>
+<span class="sd">    For the initial local space check, the Pilot will require 2 GB of free space, but during running</span>
+<span class="sd">    this can be lowered to 1 GB.</span>
 
+<span class="sd">    :param initial: True means a 2 GB limit, False means a 1 GB limit (optional Boolean)</span>
 <span class="sd">    :return: pilot error code (0 if success, NOLOCALSPACE if failure)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -571,7 +574,8 @@
     <span class="n">cwd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;checking local space on </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cwd</span><span class="p">)</span>
     <span class="n">spaceleft</span> <span class="o">=</span> <span class="n">convert_mb_to_b</span><span class="p">(</span><span class="n">get_local_disk_space</span><span class="p">(</span><span class="n">cwd</span><span class="p">))</span>  <span class="c1"># B (diskspace is in MB)</span>
-    <span class="n">free_space_limit</span> <span class="o">=</span> <span class="n">human2bytes</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">free_space_limit</span><span class="p">)</span>
+    <span class="n">free_space_limit</span> <span class="o">=</span> <span class="n">human2bytes</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">free_space_limit</span><span class="p">)</span> <span class="k">if</span> <span class="n">initial</span> <span class="k">else</span> <span class="n">human2bytes</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">free_space_limit_running</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">spaceleft</span> <span class="o">&lt;=</span> <span class="n">free_space_limit</span><span class="p">:</span>
         <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;too little space left on local disk to run job: </span><span class="si">%d</span><span class="s1"> B (need &gt; </span><span class="si">%d</span><span class="s1"> B)&#39;</span> <span class="o">%</span>\
                       <span class="p">(</span><span class="n">spaceleft</span><span class="p">,</span> <span class="n">free_space_limit</span><span class="p">)</span>
@@ -781,7 +785,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

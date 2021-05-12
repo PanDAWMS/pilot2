@@ -4,11 +4,12 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>xrdcp &#8212; Pilot 2  documentation</title>
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
     <script src="../../_static/doctools.js"></script>
@@ -32,24 +33,24 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="module-pilot.copytool.xrdcp">
+  <section id="module-pilot.copytool.xrdcp">
 <span id="xrdcp"></span><h1>xrdcp<a class="headerlink" href="#module-pilot.copytool.xrdcp" title="Permalink to this headline">¶</a></h1>
 <dl class="py function">
-<dt id="pilot.copytool.xrdcp._resolve_checksum_option">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.xrdcp.</span></code><code class="sig-name descname"><span class="pre">_resolve_checksum_option</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">setup</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/xrdcp.html#_resolve_checksum_option"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.xrdcp._resolve_checksum_option" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.xrdcp._resolve_checksum_option">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.xrdcp.</span></span><span class="sig-name descname"><span class="pre">_resolve_checksum_option</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">setup</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/xrdcp.html#_resolve_checksum_option"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.xrdcp._resolve_checksum_option" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.xrdcp._stagefile">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.xrdcp.</span></code><code class="sig-name descname"><span class="pre">_stagefile</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coption</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">destination</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filesize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_stagein</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/xrdcp.html#_stagefile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.xrdcp._stagefile" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.xrdcp._stagefile">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.xrdcp.</span></span><span class="sig-name descname"><span class="pre">_stagefile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coption</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">destination</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filesize</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_stagein</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/xrdcp.html#_stagefile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.xrdcp._stagefile" title="Permalink to this definition">¶</a></dt>
 <dd><p>Stage the file (stagein or stageout)
 :return: destination file details (checksum, checksum_type) in case of success, throw exception in case of failure
 :raise: PilotException in case of controlled error</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.xrdcp.copy_in">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.xrdcp.</span></code><code class="sig-name descname"><span class="pre">copy_in</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/xrdcp.html#copy_in"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.xrdcp.copy_in" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.xrdcp.copy_in">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.xrdcp.</span></span><span class="sig-name descname"><span class="pre">copy_in</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/xrdcp.html#copy_in"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.xrdcp.copy_in" title="Permalink to this definition">¶</a></dt>
 <dd><p>Download given files using xrdcp command.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -62,8 +63,8 @@
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.xrdcp.copy_out">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.xrdcp.</span></code><code class="sig-name descname"><span class="pre">copy_out</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/xrdcp.html#copy_out"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.xrdcp.copy_out" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.xrdcp.copy_out">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.xrdcp.</span></span><span class="sig-name descname"><span class="pre">copy_out</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/xrdcp.html#copy_out"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.xrdcp.copy_out" title="Permalink to this definition">¶</a></dt>
 <dd><p>Upload given files using xrdcp command.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -76,8 +77,8 @@
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.xrdcp.get_file_info_from_output">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.xrdcp.</span></code><code class="sig-name descname"><span class="pre">get_file_info_from_output</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/xrdcp.html#get_file_info_from_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.xrdcp.get_file_info_from_output" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.xrdcp.get_file_info_from_output">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.xrdcp.</span></span><span class="sig-name descname"><span class="pre">get_file_info_from_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/xrdcp.html#get_file_info_from_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.xrdcp.get_file_info_from_output" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extract file size, checksum value from xrdcp –chksum command output</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -87,16 +88,16 @@
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.xrdcp.is_valid_for_copy_in">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.xrdcp.</span></code><code class="sig-name descname"><span class="pre">is_valid_for_copy_in</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/xrdcp.html#is_valid_for_copy_in"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.xrdcp.is_valid_for_copy_in" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.xrdcp.is_valid_for_copy_in">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.xrdcp.</span></span><span class="sig-name descname"><span class="pre">is_valid_for_copy_in</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/xrdcp.html#is_valid_for_copy_in"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.xrdcp.is_valid_for_copy_in" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.xrdcp.is_valid_for_copy_out">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.xrdcp.</span></code><code class="sig-name descname"><span class="pre">is_valid_for_copy_out</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/xrdcp.html#is_valid_for_copy_out"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.xrdcp.is_valid_for_copy_out" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.xrdcp.is_valid_for_copy_out">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.xrdcp.</span></span><span class="sig-name descname"><span class="pre">is_valid_for_copy_out</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/xrdcp.html#is_valid_for_copy_out"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.xrdcp.is_valid_for_copy_out" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-</div>
+</section>
 
 
           </div>
@@ -170,7 +171,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

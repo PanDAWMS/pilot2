@@ -4,11 +4,12 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>generic &#8212; Pilot 2  documentation</title>
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
     <script src="../../_static/doctools.js"></script>
@@ -31,11 +32,11 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="module-pilot.workflow.generic">
+  <section id="module-pilot.workflow.generic">
 <span id="generic"></span><h1>generic<a class="headerlink" href="#module-pilot.workflow.generic" title="Permalink to this headline">¶</a></h1>
 <dl class="py function">
-<dt id="pilot.workflow.generic.interrupt">
-<code class="sig-prename descclassname"><span class="pre">pilot.workflow.generic.</span></code><code class="sig-name descname"><span class="pre">interrupt</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/workflow/generic.html#interrupt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.workflow.generic.interrupt" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.workflow.generic.interrupt">
+<span class="sig-prename descclassname"><span class="pre">pilot.workflow.generic.</span></span><span class="sig-name descname"><span class="pre">interrupt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">signum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/workflow/generic.html#interrupt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.workflow.generic.interrupt" title="Permalink to this definition">¶</a></dt>
 <dd><p>Interrupt function on the receiving end of kill signals.
 This function is forwarded any incoming signals (SIGINT, SIGTERM, etc) and will set abort_job which instructs
 the threads to abort the job.</p>
@@ -54,8 +55,8 @@ the threads to abort the job.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.workflow.generic.register_signals">
-<code class="sig-prename descclassname"><span class="pre">pilot.workflow.generic.</span></code><code class="sig-name descname"><span class="pre">register_signals</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">signals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/workflow/generic.html#register_signals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.workflow.generic.register_signals" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.workflow.generic.register_signals">
+<span class="sig-prename descclassname"><span class="pre">pilot.workflow.generic.</span></span><span class="sig-name descname"><span class="pre">register_signals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">signals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/workflow/generic.html#register_signals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.workflow.generic.register_signals" title="Permalink to this definition">¶</a></dt>
 <dd><p>Register kill signals for intercept function.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -71,8 +72,8 @@ the threads to abort the job.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.workflow.generic.run">
-<code class="sig-prename descclassname"><span class="pre">pilot.workflow.generic.</span></code><code class="sig-name descname"><span class="pre">run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/workflow/generic.html#run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.workflow.generic.run" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.workflow.generic.run">
+<span class="sig-prename descclassname"><span class="pre">pilot.workflow.generic.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/workflow/generic.html#run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.workflow.generic.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Main execution function for the generic workflow.</p>
 <p>The function sets up the internal queues which handle the flow of jobs.</p>
 <dl class="field-list simple">
@@ -85,7 +86,7 @@ the threads to abort the job.</p>
 </dl>
 </dd></dl>
 
-</div>
+</section>
 
 
           </div>
@@ -158,7 +159,7 @@ the threads to abort the job.</p>
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

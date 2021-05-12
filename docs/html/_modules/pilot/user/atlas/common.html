@@ -6,9 +6,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>pilot.user.atlas.common &#8212; Pilot 2  documentation</title>
-    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/alabaster.css" />
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
     <script src="../../../../_static/jquery.js"></script>
     <script src="../../../../_static/underscore.js"></script>
     <script src="../../../../_static/doctools.js"></script>
@@ -1435,6 +1435,31 @@
     <span class="k">return</span> <span class="n">nmax</span></div>
 
 
+<div class="viewcode-block" id="get_resimevents"><a class="viewcode-back" href="../../../../components/user/atlas/common.html#pilot.user.atlas.common.get_resimevents">[docs]</a><span class="k">def</span> <span class="nf">get_resimevents</span><span class="p">(</span><span class="n">jobreport_dictionary</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract and add up the resimevents from the job report.</span>
+<span class="sd">    This information is reported with the jobMetrics.</span>
+
+<span class="sd">    :param jobreport_dictionary: job report dictionary.</span>
+<span class="sd">    :return: resimevents (int)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">resimevents</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">executor_dictionary</span> <span class="o">=</span> <span class="n">get_executor_dictionary</span><span class="p">(</span><span class="n">jobreport_dictionary</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">executor_dictionary</span> <span class="o">!=</span> <span class="p">{}:</span>
+        <span class="k">for</span> <span class="nb">format</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">executor_dictionary</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>  <span class="c1"># &quot;ReSim&quot;, Python 2/3</span>
+            <span class="k">if</span> <span class="s1">&#39;resimevents&#39;</span> <span class="ow">in</span> <span class="n">executor_dictionary</span><span class="p">[</span><span class="nb">format</span><span class="p">]:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">resimevents</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">executor_dictionary</span><span class="p">[</span><span class="nb">format</span><span class="p">][</span><span class="s1">&#39;resimevents&#39;</span><span class="p">])</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="k">pass</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">break</span>
+
+    <span class="k">return</span> <span class="n">resimevents</span></div>
+
+
 <div class="viewcode-block" id="get_db_info"><a class="viewcode-back" href="../../../../components/user/atlas/common.html#pilot.user.atlas.common.get_db_info">[docs]</a><span class="k">def</span> <span class="nf">get_db_info</span><span class="p">(</span><span class="n">jobreport_dictionary</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Extract and add up the DB info from the job report.</span>
@@ -1461,14 +1486,14 @@
                 <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
                     <span class="k">pass</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;format </span><span class="si">%s</span><span class="s2"> has no such key: dbData&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">format</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;format </span><span class="si">%s</span><span class="s2"> has no such key: dbData&quot;</span> <span class="o">%</span> <span class="nb">format</span><span class="p">)</span>
             <span class="k">if</span> <span class="s1">&#39;dbTime&#39;</span> <span class="ow">in</span> <span class="n">executor_dictionary</span><span class="p">[</span><span class="nb">format</span><span class="p">]:</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">db_time</span> <span class="o">+=</span> <span class="n">executor_dictionary</span><span class="p">[</span><span class="nb">format</span><span class="p">][</span><span class="s1">&#39;dbTime&#39;</span><span class="p">]</span>
                 <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
                     <span class="k">pass</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;format </span><span class="si">%s</span><span class="s2"> has no such key: dbTime&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">format</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;format </span><span class="si">%s</span><span class="s2"> has no such key: dbTime&quot;</span> <span class="o">%</span> <span class="nb">format</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">db_time</span><span class="p">,</span> <span class="n">db_data</span></div>
 
@@ -2286,7 +2311,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

@@ -6,9 +6,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>pilot.user.atlas.jobmetrics &#8212; Pilot 2  documentation</title>
-    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/alabaster.css" />
+    <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
     <script src="../../../../_static/jquery.js"></script>
     <script src="../../../../_static/underscore.js"></script>
     <script src="../../../../_static/doctools.js"></script>
@@ -44,7 +44,7 @@
 <span class="kn">from</span> <span class="nn">pilot.util.jobmetrics</span> <span class="kn">import</span> <span class="n">get_job_metrics_entry</span>
 
 <span class="kn">from</span> <span class="nn">.cpu</span> <span class="kn">import</span> <span class="n">get_core_count</span>
-<span class="kn">from</span> <span class="nn">.common</span> <span class="kn">import</span> <span class="n">get_db_info</span>
+<span class="kn">from</span> <span class="nn">.common</span> <span class="kn">import</span> <span class="n">get_db_info</span><span class="p">,</span> <span class="n">get_resimevents</span>
 <span class="kn">from</span> <span class="nn">.utilities</span> <span class="kn">import</span> <span class="n">get_memory_monitor_output_filename</span>
 
 <span class="kn">import</span> <span class="nn">os</span>
@@ -82,10 +82,13 @@
     <span class="c1"># add metadata from job report</span>
     <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">metadata</span><span class="p">:</span>
         <span class="n">job</span><span class="o">.</span><span class="n">dbtime</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">dbdata</span> <span class="o">=</span> <span class="n">get_db_info</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
+        <span class="n">job</span><span class="o">.</span><span class="n">resimevents</span> <span class="o">=</span> <span class="n">get_resimevents</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">dbtime</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">dbtime</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
         <span class="n">job_metrics</span> <span class="o">+=</span> <span class="n">get_job_metrics_entry</span><span class="p">(</span><span class="s2">&quot;dbTime&quot;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">dbtime</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">dbdata</span> <span class="ow">and</span> <span class="n">job</span><span class="o">.</span><span class="n">dbdata</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
         <span class="n">job_metrics</span> <span class="o">+=</span> <span class="n">get_job_metrics_entry</span><span class="p">(</span><span class="s2">&quot;dbData&quot;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">dbdata</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">resimevents</span><span class="p">:</span>
+        <span class="n">job_metrics</span> <span class="o">+=</span> <span class="n">get_job_metrics_entry</span><span class="p">(</span><span class="s2">&quot;resimevents&quot;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">resimevents</span><span class="p">)</span>
 
     <span class="c1"># get the max disk space used by the payload (at the end of a job)</span>
     <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;finished&quot;</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;failed&quot;</span> <span class="ow">or</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s2">&quot;holding&quot;</span><span class="p">:</span>
@@ -203,7 +206,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

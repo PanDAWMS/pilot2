@@ -4,11 +4,12 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>workernode &#8212; Pilot 2  documentation</title>
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
     <script src="../../_static/doctools.js"></script>
@@ -32,11 +33,11 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="module-pilot.util.workernode">
+  <section id="module-pilot.util.workernode">
 <span id="workernode"></span><h1>workernode<a class="headerlink" href="#module-pilot.util.workernode" title="Permalink to this headline">¶</a></h1>
 <dl class="py function">
-<dt id="pilot.util.workernode.check_hz">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">check_hz</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#check_hz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.check_hz" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.workernode.check_hz">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></span><span class="sig-name descname"><span class="pre">check_hz</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#check_hz"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.check_hz" title="Permalink to this definition">¶</a></dt>
 <dd><p>Try to read the SC_CLK_TCK and write it to the log.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -46,8 +47,8 @@
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.workernode.collect_workernode_info">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">collect_workernode_info</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#collect_workernode_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.collect_workernode_info" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.workernode.collect_workernode_info">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></span><span class="sig-name descname"><span class="pre">collect_workernode_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#collect_workernode_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.collect_workernode_info" title="Permalink to this definition">¶</a></dt>
 <dd><p>Collect node information (cpu, memory and disk space).
 The disk space (in MB) is return for the disk in the given path.</p>
 <dl class="field-list simple">
@@ -61,8 +62,8 @@ The disk space (in MB) is return for the disk in the given path.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.workernode.get_condor_node_name">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">get_condor_node_name</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nodename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_condor_node_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_condor_node_name" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.workernode.get_condor_node_name">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></span><span class="sig-name descname"><span class="pre">get_condor_node_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nodename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_condor_node_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_condor_node_name" title="Permalink to this definition">¶</a></dt>
 <dd><p>On a condor system, add the SlotID to the nodename</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -75,8 +76,8 @@ The disk space (in MB) is return for the disk in the given path.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.workernode.get_cpu_model">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">get_cpu_model</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_cpu_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_cpu_model" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.workernode.get_cpu_model">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></span><span class="sig-name descname"><span class="pre">get_cpu_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_cpu_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_cpu_model" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get cpu model and cache size from /proc/cpuinfo.</p>
 <dl class="simple">
 <dt>Example.</dt><dd><p>model name      : Intel(R) Xeon(TM) CPU 2.40GHz
@@ -92,8 +93,8 @@ cache size      : 512 KB</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.workernode.get_cpuinfo">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">get_cpuinfo</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_cpuinfo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_cpuinfo" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.workernode.get_cpuinfo">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></span><span class="sig-name descname"><span class="pre">get_cpuinfo</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_cpuinfo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_cpuinfo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the CPU frequency (in MHz).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -103,8 +104,8 @@ cache size      : 512 KB</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.workernode.get_disk_space">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">get_disk_space</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queuedata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_disk_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_disk_space" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.workernode.get_disk_space">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></span><span class="sig-name descname"><span class="pre">get_disk_space</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queuedata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_disk_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_disk_space" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the disk space from the queuedata that should be available for running the job;
 either what is actually locally available or the allowed size determined by the site (value from queuedata). This
 value is only to be used internally by the job dispatcher.</p>
@@ -119,8 +120,8 @@ value is only to be used internally by the job dispatcher.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.workernode.get_local_disk_space">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">get_local_disk_space</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_local_disk_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_local_disk_space" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.workernode.get_local_disk_space">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></span><span class="sig-name descname"><span class="pre">get_local_disk_space</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_local_disk_space"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_local_disk_space" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return remaning disk space for the disk in the given path.
 Unit is MB.</p>
 <dl class="field-list simple">
@@ -134,8 +135,8 @@ Unit is MB.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.workernode.get_meminfo">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">get_meminfo</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_meminfo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_meminfo" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.workernode.get_meminfo">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></span><span class="sig-name descname"><span class="pre">get_meminfo</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_meminfo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_meminfo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the total memory (in MB).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -145,8 +146,8 @@ Unit is MB.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.workernode.get_node_name">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></code><code class="sig-name descname"><span class="pre">get_node_name</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_node_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_node_name" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.workernode.get_node_name">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.workernode.</span></span><span class="sig-name descname"><span class="pre">get_node_name</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/workernode.html#get_node_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.workernode.get_node_name" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the local node name.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -155,7 +156,7 @@ Unit is MB.</p>
 </dl>
 </dd></dl>
 
-</div>
+</section>
 
 
           </div>
@@ -229,7 +230,7 @@ Unit is MB.</p>
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

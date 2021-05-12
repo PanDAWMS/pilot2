@@ -4,11 +4,12 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>queuedata &#8212; Pilot 2  documentation</title>
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
     <script src="../../_static/doctools.js"></script>
@@ -32,7 +33,7 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="module-pilot.info.queuedata">
+  <section id="module-pilot.info.queuedata">
 <span id="queuedata"></span><h1>queuedata<a class="headerlink" href="#module-pilot.info.queuedata" title="Permalink to this headline">¶</a></h1>
 <p>The implementation of data structure to host queuedata settings.</p>
 <dl>
@@ -58,12 +59,12 @@ on the configuration settings
 </dd>
 </dl>
 <dl class="py class">
-<dt id="pilot.info.queuedata.QueueData">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">pilot.info.queuedata.</span></code><code class="sig-name descname"><span class="pre">QueueData</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">pilot.info.queuedata.</span></span><span class="sig-name descname"><span class="pre">QueueData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData" title="Permalink to this definition">¶</a></dt>
 <dd><p>High-level object to host all queuedata settings associated to given PandaQueue</p>
 <dl class="py method">
-<dt id="pilot.info.queuedata.QueueData.__init__">
-<code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData.__init__" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData.__init__" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>data</strong> – input dictionary of queue data settings</p>
@@ -72,71 +73,71 @@ on the configuration settings
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.__module__">
-<code class="sig-name descname"><span class="pre">__module__</span></code><em class="property"> <span class="pre">=</span> <span class="pre">'pilot.info.queuedata'</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.__module__" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.__module__">
+<span class="sig-name descname"><span class="pre">__module__</span></span><em class="property"> <span class="pre">=</span> <span class="pre">'pilot.info.queuedata'</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.__module__" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData._keys">
-<code class="sig-name descname"><span class="pre">_keys</span></code><em class="property"> <span class="pre">=</span> <span class="pre">{&lt;class</span> <span class="pre">'int'&gt;:</span> <span class="pre">['timefloor',</span> <span class="pre">'maxwdir',</span> <span class="pre">'pledgedcpu',</span> <span class="pre">'es_stageout_gap',</span> <span class="pre">'corecount',</span> <span class="pre">'maxrss',</span> <span class="pre">'maxtime',</span> <span class="pre">'maxinputsize'],</span> <span class="pre">&lt;class</span> <span class="pre">'str'&gt;:</span> <span class="pre">['name',</span> <span class="pre">'type',</span> <span class="pre">'appdir',</span> <span class="pre">'catchall',</span> <span class="pre">'platform',</span> <span class="pre">'container_options',</span> <span class="pre">'container_type',</span> <span class="pre">'resource',</span> <span class="pre">'state',</span> <span class="pre">'status',</span> <span class="pre">'site'],</span> <span class="pre">&lt;class</span> <span class="pre">'dict'&gt;:</span> <span class="pre">['copytools',</span> <span class="pre">'acopytools',</span> <span class="pre">'astorages',</span> <span class="pre">'aprotocols',</span> <span class="pre">'acopytools_schemas'],</span> <span class="pre">&lt;class</span> <span class="pre">'bool'&gt;:</span> <span class="pre">['allow_lan',</span> <span class="pre">'allow_wan',</span> <span class="pre">'direct_access_lan',</span> <span class="pre">'direct_access_wan',</span> <span class="pre">'is_cvmfs',</span> <span class="pre">'use_pcache']}</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData._keys" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData._keys">
+<span class="sig-name descname"><span class="pre">_keys</span></span><em class="property"> <span class="pre">=</span> <span class="pre">{&lt;class</span> <span class="pre">'int'&gt;:</span> <span class="pre">['timefloor',</span> <span class="pre">'maxwdir',</span> <span class="pre">'pledgedcpu',</span> <span class="pre">'es_stageout_gap',</span> <span class="pre">'corecount',</span> <span class="pre">'maxrss',</span> <span class="pre">'maxtime',</span> <span class="pre">'maxinputsize'],</span> <span class="pre">&lt;class</span> <span class="pre">'str'&gt;:</span> <span class="pre">['name',</span> <span class="pre">'type',</span> <span class="pre">'appdir',</span> <span class="pre">'catchall',</span> <span class="pre">'platform',</span> <span class="pre">'container_options',</span> <span class="pre">'container_type',</span> <span class="pre">'resource',</span> <span class="pre">'state',</span> <span class="pre">'status',</span> <span class="pre">'site'],</span> <span class="pre">&lt;class</span> <span class="pre">'dict'&gt;:</span> <span class="pre">['copytools',</span> <span class="pre">'acopytools',</span> <span class="pre">'astorages',</span> <span class="pre">'aprotocols',</span> <span class="pre">'acopytools_schemas'],</span> <span class="pre">&lt;class</span> <span class="pre">'bool'&gt;:</span> <span class="pre">['allow_lan',</span> <span class="pre">'allow_wan',</span> <span class="pre">'direct_access_lan',</span> <span class="pre">'direct_access_wan',</span> <span class="pre">'is_cvmfs',</span> <span class="pre">'use_pcache']}</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData._keys" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.acopytools">
-<code class="sig-name descname"><span class="pre">acopytools</span></code><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.acopytools" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.acopytools">
+<span class="sig-name descname"><span class="pre">acopytools</span></span><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.acopytools" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.acopytools_schemas">
-<code class="sig-name descname"><span class="pre">acopytools_schemas</span></code><em class="property"> <span class="pre">=</span> <span class="pre">{}</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.acopytools_schemas" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.acopytools_schemas">
+<span class="sig-name descname"><span class="pre">acopytools_schemas</span></span><em class="property"> <span class="pre">=</span> <span class="pre">{}</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.acopytools_schemas" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.allow_lan">
-<code class="sig-name descname"><span class="pre">allow_lan</span></code><em class="property"> <span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.allow_lan" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.allow_lan">
+<span class="sig-name descname"><span class="pre">allow_lan</span></span><em class="property"> <span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.allow_lan" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.allow_wan">
-<code class="sig-name descname"><span class="pre">allow_wan</span></code><em class="property"> <span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.allow_wan" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.allow_wan">
+<span class="sig-name descname"><span class="pre">allow_wan</span></span><em class="property"> <span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.allow_wan" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.appdir">
-<code class="sig-name descname"><span class="pre">appdir</span></code><em class="property"> <span class="pre">=</span> <span class="pre">''</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.appdir" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.appdir">
+<span class="sig-name descname"><span class="pre">appdir</span></span><em class="property"> <span class="pre">=</span> <span class="pre">''</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.appdir" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.aprotocols">
-<code class="sig-name descname"><span class="pre">aprotocols</span></code><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.aprotocols" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.aprotocols">
+<span class="sig-name descname"><span class="pre">aprotocols</span></span><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.aprotocols" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.astorages">
-<code class="sig-name descname"><span class="pre">astorages</span></code><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.astorages" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.astorages">
+<span class="sig-name descname"><span class="pre">astorages</span></span><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.astorages" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.catchall">
-<code class="sig-name descname"><span class="pre">catchall</span></code><em class="property"> <span class="pre">=</span> <span class="pre">''</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.catchall" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.catchall">
+<span class="sig-name descname"><span class="pre">catchall</span></span><em class="property"> <span class="pre">=</span> <span class="pre">''</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.catchall" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pilot.info.queuedata.QueueData.clean">
-<code class="sig-name descname"><span class="pre">clean</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData.clean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData.clean" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.clean">
+<span class="sig-name descname"><span class="pre">clean</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData.clean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData.clean" title="Permalink to this definition">¶</a></dt>
 <dd><p>Validate and finally clean up required data values (required object properties) if need
 :return: None</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="pilot.info.queuedata.QueueData.clean__container_options">
-<code class="sig-name descname"><span class="pre">clean__container_options</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData.clean__container_options"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData.clean__container_options" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.clean__container_options">
+<span class="sig-name descname"><span class="pre">clean__container_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData.clean__container_options"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData.clean__container_options" title="Permalink to this definition">¶</a></dt>
 <dd><p>Verify and validate value for the container_options key (remove bad values)</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="pilot.info.queuedata.QueueData.clean__container_type">
-<code class="sig-name descname"><span class="pre">clean__container_type</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData.clean__container_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData.clean__container_type" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.clean__container_type">
+<span class="sig-name descname"><span class="pre">clean__container_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData.clean__container_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData.clean__container_type" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parse and prepare value for the container_type key
 Expected raw data in format ‘container_name:user_name;’
 E.g. container_type = ‘singularity:pilot;docker:wrapper’</p>
@@ -148,140 +149,140 @@ E.g. container_type = ‘singularity:pilot;docker:wrapper’</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="pilot.info.queuedata.QueueData.clean__corecount">
-<code class="sig-name descname"><span class="pre">clean__corecount</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData.clean__corecount"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData.clean__corecount" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.clean__corecount">
+<span class="sig-name descname"><span class="pre">clean__corecount</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData.clean__corecount"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData.clean__corecount" title="Permalink to this definition">¶</a></dt>
 <dd><p>Verify and validate value for the corecount key (set to 1 if not set)</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="pilot.info.queuedata.QueueData.clean__timefloor">
-<code class="sig-name descname"><span class="pre">clean__timefloor</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData.clean__timefloor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData.clean__timefloor" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.clean__timefloor">
+<span class="sig-name descname"><span class="pre">clean__timefloor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData.clean__timefloor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData.clean__timefloor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Verify and validate value for the timefloor key (convert to seconds)</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.container_options">
-<code class="sig-name descname"><span class="pre">container_options</span></code><em class="property"> <span class="pre">=</span> <span class="pre">''</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.container_options" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.container_options">
+<span class="sig-name descname"><span class="pre">container_options</span></span><em class="property"> <span class="pre">=</span> <span class="pre">''</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.container_options" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.container_type">
-<code class="sig-name descname"><span class="pre">container_type</span></code><em class="property"> <span class="pre">=</span> <span class="pre">{}</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.container_type" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.container_type">
+<span class="sig-name descname"><span class="pre">container_type</span></span><em class="property"> <span class="pre">=</span> <span class="pre">{}</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.container_type" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.copytools">
-<code class="sig-name descname"><span class="pre">copytools</span></code><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.copytools" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.copytools">
+<span class="sig-name descname"><span class="pre">copytools</span></span><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.copytools" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.corecount">
-<code class="sig-name descname"><span class="pre">corecount</span></code><em class="property"> <span class="pre">=</span> <span class="pre">1</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.corecount" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.corecount">
+<span class="sig-name descname"><span class="pre">corecount</span></span><em class="property"> <span class="pre">=</span> <span class="pre">1</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.corecount" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.direct_access_lan">
-<code class="sig-name descname"><span class="pre">direct_access_lan</span></code><em class="property"> <span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.direct_access_lan" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.direct_access_lan">
+<span class="sig-name descname"><span class="pre">direct_access_lan</span></span><em class="property"> <span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.direct_access_lan" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.direct_access_wan">
-<code class="sig-name descname"><span class="pre">direct_access_wan</span></code><em class="property"> <span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.direct_access_wan" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.direct_access_wan">
+<span class="sig-name descname"><span class="pre">direct_access_wan</span></span><em class="property"> <span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.direct_access_wan" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.es_stageout_gap">
-<code class="sig-name descname"><span class="pre">es_stageout_gap</span></code><em class="property"> <span class="pre">=</span> <span class="pre">0</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.es_stageout_gap" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.es_stageout_gap">
+<span class="sig-name descname"><span class="pre">es_stageout_gap</span></span><em class="property"> <span class="pre">=</span> <span class="pre">0</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.es_stageout_gap" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.is_cvmfs">
-<code class="sig-name descname"><span class="pre">is_cvmfs</span></code><em class="property"> <span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.is_cvmfs" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.is_cvmfs">
+<span class="sig-name descname"><span class="pre">is_cvmfs</span></span><em class="property"> <span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.is_cvmfs" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pilot.info.queuedata.QueueData.load">
-<code class="sig-name descname"><span class="pre">load</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData.load" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.load">
+<span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData.load" title="Permalink to this definition">¶</a></dt>
 <dd><p>Construct and initialize data from ext source
 :param data: input dictionary of queue data settings</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.maxinputsize">
-<code class="sig-name descname"><span class="pre">maxinputsize</span></code><em class="property"> <span class="pre">=</span> <span class="pre">0</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.maxinputsize" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.maxinputsize">
+<span class="sig-name descname"><span class="pre">maxinputsize</span></span><em class="property"> <span class="pre">=</span> <span class="pre">0</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.maxinputsize" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.maxrss">
-<code class="sig-name descname"><span class="pre">maxrss</span></code><em class="property"> <span class="pre">=</span> <span class="pre">0</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.maxrss" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.maxrss">
+<span class="sig-name descname"><span class="pre">maxrss</span></span><em class="property"> <span class="pre">=</span> <span class="pre">0</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.maxrss" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.maxtime">
-<code class="sig-name descname"><span class="pre">maxtime</span></code><em class="property"> <span class="pre">=</span> <span class="pre">0</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.maxtime" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.maxtime">
+<span class="sig-name descname"><span class="pre">maxtime</span></span><em class="property"> <span class="pre">=</span> <span class="pre">0</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.maxtime" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.maxwdir">
-<code class="sig-name descname"><span class="pre">maxwdir</span></code><em class="property"> <span class="pre">=</span> <span class="pre">0</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.maxwdir" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.maxwdir">
+<span class="sig-name descname"><span class="pre">maxwdir</span></span><em class="property"> <span class="pre">=</span> <span class="pre">0</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.maxwdir" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.name">
-<code class="sig-name descname"><span class="pre">name</span></code><em class="property"> <span class="pre">=</span> <span class="pre">''</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.name" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"> <span class="pre">=</span> <span class="pre">''</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.name" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.platform">
-<code class="sig-name descname"><span class="pre">platform</span></code><em class="property"> <span class="pre">=</span> <span class="pre">''</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.platform" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.platform">
+<span class="sig-name descname"><span class="pre">platform</span></span><em class="property"> <span class="pre">=</span> <span class="pre">''</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.platform" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.pledgedcpu">
-<code class="sig-name descname"><span class="pre">pledgedcpu</span></code><em class="property"> <span class="pre">=</span> <span class="pre">0</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.pledgedcpu" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.pledgedcpu">
+<span class="sig-name descname"><span class="pre">pledgedcpu</span></span><em class="property"> <span class="pre">=</span> <span class="pre">0</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.pledgedcpu" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="pilot.info.queuedata.QueueData.resolve_allowed_schemas">
-<code class="sig-name descname"><span class="pre">resolve_allowed_schemas</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">activity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copytool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData.resolve_allowed_schemas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData.resolve_allowed_schemas" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.resolve_allowed_schemas">
+<span class="sig-name descname"><span class="pre">resolve_allowed_schemas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">activity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copytool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/info/queuedata.html#QueueData.resolve_allowed_schemas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.info.queuedata.QueueData.resolve_allowed_schemas" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resolve list of allowed schemas for given activity and requested copytool based on <a class="reference internal" href="#pilot.info.queuedata.QueueData.acopytools_schemas" title="pilot.info.queuedata.QueueData.acopytools_schemas"><code class="xref any py py-attr docutils literal notranslate"><span class="pre">acopytools_schemas</span></code></a> settings
 :param activity: str or ordered list of transfer activity names to resolve acopytools related data
 :return: list of protocol schemes</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.resource">
-<code class="sig-name descname"><span class="pre">resource</span></code><em class="property"> <span class="pre">=</span> <span class="pre">''</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.resource" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.resource">
+<span class="sig-name descname"><span class="pre">resource</span></span><em class="property"> <span class="pre">=</span> <span class="pre">''</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.resource" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.site">
-<code class="sig-name descname"><span class="pre">site</span></code><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.site" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.site">
+<span class="sig-name descname"><span class="pre">site</span></span><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.site" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.state">
-<code class="sig-name descname"><span class="pre">state</span></code><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.state" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.state">
+<span class="sig-name descname"><span class="pre">state</span></span><em class="property"> <span class="pre">=</span> <span class="pre">None</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.state" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.status">
-<code class="sig-name descname"><span class="pre">status</span></code><em class="property"> <span class="pre">=</span> <span class="pre">''</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.status" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.status">
+<span class="sig-name descname"><span class="pre">status</span></span><em class="property"> <span class="pre">=</span> <span class="pre">''</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.status" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.timefloor">
-<code class="sig-name descname"><span class="pre">timefloor</span></code><em class="property"> <span class="pre">=</span> <span class="pre">0</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.timefloor" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.timefloor">
+<span class="sig-name descname"><span class="pre">timefloor</span></span><em class="property"> <span class="pre">=</span> <span class="pre">0</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.timefloor" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="pilot.info.queuedata.QueueData.use_pcache">
-<code class="sig-name descname"><span class="pre">use_pcache</span></code><em class="property"> <span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.use_pcache" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.info.queuedata.QueueData.use_pcache">
+<span class="sig-name descname"><span class="pre">use_pcache</span></span><em class="property"> <span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#pilot.info.queuedata.QueueData.use_pcache" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-</div>
+</section>
 
 
           </div>
@@ -355,7 +356,7 @@ E.g. container_type = ‘singularity:pilot;docker:wrapper’</p>
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

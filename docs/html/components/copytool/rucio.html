@@ -4,11 +4,12 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>rucio &#8212; Pilot 2  documentation</title>
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
     <script src="../../_static/doctools.js"></script>
@@ -32,11 +33,11 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="module-pilot.copytool.rucio">
+  <section id="module-pilot.copytool.rucio">
 <span id="rucio"></span><h1>rucio<a class="headerlink" href="#module-pilot.copytool.rucio" title="Permalink to this headline">¶</a></h1>
 <dl class="py function">
-<dt id="pilot.copytool.rucio._get_trace">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></code><code class="sig-name descname"><span class="pre">_get_trace</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fspec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#_get_trace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio._get_trace" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.rucio._get_trace">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></span><span class="sig-name descname"><span class="pre">_get_trace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fspec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#_get_trace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio._get_trace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Traces returned by Rucio are not orderred the same as input files from pilot.
 This method finds the proper trace.</p>
 <dl class="field-list simple">
@@ -53,13 +54,13 @@ This method finds the proper trace.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.rucio._stage_in_api">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></code><code class="sig-name descname"><span class="pre">_stage_in_api</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dst</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fspec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transfer_timeout</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_pcache</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#_stage_in_api"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio._stage_in_api" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.rucio._stage_in_api">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></span><span class="sig-name descname"><span class="pre">_stage_in_api</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dst</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fspec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transfer_timeout</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_pcache</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#_stage_in_api"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio._stage_in_api" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.rucio._stage_in_bulk">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></code><code class="sig-name descname"><span class="pre">_stage_in_bulk</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dst</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_common_fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#_stage_in_bulk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio._stage_in_bulk" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.rucio._stage_in_bulk">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></span><span class="sig-name descname"><span class="pre">_stage_in_bulk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dst</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_common_fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#_stage_in_bulk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio._stage_in_bulk" title="Permalink to this definition">¶</a></dt>
 <dd><p>Stage-in files in bulk using the Rucio API.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -77,13 +78,13 @@ This method finds the proper trace.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.rucio._stage_out_api">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></code><code class="sig-name descname"><span class="pre">_stage_out_api</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fspec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summary_file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transfer_timeout</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#_stage_out_api"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio._stage_out_api" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.rucio._stage_out_api">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></span><span class="sig-name descname"><span class="pre">_stage_out_api</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fspec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summary_file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transfer_timeout</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#_stage_out_api"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio._stage_out_api" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.rucio.copy_in">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></code><code class="sig-name descname"><span class="pre">copy_in</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#copy_in"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio.copy_in" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.rucio.copy_in">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></span><span class="sig-name descname"><span class="pre">copy_in</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#copy_in"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio.copy_in" title="Permalink to this definition">¶</a></dt>
 <dd><p>Download given files using rucio copytool.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -99,8 +100,8 @@ This method finds the proper trace.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.rucio.copy_in_bulk">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></code><code class="sig-name descname"><span class="pre">copy_in_bulk</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#copy_in_bulk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio.copy_in_bulk" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.rucio.copy_in_bulk">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></span><span class="sig-name descname"><span class="pre">copy_in_bulk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#copy_in_bulk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio.copy_in_bulk" title="Permalink to this definition">¶</a></dt>
 <dd><p>Download given files using rucio copytool.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -116,8 +117,8 @@ This method finds the proper trace.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.rucio.copy_out">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></code><code class="sig-name descname"><span class="pre">copy_out</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#copy_out"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio.copy_out" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.rucio.copy_out">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></span><span class="sig-name descname"><span class="pre">copy_out</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#copy_out"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio.copy_out" title="Permalink to this definition">¶</a></dt>
 <dd><p>Upload given files using rucio copytool.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -133,8 +134,8 @@ This method finds the proper trace.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.rucio.get_protocol">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></code><code class="sig-name descname"><span class="pre">get_protocol</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trace_report_out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#get_protocol"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio.get_protocol" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.rucio.get_protocol">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></span><span class="sig-name descname"><span class="pre">get_protocol</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trace_report_out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#get_protocol"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio.get_protocol" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extract the protocol used for the transdfer from the dictionary returned by rucio.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -147,8 +148,8 @@ This method finds the proper trace.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.rucio.handle_rucio_error">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></code><code class="sig-name descname"><span class="pre">handle_rucio_error</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error_msg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fspec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stagein</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#handle_rucio_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio.handle_rucio_error" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.rucio.handle_rucio_error">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></span><span class="sig-name descname"><span class="pre">handle_rucio_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">error_msg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trace_report_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fspec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stagein</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#handle_rucio_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio.handle_rucio_error" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -165,23 +166,23 @@ This method finds the proper trace.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.rucio.is_valid_for_copy_in">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></code><code class="sig-name descname"><span class="pre">is_valid_for_copy_in</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#is_valid_for_copy_in"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio.is_valid_for_copy_in" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.rucio.is_valid_for_copy_in">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></span><span class="sig-name descname"><span class="pre">is_valid_for_copy_in</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#is_valid_for_copy_in"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio.is_valid_for_copy_in" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.rucio.is_valid_for_copy_out">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></code><code class="sig-name descname"><span class="pre">is_valid_for_copy_out</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#is_valid_for_copy_out"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio.is_valid_for_copy_out" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.rucio.is_valid_for_copy_out">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></span><span class="sig-name descname"><span class="pre">is_valid_for_copy_out</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#is_valid_for_copy_out"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio.is_valid_for_copy_out" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="pilot.copytool.rucio.verify_stage_out">
-<code class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></code><code class="sig-name descname"><span class="pre">verify_stage_out</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fspec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#verify_stage_out"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio.verify_stage_out" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.copytool.rucio.verify_stage_out">
+<span class="sig-prename descclassname"><span class="pre">pilot.copytool.rucio.</span></span><span class="sig-name descname"><span class="pre">verify_stage_out</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fspec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/copytool/rucio.html#verify_stage_out"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.copytool.rucio.verify_stage_out" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks that the uploaded file is physically at the destination.
 :param fspec: file specifications</p>
 </dd></dl>
 
-</div>
+</section>
 
 
           </div>
@@ -255,7 +256,7 @@ This method finds the proper trace.</p>
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

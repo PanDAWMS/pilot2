@@ -4,11 +4,12 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>timing &#8212; Pilot 2  documentation</title>
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
     <script src="../../_static/doctools.js"></script>
@@ -32,11 +33,11 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="module-pilot.util.timing">
+  <section id="module-pilot.util.timing">
 <span id="timing"></span><h1>timing<a class="headerlink" href="#module-pilot.util.timing" title="Permalink to this headline">¶</a></h1>
 <dl class="py function">
-<dt id="pilot.util.timing.add_to_pilot_timing">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">add_to_pilot_timing</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timing_constant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_measurement</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#add_to_pilot_timing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.add_to_pilot_timing" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.add_to_pilot_timing">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">add_to_pilot_timing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timing_constant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_measurement</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#add_to_pilot_timing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.add_to_pilot_timing" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add the given timing contant and measurement got job_id to the pilot timing dictionary.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -55,8 +56,8 @@
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.get_elapsed_real_time">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_elapsed_real_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_elapsed_real_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_elapsed_real_time" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.get_elapsed_real_time">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">get_elapsed_real_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_elapsed_real_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_elapsed_real_time" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a time stamp corresponding to the elapsed real time (since t0 if requested).
 The function uses os.times() to get the current time stamp.
 If t0 is provided, the returned time stamp is relative to t0. t0 is assumed to be an os.times() tuple.</p>
@@ -71,8 +72,8 @@ If t0 is provided, the returned time stamp is relative to t0. t0 is assumed to b
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.get_final_update_time">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_final_update_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_final_update_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_final_update_time" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.get_final_update_time">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">get_final_update_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_final_update_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_final_update_time" title="Permalink to this definition">¶</a></dt>
 <dd><p>High level function that returns the time for execution the final update for the given job_id.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -88,8 +89,8 @@ If t0 is provided, the returned time stamp is relative to t0. t0 is assumed to b
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.get_getjob_time">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_getjob_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_getjob_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_getjob_time" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.get_getjob_time">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">get_getjob_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_getjob_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_getjob_time" title="Permalink to this definition">¶</a></dt>
 <dd><p>High level function that returns the time for the getjob operation for the given job_id.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -105,8 +106,8 @@ If t0 is provided, the returned time stamp is relative to t0. t0 is assumed to b
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.get_initial_setup_time">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_initial_setup_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_initial_setup_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_initial_setup_time" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.get_initial_setup_time">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">get_initial_setup_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_initial_setup_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_initial_setup_time" title="Permalink to this definition">¶</a></dt>
 <dd><p>High level function that returns the time for the initial setup.
 The initial setup time is measured from PILOT_START_TIME to PILOT_PRE_GETJOB.</p>
 <dl class="field-list simple">
@@ -123,8 +124,8 @@ The initial setup time is measured from PILOT_START_TIME to PILOT_PRE_GETJOB.</p
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.get_payload_execution_time">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_payload_execution_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_payload_execution_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_payload_execution_time" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.get_payload_execution_time">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">get_payload_execution_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_payload_execution_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_payload_execution_time" title="Permalink to this definition">¶</a></dt>
 <dd><p>High level function that returns the time for the payload execution for the given job_id.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -140,8 +141,8 @@ The initial setup time is measured from PILOT_START_TIME to PILOT_PRE_GETJOB.</p
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.get_postgetjob_time">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_postgetjob_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_postgetjob_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_postgetjob_time" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.get_postgetjob_time">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">get_postgetjob_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_postgetjob_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_postgetjob_time" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the post getjob time.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -157,8 +158,8 @@ The initial setup time is measured from PILOT_START_TIME to PILOT_PRE_GETJOB.</p
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.get_setup_time">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_setup_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_setup_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_setup_time" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.get_setup_time">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">get_setup_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_setup_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_setup_time" title="Permalink to this definition">¶</a></dt>
 <dd><p>High level function that returns the time for the setup operation for the given job_id.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -174,8 +175,8 @@ The initial setup time is measured from PILOT_START_TIME to PILOT_PRE_GETJOB.</p
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.get_stagein_time">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_stagein_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_stagein_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_stagein_time" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.get_stagein_time">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">get_stagein_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_stagein_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_stagein_time" title="Permalink to this definition">¶</a></dt>
 <dd><p>High level function that returns the time for the stage-in operation for the given job_id.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -191,8 +192,8 @@ The initial setup time is measured from PILOT_START_TIME to PILOT_PRE_GETJOB.</p
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.get_stageout_time">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_stageout_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_stageout_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_stageout_time" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.get_stageout_time">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">get_stageout_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_stageout_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_stageout_time" title="Permalink to this definition">¶</a></dt>
 <dd><p>High level function that returns the time for the stage-out operation for the given job_id.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -208,8 +209,8 @@ The initial setup time is measured from PILOT_START_TIME to PILOT_PRE_GETJOB.</p
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.get_time_difference">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_time_difference</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timing_constant_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timing_constant_2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_time_difference"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_time_difference" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.get_time_difference">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">get_time_difference</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timing_constant_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timing_constant_2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_time_difference"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_time_difference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the positive time difference between the given constants.
 The order is not important and a positive difference is always returned. The function collects the time measurements
 corresponding to the given timing constants from the pilot timing file.
@@ -237,8 +238,8 @@ Time measurement are time.time() values. The float value will be converted to an
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.get_time_measurement">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_time_measurement</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timing_constant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_measurement_dictionary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timing_dictionary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_time_measurement"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_time_measurement" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.get_time_measurement">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">get_time_measurement</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timing_constant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_measurement_dictionary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timing_dictionary</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_time_measurement"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_time_measurement" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a requested time measurement from the time measurement dictionary, read from the pilot timing file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -256,8 +257,8 @@ Time measurement are time.time() values. The float value will be converted to an
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.get_time_since">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_time_since</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timing_constant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_time_since"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_time_since" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.get_time_since">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">get_time_since</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timing_constant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_time_since"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_time_since" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the amount of time that has passed since the time measurement of timing_constant.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -274,8 +275,8 @@ Time measurement are time.time() values. The float value will be converted to an
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.get_time_since_multijob_start">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_time_since_multijob_start</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_time_since_multijob_start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_time_since_multijob_start" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.get_time_since_multijob_start">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">get_time_since_multijob_start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_time_since_multijob_start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_time_since_multijob_start" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the amount of time that has passed since the last multi job was launched.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -288,8 +289,8 @@ Time measurement are time.time() values. The float value will be converted to an
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.get_time_since_start">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_time_since_start</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_time_since_start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_time_since_start" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.get_time_since_start">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">get_time_since_start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_time_since_start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_time_since_start" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the amount of time that has passed since the pilot was launched.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -302,8 +303,8 @@ Time measurement are time.time() values. The float value will be converted to an
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.get_total_pilot_time">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">get_total_pilot_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_total_pilot_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_total_pilot_time" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.get_total_pilot_time">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">get_total_pilot_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#get_total_pilot_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.get_total_pilot_time" title="Permalink to this definition">¶</a></dt>
 <dd><p>High level function that returns the end time for the given job_id.
 This means the wall time that has passed from the start of the pilot until after the last job update.</p>
 <dl class="field-list simple">
@@ -320,8 +321,8 @@ This means the wall time that has passed from the start of the pilot until after
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.read_pilot_timing">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">read_pilot_timing</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#read_pilot_timing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.read_pilot_timing" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.read_pilot_timing">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">read_pilot_timing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#read_pilot_timing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.read_pilot_timing" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read the pilot timing dictionary from file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -331,8 +332,8 @@ This means the wall time that has passed from the start of the pilot until after
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.time_stamp">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">time_stamp</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#time_stamp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.time_stamp" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.time_stamp">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">time_stamp</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#time_stamp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.time_stamp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return ISO-8601 compliant date/time format</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -342,8 +343,8 @@ This means the wall time that has passed from the start of the pilot until after
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.timing_report">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">timing_report</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#timing_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.timing_report" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.timing_report">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">timing_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#timing_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.timing_report" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write a timing report to the job log and return relevant timing measurements.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -359,8 +360,8 @@ This means the wall time that has passed from the start of the pilot until after
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.timing.write_pilot_timing">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></code><code class="sig-name descname"><span class="pre">write_pilot_timing</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pilot_timing_dictionary</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#write_pilot_timing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.write_pilot_timing" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.timing.write_pilot_timing">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.timing.</span></span><span class="sig-name descname"><span class="pre">write_pilot_timing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pilot_timing_dictionary</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/timing.html#write_pilot_timing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.timing.write_pilot_timing" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write the given pilot timing dictionary to file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -372,7 +373,7 @@ This means the wall time that has passed from the start of the pilot until after
 </dl>
 </dd></dl>
 
-</div>
+</section>
 
 
           </div>
@@ -446,7 +447,7 @@ This means the wall time that has passed from the start of the pilot until after
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

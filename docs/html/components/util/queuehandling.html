@@ -4,11 +4,12 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
     <title>queuehandling &#8212; Pilot 2  documentation</title>
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
     <script src="../../_static/doctools.js"></script>
@@ -30,11 +31,11 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="module-pilot.util.queuehandling">
+  <section id="module-pilot.util.queuehandling">
 <span id="queuehandling"></span><h1>queuehandling<a class="headerlink" href="#module-pilot.util.queuehandling" title="Permalink to this headline">¶</a></h1>
 <dl class="py function">
-<dt id="pilot.util.queuehandling.abort_jobs_in_queues">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.queuehandling.</span></code><code class="sig-name descname"><span class="pre">abort_jobs_in_queues</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sig</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/queuehandling.html#abort_jobs_in_queues"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.queuehandling.abort_jobs_in_queues" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.queuehandling.abort_jobs_in_queues">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.queuehandling.</span></span><span class="sig-name descname"><span class="pre">abort_jobs_in_queues</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sig</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/queuehandling.html#abort_jobs_in_queues"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.queuehandling.abort_jobs_in_queues" title="Permalink to this definition">¶</a></dt>
 <dd><p>Find all jobs in the queues and abort them.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -50,8 +51,8 @@
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.queuehandling.declare_failed_by_kill">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.queuehandling.</span></code><code class="sig-name descname"><span class="pre">declare_failed_by_kill</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sig</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/queuehandling.html#declare_failed_by_kill"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.queuehandling.declare_failed_by_kill" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.queuehandling.declare_failed_by_kill">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.queuehandling.</span></span><span class="sig-name descname"><span class="pre">declare_failed_by_kill</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sig</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/queuehandling.html#declare_failed_by_kill"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.queuehandling.declare_failed_by_kill" title="Permalink to this definition">¶</a></dt>
 <dd><p>Declare the job failed by a kill signal and put it in a suitable failed queue.
 E.g. queue=queues.failed_data_in, if the kill signal was received during stage-in.</p>
 <dl class="field-list simple">
@@ -69,8 +70,8 @@ E.g. queue=queues.failed_data_in, if the kill signal was received during stage-i
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.queuehandling.get_queuedata_from_job">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.queuehandling.</span></code><code class="sig-name descname"><span class="pre">get_queuedata_from_job</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/queuehandling.html#get_queuedata_from_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.queuehandling.get_queuedata_from_job" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.queuehandling.get_queuedata_from_job">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.queuehandling.</span></span><span class="sig-name descname"><span class="pre">get_queuedata_from_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/queuehandling.html#get_queuedata_from_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.queuehandling.get_queuedata_from_job" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the queuedata object from a job in the given queues object.
 This function is useful if queuedata is needed from a function that does not know about the job object.
 E.g. the pilot monitor does not know about the job object, but still knows
@@ -86,8 +87,8 @@ about the queues from which a job object can be extracted and therefore the queu
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.queuehandling.purge_queue">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.queuehandling.</span></code><code class="sig-name descname"><span class="pre">purge_queue</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queue</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/queuehandling.html#purge_queue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.queuehandling.purge_queue" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.queuehandling.purge_queue">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.queuehandling.</span></span><span class="sig-name descname"><span class="pre">purge_queue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queue</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/queuehandling.html#purge_queue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.queuehandling.purge_queue" title="Permalink to this definition">¶</a></dt>
 <dd><p>Empty given queue.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -100,8 +101,8 @@ about the queues from which a job object can be extracted and therefore the queu
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.queuehandling.put_in_queue">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.queuehandling.</span></code><code class="sig-name descname"><span class="pre">put_in_queue</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queue</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/queuehandling.html#put_in_queue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.queuehandling.put_in_queue" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.queuehandling.put_in_queue">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.queuehandling.</span></span><span class="sig-name descname"><span class="pre">put_in_queue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queue</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/queuehandling.html#put_in_queue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.queuehandling.put_in_queue" title="Permalink to this definition">¶</a></dt>
 <dd><p>Put the given object in the given queue.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -117,8 +118,8 @@ about the queues from which a job object can be extracted and therefore the queu
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.queuehandling.queue_report">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.queuehandling.</span></code><code class="sig-name descname"><span class="pre">queue_report</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/queuehandling.html#queue_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.queuehandling.queue_report" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.queuehandling.queue_report">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.queuehandling.</span></span><span class="sig-name descname"><span class="pre">queue_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/queuehandling.html#queue_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.queuehandling.queue_report" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>queues</strong> – </p>
@@ -130,8 +131,8 @@ about the queues from which a job object can be extracted and therefore the queu
 </dd></dl>
 
 <dl class="py function">
-<dt id="pilot.util.queuehandling.scan_for_jobs">
-<code class="sig-prename descclassname"><span class="pre">pilot.util.queuehandling.</span></code><code class="sig-name descname"><span class="pre">scan_for_jobs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/queuehandling.html#scan_for_jobs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.queuehandling.scan_for_jobs" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pilot.util.queuehandling.scan_for_jobs">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.queuehandling.</span></span><span class="sig-name descname"><span class="pre">scan_for_jobs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/queuehandling.html#scan_for_jobs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.queuehandling.scan_for_jobs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Scan queues until at least one queue has a job object. abort if it takes too long time</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -143,7 +144,7 @@ about the queues from which a job object can be extracted and therefore the queu
 </dl>
 </dd></dl>
 
-</div>
+</section>
 
 
           </div>
@@ -199,7 +200,7 @@ about the queues from which a job object can be extracted and therefore the queu
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

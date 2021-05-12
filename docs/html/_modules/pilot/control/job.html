@@ -6,9 +6,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>pilot.control.job &#8212; Pilot 2  documentation</title>
-    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
     <script src="../../../_static/jquery.js"></script>
     <script src="../../../_static/underscore.js"></script>
     <script src="../../../_static/doctools.js"></script>
@@ -643,7 +643,7 @@
     <span class="k">if</span> <span class="n">constime</span> <span class="ow">and</span> <span class="n">constime</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;cpuConsumptionTime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">constime</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;cpuConversionFactor&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconversionfactor</span>
-        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;cpuConsumptionUnit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptionunit</span> <span class="o">+</span> <span class="s2">&quot;+&quot;</span> <span class="o">+</span> <span class="n">get_cpu_model</span><span class="p">()</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;cpuConsumptionUnit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptionunit</span> <span class="o">+</span> <span class="s2">&quot;+&quot;</span> <span class="o">+</span> <span class="n">get_cpu_model</span><span class="p">()</span>
 
     <span class="n">instruction_sets</span> <span class="o">=</span> <span class="n">has_instruction_sets</span><span class="p">([</span><span class="s1">&#39;AVX2&#39;</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">instruction_sets</span><span class="p">:</span>
@@ -900,7 +900,7 @@
 
             <span class="n">create_symlink</span><span class="p">(</span><span class="n">from_path</span><span class="o">=</span><span class="s1">&#39;../</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">pilotlog</span><span class="p">,</span> <span class="n">to_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job_dir</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">pilotlog</span><span class="p">))</span>
 
-        <span class="c1"># pre-cleanup</span>
+            <span class="c1"># pre-cleanup</span>
             <span class="n">pilot_user</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USER&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
             <span class="n">utilities</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.utilities&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span>
                                    <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
@@ -912,7 +912,21 @@
             <span class="c1"># store the PanDA job id for the wrapper to pick up</span>
             <span class="n">store_jobid</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">sourcedir</span><span class="p">)</span>
 
-            <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">validated_jobs</span><span class="p">)</span>
+            <span class="c1"># run the delayed space check now</span>
+            <span class="n">proceed_with_local_space_check</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">harvester_submitmode</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;push&#39;</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">update_server</span><span class="p">)</span> <span class="k">else</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="n">proceed_with_local_space_check</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;pilot will not perform delayed space check&#39;</span><span class="p">)</span>
+                <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">check_local_space</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">ec</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;error_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOLOCALSPACE</span>
+                    <span class="c1"># set the corresponding error code</span>
+                    <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">NOLOCALSPACE</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">diagnostics</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Failed to validate job=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">)</span>
+                    <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_jobs</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">validated_jobs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">validated_jobs</span><span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Failed to validate job=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">)</span>
@@ -1128,20 +1142,22 @@
     <span class="k">return</span> <span class="n">data</span></div>
 
 
-<div class="viewcode-block" id="proceed_with_getjob"><a class="viewcode-back" href="../../../components/control/job.html#pilot.control.job.proceed_with_getjob">[docs]</a><span class="k">def</span> <span class="nf">proceed_with_getjob</span><span class="p">(</span><span class="n">timefloor</span><span class="p">,</span> <span class="n">starttime</span><span class="p">,</span> <span class="n">jobnumber</span><span class="p">,</span> <span class="n">getjob_requests</span><span class="p">,</span> <span class="n">harvester</span><span class="p">,</span> <span class="n">verify_proxy</span><span class="p">,</span> <span class="n">traces</span><span class="p">):</span>
+<div class="viewcode-block" id="proceed_with_getjob"><a class="viewcode-back" href="../../../components/control/job.html#pilot.control.job.proceed_with_getjob">[docs]</a><span class="k">def</span> <span class="nf">proceed_with_getjob</span><span class="p">(</span><span class="n">timefloor</span><span class="p">,</span> <span class="n">starttime</span><span class="p">,</span> <span class="n">jobnumber</span><span class="p">,</span> <span class="n">getjob_requests</span><span class="p">,</span> <span class="n">max_getjob_requests</span><span class="p">,</span> <span class="n">update_server</span><span class="p">,</span> <span class="n">submitmode</span><span class="p">,</span> <span class="n">harvester</span><span class="p">,</span> <span class="n">verify_proxy</span><span class="p">,</span> <span class="n">traces</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Can we proceed with getjob?</span>
+<span class="sd">    Can we proceed with getJob?</span>
 <span class="sd">    We may not proceed if we have run out of time (timefloor limit), if the proxy is too short, if disk space is too</span>
 <span class="sd">    small or if we have already proceed enough jobs.</span>
 
-<span class="sd">    :param timefloor: timefloor limit (s)</span>
-<span class="sd">    :param starttime: start time of retrieve() (s)</span>
-<span class="sd">    :param jobnumber: number of downloaded jobs</span>
-<span class="sd">    :param getjob_requests: number of getjob requests</span>
-<span class="sd">    :param harvester: True if Harvester is used, False otherwise. Affects the max number of getjob reads (from file).</span>
-<span class="sd">    :param verify_proxy: True if the proxy should be verified. False otherwise.</span>
+<span class="sd">    :param timefloor: timefloor limit (s) (int).</span>
+<span class="sd">    :param starttime: start time of retrieve() (s) (int).</span>
+<span class="sd">    :param jobnumber: number of downloaded jobs (int).</span>
+<span class="sd">    :param getjob_requests: number of getjob requests (int).</span>
+<span class="sd">    :param update_server: should pilot update server? (Boolean).</span>
+<span class="sd">    :param submitmode: Harvester submit mode, PULL or PUSH (string).</span>
+<span class="sd">    :param harvester: True if Harvester is used, False otherwise. Affects the max number of getjob reads (from file) (Boolean).</span>
+<span class="sd">    :param verify_proxy: True if the proxy should be verified. False otherwise (Boolean).</span>
 <span class="sd">    :param traces: traces object (to be able to propagate a proxy error all the way back to the wrapper).</span>
-<span class="sd">    :return: Boolean.</span>
+<span class="sd">    :return: True if pilot should proceed with getJob (Boolean).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># use for testing thread exceptions. the exception will be picked up by ExcThread run() and caught in job.control()</span>
@@ -1164,15 +1180,21 @@
             <span class="k">return</span> <span class="kc">False</span>
 
     <span class="c1"># is there enough local space to run a job?</span>
-    <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">check_local_space</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">ec</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;error_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOLOCALSPACE</span>
-        <span class="k">return</span> <span class="kc">False</span>
+    <span class="c1"># note: do not run this test at this point if submit mode=PUSH and we are in truePilot mode on ARC</span>
+    <span class="c1"># (available local space will in this case be checked after the job definition has been read from file, so the</span>
+    <span class="c1"># pilot can report the error with a server update)</span>
+    <span class="n">proceed_with_local_space_check</span> <span class="o">=</span> <span class="kc">False</span> <span class="k">if</span> <span class="p">(</span><span class="n">submitmode</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;push&#39;</span> <span class="ow">and</span> <span class="n">update_server</span><span class="p">)</span> <span class="k">else</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="n">proceed_with_local_space_check</span><span class="p">:</span>
+        <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">check_local_space</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">ec</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;error_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOLOCALSPACE</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;pilot will delay local space check until after job definition has been read from file&#39;</span><span class="p">)</span>
 
-    <span class="n">maximum_getjob_requests</span> <span class="o">=</span> <span class="mi">60</span> <span class="k">if</span> <span class="n">harvester</span> <span class="k">else</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">maximum_getjob_requests</span>  <span class="c1"># 1 s apart (if harvester)</span>
+    <span class="n">maximum_getjob_requests</span> <span class="o">=</span> <span class="mi">60</span> <span class="k">if</span> <span class="n">harvester</span> <span class="k">else</span> <span class="n">max_getjob_requests</span>  <span class="c1"># 1 s apart (if harvester)</span>
     <span class="k">if</span> <span class="n">getjob_requests</span> <span class="o">&gt;</span> <span class="nb">int</span><span class="p">(</span><span class="n">maximum_getjob_requests</span><span class="p">):</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;reached maximum number of getjob requests (</span><span class="si">%s</span><span class="s1">) -- will abort pilot&#39;</span> <span class="o">%</span>
-                       <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">maximum_getjob_requests</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;reached maximum number of getjob requests (</span><span class="si">%s</span><span class="s1">) -- will abort pilot&#39;</span> <span class="o">%</span> <span class="n">maximum_getjob_requests</span><span class="p">)</span>
         <span class="c1"># use singleton:</span>
         <span class="c1"># instruct the pilot to wrap up quickly</span>
         <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PILOT_WRAP_UP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;QUICKLY&#39;</span>
@@ -1576,7 +1598,7 @@
     <span class="n">starttime</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
 
     <span class="n">jobnumber</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># number of downloaded jobs</span>
-    <span class="n">getjob_requests</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">getjob_requests</span>
+    <span class="n">getjob_requests</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">print_node_info</span><span class="p">()</span>
 
     <span class="k">while</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
@@ -1584,7 +1606,8 @@
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
         <span class="n">getjob_requests</span> <span class="o">+=</span> <span class="mi">1</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">proceed_with_getjob</span><span class="p">(</span><span class="n">timefloor</span><span class="p">,</span> <span class="n">starttime</span><span class="p">,</span> <span class="n">jobnumber</span><span class="p">,</span> <span class="n">getjob_requests</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">harvester</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">verify_proxy</span><span class="p">,</span> <span class="n">traces</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">proceed_with_getjob</span><span class="p">(</span><span class="n">timefloor</span><span class="p">,</span> <span class="n">starttime</span><span class="p">,</span> <span class="n">jobnumber</span><span class="p">,</span> <span class="n">getjob_requests</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">getjob_requests</span><span class="p">,</span>
+                                   <span class="n">args</span><span class="o">.</span><span class="n">update_server</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">harvester_submitmode</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">harvester</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">verify_proxy</span><span class="p">,</span> <span class="n">traces</span><span class="p">):</span>
             <span class="c1"># do not set graceful stop if pilot has not finished sending the final job update</span>
             <span class="c1"># i.e. wait until SERVER_UPDATE is DONE_FINAL</span>
             <span class="n">check_for_final_server_update</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">update_server</span><span class="p">)</span>
@@ -2355,8 +2378,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s2">&quot;failed&quot;</span><span class="p">)</span>
-    <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">exit_code</span><span class="p">)</span>
-    <span class="n">job</span><span class="o">.</span><span class="n">pilorerrordiag</span> <span class="o">=</span> <span class="n">diagnostics</span>
+    <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">diagnostics</span><span class="p">)</span>
+    <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiag</span> <span class="o">=</span> <span class="n">diagnostics</span>
     <span class="n">traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;error_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">exit_code</span>
     <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">failed_payloads</span><span class="p">)</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;aborting job monitoring since job state=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span><span class="p">)</span></div>
@@ -2458,7 +2481,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
