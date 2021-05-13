@@ -882,7 +882,7 @@ def validate(queues, traces, args):
             # run the delayed space check now
             proceed_with_local_space_check = True if (args.harvester_submitmode.lower() == 'push' and args.update_server) else False
             if proceed_with_local_space_check:
-                logger.debug('pilot will not perform delayed space check')
+                logger.debug('pilot will now perform delayed space check')
                 ec, diagnostics = check_local_space()
                 if ec != 0:
                     traces.pilot['error_code'] = errors.NOLOCALSPACE
