@@ -318,7 +318,7 @@ def get_payload_command(job):
 
             # fail the job if the remote files could not be verified
             if ec != 0:
-                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec)
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec, msg=diagnostics)
                 raise PilotException(diagnostics, code=ec)
     else:
         logger.debug('no remote file open verification')
