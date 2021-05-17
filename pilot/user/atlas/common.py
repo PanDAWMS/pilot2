@@ -1408,10 +1408,10 @@ def get_resimevents(jobreport_dictionary):
     This information is reported with the jobMetrics.
 
     :param jobreport_dictionary: job report dictionary.
-    :return: resimevents (int)
+    :return: resimevents (int or None)
     """
 
-    resimevents = 0
+    resimevents = None
 
     executor_dictionary = get_executor_dictionary(jobreport_dictionary)
     if executor_dictionary != {}:

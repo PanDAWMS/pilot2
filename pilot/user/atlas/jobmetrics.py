@@ -54,7 +54,7 @@ def get_job_metrics_string(job):
         job_metrics += get_job_metrics_entry("dbTime", job.dbtime)
     if job.dbdata and job.dbdata != "":
         job_metrics += get_job_metrics_entry("dbData", job.dbdata)
-    if job.resimevents:
+    if job.resimevents is not None:
         job_metrics += get_job_metrics_entry("resimevents", job.resimevents)
 
     # get the max disk space used by the payload (at the end of a job)
