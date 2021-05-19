@@ -379,6 +379,11 @@ def get_args():
                             dest='jobtype',
                             default='',
                             help='Job type (managed, user)')
+    arg_parser.add_argument('--use-rucio-traces',
+                            dest='use_rucio_traces',
+                            type=str2bool,
+                            default=True,
+                            help='Use rucio traces')
 
     # HPC options
     arg_parser.add_argument('--hpc-resource',
@@ -466,6 +471,9 @@ def set_environment_variables(args, mainworkdir):
 
     # set the (HPC) resource name (if set in options)
     environ['PILOT_RESOURCE_NAME'] = args.hpc_resource
+
+    # allow for the possibility of turning off rucio traces
+    environ['PILOT_USE_RUCIO_TRACES'] = str(args.use_rucio_traces)
 
     # event service executor type
     environ['PILOT_ES_EXECUTOR_TYPE'] = args.executor_type
