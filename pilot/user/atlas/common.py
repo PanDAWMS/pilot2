@@ -1897,7 +1897,7 @@ def get_utility_commands(order=None, job=None):
     elif order == UTILITY_AFTER_PAYLOAD_FINISHED:
         if job.postprocess and job.postprocess.get('command', ''):
             com = download_command(job.postprocess, job.workdir)
-        elif 'pilotXcache' in job.infosys.queuedata.catchall:
+        if 'pilotXcache' in job.infosys.queuedata.catchall:
             com = xcache_deactivation_command(job.workdir)
     elif order == UTILITY_BEFORE_STAGEIN:
         if 'pilotXcache' in job.infosys.queuedata.catchall:
@@ -1944,11 +1944,15 @@ def xcache_deactivation_command(workdir):
             copy(path, dest)
         except Exception as e:
             logger.warning('exception caught copying xcache log: %s' % e)
-
+    else:
+        if not path:
+            logger.warning('ALRB_XCACHE_LOG is not set')
+        if path and not os.path.exists(path):
+            logger.warning('path does not exist: %s' % path)
     command = "%s " % get_asetup(asetup=False)
     command += "lsetup xcache; xcache kill"  # -C centos7
 
-    return {'command': command, 'args': '-p all'}
+    return {'command': command, 'args': ''}
 
 
 def get_utility_command_setup(name, job, setup=None):

@@ -445,6 +445,9 @@ def set_xcache_log(line):
     result = re.findall(pattern, line)
     if result:
         os.environ['ALRB_XCACHE_LOG'] = result[0]
+        logger.debug('extracted xcache log path: ALRB_XCACHE_LOG=\'%s\'' % result[0])
+    else:
+        logger.warning('failed to extract log path for ALRB_XCACHE_LOG from line: \'%s\'' % line)
 
 
 def copytool_in(queues, traces, args):

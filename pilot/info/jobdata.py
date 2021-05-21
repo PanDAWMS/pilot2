@@ -118,7 +118,8 @@ class JobData(BaseData):
     attemptnr = 0                  # job attempt number
     destinationdblock = ""         ## to be moved to FileSpec (job.outdata)
     datasetin = ""                 ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-    debug = False                  #
+    debug = False                  # debug mode, when True, pilot will send debug info back to the server
+    debug_command = 'tail'         # debug command (can be defined on the task side)
     produserid = ""                # the user DN (added to trace report)
     jobdefinitionid = ""           # the job definition id (added to trace report)
     infilesguids = ""              #
@@ -610,7 +611,7 @@ class JobData(BaseData):
         :return: updated job parameters (string).
         """
 
-        #value += ' --athenaopts "HITtoRDO:--nprocs=$ATHENA_CORE_NUMBER" someblah'
+        #   value += ' --athenaopts "HITtoRDO:--nprocs=$ATHENA_CORE_NUMBER" someblah'
         logger.info('cleaning jobparams: %s' % value)
 
         # user specific pre-filtering

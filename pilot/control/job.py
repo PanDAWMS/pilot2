@@ -477,6 +477,37 @@ def get_panda_server(url, port):
     return pandaserver
 
 
+def get_debug_command(cmd):
+    """
+    Identify and filter the given debug command.
+
+    Note: only a single command will be allowed from a predefined list: tail, ls, gdb, ps, du.
+
+    :param cmd: raw debug command from job definition (string).
+    :return: debug_mode (Boolean, True if command is deemed ok), debug_command (string).
+    """
+
+    debug_mode = False
+    debug_command = ""
+
+    allowed_commands = ['tail', 'ls', 'ps', 'gdb', 'du']
+    forbidden_commands = ['rm']
+    try:
+        tmp = cmd.split(' ')
+        com = tmp[0]
+        opts = tmp[1]
+    except Exception as e:
+        logger.warning('failed to identify debug command: %s' % e)
+    else:
+        if com not in allowed_commands:
+            logger.warning('command=%s is not in the list of allowed commands: %s' % (com, str(allowed_commands)))
+        elif ';' in opts or '&#59' in opts:
+            logger.warning('debug command cannot contain \';\': \'%s\'' % cmd)
+        elif com in forbidden_commands:
+            logger.warning('command=%s is not allowed' % com)
+    return debug_mode, debug_command
+
+
 def handle_backchannel_command(res, job, args, test_tobekilled=False):
     """
     Does the server update contain any backchannel information? if so, update the job object.
@@ -493,9 +524,15 @@ def handle_backchannel_command(res, job, args, test_tobekilled=False):
         res['command'] = 'tobekilled'
 
     if 'command' in res and res.get('command') != 'NULL':
-        # look for 'tobekilled', 'softkill', 'debug', 'debugoff'
         # warning: server might return comma-separated string, 'debug,tobekilled'
-        if 'tobekilled' in res.get('command'):
+        cmd = res.get('command')
+        # is it a 'command options'-type? debug_command=tail .., ls .., gdb .., ps .., du ..
+        if ' ' in cmd:
+            try:
+                job.debug, job.debug_command = get_debug_command(cmd)
+            except Exception as e:
+                logger.debug('exception caught in get_debug_command(): %s' % e)
+        elif 'tobekilled' in cmd:
             logger.info('pilot received a panda server signal to kill job %s at %s' %
                         (job.jobid, time_stamp()))
             set_pilot_state(job=job, state="failed")
@@ -506,18 +543,18 @@ def handle_backchannel_command(res, job, args, test_tobekilled=False):
             else:
                 logger.debug('no pid to kill')
             args.abort_job.set()
-        elif 'softkill' in res.get('command'):
+        elif 'softkill' in cmd:
             logger.info('pilot received a panda server signal to softkill job %s at %s' %
                         (job.jobid, time_stamp()))
             # event service kill instruction
-        elif 'debug' in res.get('command'):
-            logger.info('pilot received a command to turn on debug mode from the server')
+        elif 'debug' in cmd:
+            logger.info('pilot received a command to turn on standard debug mode from the server')
             job.debug = True
-        elif 'debugoff' in res.get('command'):
+        elif 'debugoff' in cmd:
             logger.info('pilot received a command to turn off debug mode from the server')
             job.debug = False
         else:
-            logger.warning('received unknown server command via backchannel: %s' % res.get('command'))
+            logger.warning('received unknown server command via backchannel: %s' % cmd)
 
 
 def add_data_structure_ids(data, version_tag):
@@ -723,26 +760,11 @@ def add_memory_info(data, workdir, name=""):
     pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
     utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
     try:
-        #for key in job.utilities
         utility_node = utilities.get_memory_monitor_info(workdir, name=name)
         data.update(utility_node)
     except Exception as e:
         logger.info('memory information not available: %s' % e)
         pass
-
-
-#def get_list_of_log_files():
-#    """
-#    Return a list of log files produced by the payload.
-#
-#    :return: list of log files.
-#    """
-#
-#    list_of_files = get_files()
-#    if not list_of_files:  # some TRFs produce logs with different naming scheme
-#        list_of_files = get_files(pattern="log.*")
-#
-#    return list_of_files
 
 
 def remove_pilot_logs_from_list(list_of_files):
@@ -753,6 +775,8 @@ def remove_pilot_logs_from_list(list_of_files):
     :return: list of files (list).
     """
 
+    # note: better to move experiment specific files to user area
+
     # ignore the pilot log files
     try:
         to_be_removed = [config.Pilot.pilotlog, config.Pilot.stageinlog, config.Pilot.stageoutlog,
@@ -760,7 +784,7 @@ def remove_pilot_logs_from_list(list_of_files):
                          config.Pilot.remotefileverification_log, config.Pilot.base_trace_report,
                          config.Container.container_script, config.Container.release_setup,
                          config.Container.stagein_status_dictionary, config.Container.stagein_replica_dictionary,
-                         'eventLoopHeartBeat.txt']
+                         'eventLoopHeartBeat.txt', 'memory_monitor_output.txt', 'memory_monitor_summary.json_snapshot']
     except Exception as e:
         logger.warning('exception caught: %s' % e)
         to_be_removed = []
