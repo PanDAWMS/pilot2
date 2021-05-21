@@ -22,7 +22,6 @@ except Exception:
 from .common import resolve_common_transfer_errors
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import PilotException
-from pilot.util.ruciopath import get_rucio_path
 from pilot.util.config import config
 
 logger = logging.getLogger(__name__)
@@ -60,11 +59,11 @@ def resolve_surl(fspec, protocol, ddmconf, **kwargs):
 
     dataset = fspec.dataset
     if dataset:
-       dataset = dataset.replace("#{pandaid}",os.environ['PANDAID'])
+        dataset = dataset.replace("#{pandaid}", os.environ['PANDAID'])
     else:
-       dataset = ""
+        dataset = ""
 
-    remotePath = os.path.join(protocol.get('path', ''), dataset)
+    remote_path = os.path.join(protocol.get('path', ''), dataset)
 
     # pilot ID is passed by the envvar GTAG
     # try:
@@ -72,12 +71,12 @@ def resolve_surl(fspec, protocol, ddmconf, **kwargs):
     #   logger.debug('ddm.rprotocols=%s' % rprotocols)
     #   if "http_access" in rprotocols:
     #      http_access = rprotocols["http_access"]
-    #      os.environ['GTAG'] = http_access + os.path.join(remotePath, config.Pilot.pilotlog)
+    #      os.environ['GTAG'] = http_access + os.path.join(remote_path, config.Pilot.pilotlog)
     #      logger.debug('http_access=%s' % http_access)
     # except Exception as e:
     #   logger.warning("Failed in get 'http_access' in ddm.rprotocols")
 
-    surl = protocol.get('endpoint', '') + remotePath
+    surl = protocol.get('endpoint', '') + remote_path
     logger.info('For GCS bucket, set surl=%s' % surl)
 
     # example:
@@ -151,39 +150,38 @@ def copy_out(files, **kwargs):
     workdir = kwargs.pop('workdir')
 
     for fspec in files:
+        logger.info('Going to process fspec.turl=%s' % fspec.turl)
 
-      logger.info('Going to process fspec.turl=%s' % fspec.turl)
-      import re
-      # bucket = re.sub(r'gs://(.*?)/.*', r'\1', fspec.turl)
-      reObj = re.match(r'gs://([^/]*)/(.*)', fspec.turl)
-      (bucket, remotePath) = reObj.groups()
+        import re
+        # bucket = re.sub(r'gs://(.*?)/.*', r'\1', fspec.turl)
+        reObj = re.match(r'gs://([^/]*)/(.*)', fspec.turl)
+        (bucket, remote_path) = reObj.groups()
 
+        # ["pilotlog.txt", "payload.stdout", "payload.stderr"]:
+        for logfile in os.listdir(workdir):
+            if logfile.endswith("gz"):
+                continue
+            path = os.path.join(workdir, logfile)
+            if os.path.exists(path):
+                object_name = os.path.join(remote_path, logfile)
+                logger.info('uploading %s to bucket=%s using object name=%s' % (path, bucket, object_name))
+                status, diagnostics = upload_file(path, bucket, object_name=object_name)
 
-      # ["pilotlog.txt", "payload.stdout", "payload.stderr"]:
-      for logFile in os.listdir(workdir):
-        if logFile.endswith("gz"):
-           continue
-        path = os.path.join(workdir, logFile)
-        if os.path.exists(path):
-            objectName = os.path.join(remotePath, logFile)
-            logger.info('uploading %s to bucket=%s using object name=%s' % (path, bucket, objectName))
-            status, diagnostics = upload_file(path, bucket, object_name=objectName)
-
-            if not status:  ## an error occurred
-                # create new error code(s) in ErrorCodes.py and set it/them in resolve_common_transfer_errors()
-                error = resolve_common_transfer_errors(diagnostics, is_stagein=False)
+                if not status:  ## an error occurred
+                    # create new error code(s) in ErrorCodes.py and set it/them in resolve_common_transfer_errors()
+                    error = resolve_common_transfer_errors(diagnostics, is_stagein=False)
+                    fspec.status = 'failed'
+                    fspec.status_code = error.get('rcode')
+                    raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
+            else:
+                diagnostics = 'local output file does not exist: %s' % path
+                logger.warning(diagnostics)
                 fspec.status = 'failed'
-                fspec.status_code = error.get('rcode')
-                raise PilotException(error.get('error'), code=error.get('rcode'), state=error.get('state'))
-        else:
-            diagnostics = 'local output file does not exist: %s' % path
-            logger.warning(diagnostics)
-            fspec.status = 'failed'
-            fspec.status_code = errors.STAGEOUTFAILED
-            raise PilotException(diagnostics, code=fspec.status_code, state=fspec.status)
+                fspec.status_code = errors.STAGEOUTFAILED
+                raise PilotException(diagnostics, code=fspec.status_code, state=fspec.status)
 
-        fspec.status = 'transferred'
-        fspec.status_code = 0
+            fspec.status = 'transferred'
+            fspec.status_code = 0
 
     return files
 
@@ -202,9 +200,6 @@ def upload_file(file_name, bucket, object_name=None):
     if object_name is None:
         object_name = file_name
 
-    #      os.environ['GTAG'] = http_access + os.path.join(remotePath, config.Pilot.pilotlog)
-    #      logger.debug('http_access=%s' % http_access)
-
     # upload the file
     try:
         client = storage.Client()
@@ -213,9 +208,9 @@ def upload_file(file_name, bucket, object_name=None):
         blob = gs_bucket.blob(object_name)
         blob.upload_from_filename(filename=file_name)
         if file_name.endswith(config.Pilot.pilotlog):
-           url_pilotLog = blob.public_url
-           os.environ['GTAG'] = url_pilotLog
-           logger.debug("Set envvar GTAG with the pilotLot URL=%s" % url_pilotLog)
+            url_pilotLog = blob.public_url
+            os.environ['GTAG'] = url_pilotLog
+            logger.debug("Set envvar GTAG with the pilotLot URL=%s" % url_pilotLog)
     except Exception as e:
         diagnostics = 'exception caught in gs client: %s' % e
         logger.critical(diagnostics)
