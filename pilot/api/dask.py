@@ -250,13 +250,13 @@ class Dask(object):
 
         """
 
-        logger.info('connecting to HelmCluster')
         try:
             import dask_kubernetes
         except Exception as error:
             logger.warning('failed to import dask_kubernetes')
         else:
             self.cluster = dask_kubernetes.HelmCluster(release_name=self.servicename)
+            logger.info('connected to HelmCluster')
 
     def scale(self, number):
         """
