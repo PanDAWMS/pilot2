@@ -602,7 +602,7 @@ class Executor(object):
                 # run the post-process command even if there was no main payload
                 if os.environ.get('HARVESTER_HOROVOD', '') != '':
                     logger.info('No need to execute any main payload')
-                    exit_code = self.run_utility_after_payload_finished()
+                    exit_code = self.run_utility_after_payload_finished(True)
                     self.post_payload(self.__job)
                 else:
                     break
