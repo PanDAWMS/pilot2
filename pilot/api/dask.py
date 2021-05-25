@@ -7,6 +7,12 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2021
 
+try:
+    # import dask
+    import dask_kubernetes
+except Exception:
+    pass
+
 #from pilot.common.exception import NotDefined, NotSameLength, UnknownException
 from pilot.util.container import execute
 from pilot.util.filehandling import establish_logging, write_file
@@ -126,7 +132,7 @@ class Dask(object):
 
         """
 
-        regex = "^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$"
+        regex = r"^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$"
         return True if re.search(regex, ip) else False
 
     def _get_dictionary(self, cmd=None):
@@ -162,22 +168,16 @@ class Dask(object):
 
         establish_logging(debug=True)
 
-        # import relevant modules
-        try:
-            import dask
-            logger.debug('dask imported')
-            import dask_kubernetes
-            logger.debug('dask_kubernetes imported')
-        except Exception as error:
-            logger.warning('module not available: %s' % error)
-            return False
+        # check imported modules
+        # dask
+        # dask_kubernetes
 
         # verify relevant commands
         commands = ['helm', 'kubectl']
         found = False
         for cmd in commands:
             exit_code, stdout, stderr = execute('which %s' % cmd, mute=True)
-            found = True if not 'not found' in stdout else False
+            found = True if 'not found' not in stdout else False
             if not found:
                 logger.warning(stdout)
                 break
@@ -250,7 +250,7 @@ class Dask(object):
         try:
             import dask_kubernetes
         except Exception as error:
-            logger.warning('failed to import dask_kubernetes')
+            logger.warning('failed to import dask_kubernetes: %s' % error)
         else:
             self.cluster = dask_kubernetes.HelmCluster(release_name=self.servicename)
             logger.info('connected to HelmCluster')
