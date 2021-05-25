@@ -11,7 +11,9 @@
 #from pilot.util.filehandling import get_table_from_file
 #from pilot.util.math import mean, sum_square_dev, sum_dev, chi2, float_to_rounded_string
 from pilot.util.container import execute
-from pilot.util.filehandling import establish_logging
+from pilot.util.filehandling import establish_logging, write_file
+
+import os
 
 import logging
 logger = logging.getLogger(__name__)
@@ -24,6 +26,10 @@ class Dask(object):
 
     status = None
     loadbalancerip = None
+    servicetype = "LoadBalancer"
+    jupyter = False
+    overrides = "override_values.yaml"
+    _workdir = os.getcwd()
 
     def __init__(self, **kwargs):
         """
@@ -32,7 +38,15 @@ class Dask(object):
         :param kwargs:
         """
 
-        pass
+        _servicetype = kwargs.get('servicetype', None)
+        if _servicetype:
+            self.servicetype = _servicetype
+        _jupyter = kwargs.get('jupyter', None)
+        if _jupyter:
+            self.jupyter = _jupyter
+        _overrides = kwargs.get('overrides', None)
+        if _overrides:
+            self.overrides = _overrides
 
     def install(self, block=True):
         """
@@ -44,8 +58,16 @@ class Dask(object):
             logger.warning('validation failed')
             self.status = 'failed'
         else:
-            logger.info('dask has been validated')
+            logger.debug('dask has been validated')
             self.status = 'validated'
+
+            # is the single-dask cluster already running?
+            cmd = 'kubectl get services'
+            exit_code, stdout, stderr = execute(cmd, mute=True)
+            if exit_code:
+                logger.warning('failed to execute \'%s\': %s' % (cmd, stdout))
+                self.status = 'failed'
+            else:
 
     def _validate(self):
         """
@@ -56,17 +78,22 @@ class Dask(object):
         2. library: dask_kubernetes
         3. command: helm
         4. command: kubectl
+        5. copy relevant yaml file(s)
         """
 
         establish_logging(debug=True)
 
+        # import relevant modules
         try:
             import dask
+            logger.debug('dask imported')
             import dask_kubernetes
+            logger.debug('dask_kubernetes imported')
         except Exception as error:
             logger.warning('module not available: %s' % error)
             return False
 
+        # verify relevant commands
         commands = ['helm', 'kubectl']
         found = False
         for cmd in commands:
@@ -75,7 +102,30 @@ class Dask(object):
             if not found:
                 logger.warning(stdout)
                 break
+            else:
+                logger.debug('%s verified' % cmd)
         if not found:
             return False
 
+        # create yaml file(s)
+        self._generate_override_script()
+
         return True
+
+    def _generate_override_script(self, jupyter=False, servicetype='LoadBalancer'):
+        """
+
+        """
+
+        filename = os.path.join(self._workdir, self.overrides)
+        if os.path.exists(filename):
+            logger.info('file \'%s\' already exists - will not override')
+            return
+
+        script = ""
+        if not jupyter:
+            script += 'jupyter:\n\tenabled: false\n\n'
+        if servicetype:
+            script += 'scheduler:\n\tserviceType: \"%s\"\n' % servicetype
+
+        write_file(filename, script)
