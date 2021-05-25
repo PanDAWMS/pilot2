@@ -99,7 +99,7 @@ if __name__ == '__main__':
             print("remote file open verification not desired")
             exit(0)
 
-    establish_logging(args, filename=logname)
+    establish_logging(debug=args.debug, nopilotlog=args.nopilotlog, filename=logname)
     logger = logging.getLogger(__name__)
 
     # get the file info

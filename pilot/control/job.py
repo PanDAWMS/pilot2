@@ -1676,7 +1676,7 @@ def retrieve(queues, traces, args):  # noqa: C901
                         logging.info('pilot has finished for previous job - re-establishing logging')
                         logging.handlers = []
                         logging.shutdown()
-                        establish_logging(args)
+                        establish_logging(debug=args.debug, nopilotlog=args.nopilotlog)
                         pilot_version_banner()
                         getjob_requests = 0
                         add_to_pilot_timing('1', PILOT_MULTIJOB_START_TIME, time.time(), args)

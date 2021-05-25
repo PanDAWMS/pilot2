@@ -289,7 +289,7 @@ if __name__ == '__main__':
     args.debug = True
     args.nopilotlog = False
 
-    establish_logging(args, filename=config.Pilot.stageoutlog)
+    establish_logging(debug=args.debug, nopilotlog=args.nopilotlog, filename=config.Pilot.stageoutlog)
     logger = logging.getLogger(__name__)
 
     #ret = verify_args()

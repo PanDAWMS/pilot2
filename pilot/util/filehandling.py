@@ -930,11 +930,12 @@ def dump(path, cmd="cat"):
         logger.info("path %s does not exist" % path)
 
 
-def establish_logging(args, filename=config.Pilot.pilotlog):
+def establish_logging(debug=True, nopilotlog=False, filename=config.Pilot.pilotlog):
     """
     Setup and establish logging.
 
-    :param args: pilot arguments object.
+    :param debug: debug mode (Boolean),
+    :param nopilotlog: True when pilot log is not known (Boolean).
     :param filename: name of log file.
     :return:
     """
@@ -944,7 +945,7 @@ def establish_logging(args, filename=config.Pilot.pilotlog):
     _logger.propagate = False
 
     console = logging.StreamHandler(sys.stdout)
-    if args.debug:
+    if debug:
         format_str = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
         level = logging.DEBUG
     else:
@@ -953,7 +954,7 @@ def establish_logging(args, filename=config.Pilot.pilotlog):
     #rank, maxrank = get_ranks_info()
     #if rank is not None:
     #    format_str = 'Rank {0} |'.format(rank) + format_str
-    if args.nopilotlog:
+    if nopilotlog:
         logging.basicConfig(level=level, format=format_str, filemode='w')
     else:
         logging.basicConfig(filename=filename, level=level, format=format_str, filemode='w')

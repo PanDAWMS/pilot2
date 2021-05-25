@@ -587,7 +587,7 @@ if __name__ == '__main__':
     set_environment_variables(args, mainworkdir)
 
     # setup and establish standard logging
-    establish_logging(args)
+    establish_logging(debug=args.debug, nopilotlog=args.nopilotlog)
 
     # execute main function
     trace = main()
