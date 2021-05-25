@@ -16,6 +16,7 @@ from pilot.util.parameters import convert_to_int
 
 import os
 import re
+from time import sleep
 
 import logging
 logger = logging.getLogger(__name__)
@@ -54,6 +55,16 @@ class Dask(object):
         if _overrides:
             self.overrides = _overrides
 
+    def uninstall(self):
+        """
+
+        """
+
+        cmd = 'helm uninstall %s' % self.servicename
+        exit_code, stdout, stderr = execute(cmd, mute=True)
+        if not exit_code:
+            logger.info('service %s has been uninstalled' % self.servicename)
+
     def install(self, block=True):
         """
 
@@ -70,9 +81,29 @@ class Dask(object):
             # is the single-dask cluster already running?
             name = '%s-scheduler' % self.servicename
             if self.is_running(name=name):
-                logger.info('service %s is running' % name)
+                logger.info('service %s is already running - nothing to install' % name)
             else:
-                logger.info('service %s is not yet running' % name)
+                logger.info('service %s is not yet running - proceed with installation' % name)
+
+                #
+                override_option = "-f %s" % self.overrides if self.overrides else ""
+                cmd = 'helm install %s %s dask/dask' % (override_option, self.servicename)
+                #exit_code, stdout, stderr = execute(cmd, mute=True)
+                exit_code = 0
+                if not exit_code:
+                    logger.info('installation of service %s is in progress' % self.servicename)
+
+                    if block:
+                        while True:
+                            name = '%s-scheduler' % self.servicename
+                            if self.is_running(name=name):
+                                logger.info('service %s is running' % name)
+                                self.status = 'running'
+                                break
+                            else:
+                                self.status = 'pending'
+                                sleep(2)
+                    # note: in non-blocking mode, status is not getting updated
 
     def is_running(self, name='single-dask-scheduler'):
         """
@@ -81,12 +112,9 @@ class Dask(object):
 
         status = False
         dictionary = self._get_dictionary(cmd='kubectl get services')
-        logger.debug('d=%s' % str(dictionary))
         for key in dictionary:
             if key == name:
-                logger.debug('ip:%s' % dictionary[key]['EXTERNAL-IP'])
                 status = True if self._is_valid_ip(dictionary[key]['EXTERNAL-IP']) else False
-                logger.debug('status=%s' % str(status))
                 break
 
         return status
@@ -181,9 +209,12 @@ class Dask(object):
         if servicetype:
             script += 'scheduler:\n    serviceType: \"%s\"\n' % servicetype
 
-        status = write_file(filename, script)
-        if status:
-            logger.debug('generated script: %s' % filename)
+        if script:
+            status = write_file(filename, script)
+            if status:
+                logger.debug('generated script: %s' % filename)
+        else:
+            self.overrides = None
 
     def _convert_to_dict(self, output):
         """
@@ -193,15 +224,12 @@ class Dask(object):
         dictionary = {}
         first_line = []
         for line in output.split('\n'):
-            logger.debug('line=%s' % line)
             try:
                 # Remove empty entries from list (caused by multiple \t)
                 _l = re.sub(' +', ' ', line)
                 _l = [_f for _f in _l.split(' ') if _f]
-                logger.debug('_l=%s' % _l)
                 if first_line == []:  # "NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE
                     first_line = _l[1:]
-                    logger.debug('first line=%s' % first_line)
                 else:
                     dictionary[_l[0]] = {}
                     for i in range(len(_l[1:])):
@@ -210,5 +238,4 @@ class Dask(object):
             except Exception:
                 logger.warning("unexpected format of utility output: %s" % line)
 
-        logger.debug('dictionary=%s' % str(dictionary))
         return dictionary
