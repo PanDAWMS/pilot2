@@ -70,7 +70,9 @@ class Dask(object):
             # is the single-dask cluster already running?
             name = '%s-scheduler' % self.servicename
             if self.is_running(name=name):
-                logger.info('service %s is running')
+                logger.info('service %s is running' % name)
+            else:
+                logger.info('service %s is not yet running' % name)
 
     def is_running(self, name='single-dask-scheduler'):
         """
@@ -167,7 +169,7 @@ class Dask(object):
 
         filename = os.path.join(self._workdir, self.overrides)
         if os.path.exists(filename):
-            logger.info('file \'%s\' already exists - will not override')
+            logger.info('file \'%s\' already exists - will not override' % filename)
             return
 
         script = ""
