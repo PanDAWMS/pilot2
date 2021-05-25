@@ -11,6 +11,7 @@
 #from pilot.util.filehandling import get_table_from_file
 #from pilot.util.math import mean, sum_square_dev, sum_dev, chi2, float_to_rounded_string
 from pilot.util.container import execute
+from pilot.util.filehandling import establish_logging
 
 import logging
 logger = logging.getLogger(__name__)
@@ -56,6 +57,8 @@ class Dask(object):
         3. command: helm
         4. command: kubectl
         """
+
+        establish_logging(debug=True)
 
         try:
             import dask
