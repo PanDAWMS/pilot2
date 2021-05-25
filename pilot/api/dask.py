@@ -191,12 +191,9 @@ class Dask(object):
         """
 
         dictionary = {}
-        summary_keys = []  # to keep track of content
-        header_locked = False
-
-        dictionary = {}
         first_line = []
         for line in output.split('\n'):
+            logger.debug('line=%s' % line)
             try:
                 # Remove empty entries from list (caused by multiple \t)
                 _l = line
@@ -212,4 +209,5 @@ class Dask(object):
             except Exception:
                 logger.warning("unexpected format of utility output: %s" % line)
 
+        logger.debug('dictionary=%s' % str(dictionary))
         return dictionary
