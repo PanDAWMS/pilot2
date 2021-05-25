@@ -34,6 +34,7 @@ class Dask(object):
     jupyter = False
     overrides = "override_values.yaml"
     _workdir = os.getcwd()
+    cluster = None
 
     def __init__(self, **kwargs):
         """
@@ -55,16 +56,20 @@ class Dask(object):
         if _overrides:
             self.overrides = _overrides
 
-    def uninstall(self):
+    def uninstall(self, block=True):
         """
 
         """
+
+        logger.info('uninstalling service %s' % self.servicename)
+        if block:
+            logger.warning('blocking mode not yet implemented')
 
         cmd = 'helm uninstall %s' % self.servicename
         exit_code, stdout, stderr = execute(cmd, mute=True)
         if not exit_code:
             self.status = 'uninstalled'
-            logger.info('service %s has been uninstalled' % self.servicename)
+            logger.info('uninstall of service %s has been requested' % self.servicename)
 
     def install(self, block=True):
         """
@@ -239,3 +244,29 @@ class Dask(object):
                 logger.warning("unexpected format of utility output: %s" % line)
 
         return dictionary
+
+    def connect_cluster(self):
+        """
+
+        """
+
+        logger.info('connecting to HelmCluster')
+        self.cluster = dask_kubernetes.HelmCluster(release_name=self.servicename)
+
+    def scale(self, number):
+        """
+
+        """
+
+        if number > 2:
+            logger.warning('too large scale: %d (please use <= 2 for now)' % number)
+            return
+        if not self.cluster:
+            self.connect_cluster()
+        if not self.cluster:
+            logger.warning('cluster not connected - cannot proceed')
+            self.status = 'failed'
+            return
+
+        logger.info('setting scale to: %d' % number)
+        self.cluster.scale = number
