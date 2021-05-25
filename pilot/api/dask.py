@@ -68,6 +68,7 @@ class Dask(object):
                 logger.warning('failed to execute \'%s\': %s' % (cmd, stdout))
                 self.status = 'failed'
             else:
+                # parse output
                 pass
 
     def _validate(self):
@@ -115,7 +116,11 @@ class Dask(object):
 
     def _generate_override_script(self, jupyter=False, servicetype='LoadBalancer'):
         """
+        Generate a values yaml script, unless it already exists.
 
+        :param jupyter: False if jupyter notebook server should be disabled (Boolean).
+        :param servicetype: name of service type (string).
+        :return:
         """
 
         filename = os.path.join(self._workdir, self.overrides)
@@ -125,8 +130,10 @@ class Dask(object):
 
         script = ""
         if not jupyter:
-            script += 'jupyter:\n\tenabled: false\n\n'
+            script += 'jupyter:\n    enabled: false\n\n'
         if servicetype:
-            script += 'scheduler:\n\tserviceType: \"%s\"\n' % servicetype
+            script += 'scheduler:\n    serviceType: \"%s\"\n' % servicetype
 
-        write_file(filename, script)
+        status = write_file(filename, script)
+        if status:
+            logger.debug('generated script: %s' % filename)
