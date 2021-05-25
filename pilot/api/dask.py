@@ -81,9 +81,12 @@ class Dask(object):
 
         status = False
         dictionary = self._get_dictionary(cmd='kubectl get services')
+        logger.debug('d=%s' % str(dictionary))
         for key in dictionary:
             if key == name:
+                logger.debug('ip:%s' % dictionary[key]['EXTERNAL-IP'])
                 status = True if self._is_valid_ip(dictionary[key]['EXTERNAL-IP']) else False
+                logger.debug('status=%s' % str(status))
                 break
 
         return status
