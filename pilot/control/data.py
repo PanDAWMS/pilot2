@@ -417,9 +417,13 @@ def stage_out_auto(site, files):
 
 def xcache_proxy(output):
     """
+    Extract env vars from xcache stdout and set them.
 
+    :param output: command output (string).
+    :return:
     """
 
+    # loop over each line in the xcache stdout and identify the needed environmental variables
     for line in output.split('\n'):
         if 'ALRB_XCACHE_PROXY' in line:
             remote = 'REMOTE' in line
