@@ -63,6 +63,7 @@ class Dask(object):
         cmd = 'helm uninstall %s' % self.servicename
         exit_code, stdout, stderr = execute(cmd, mute=True)
         if not exit_code:
+            self.status = 'uninstalled'
             logger.info('service %s has been uninstalled' % self.servicename)
 
     def install(self, block=True):
@@ -88,8 +89,7 @@ class Dask(object):
                 #
                 override_option = "-f %s" % self.overrides if self.overrides else ""
                 cmd = 'helm install %s %s dask/dask' % (override_option, self.servicename)
-                #exit_code, stdout, stderr = execute(cmd, mute=True)
-                exit_code = 0
+                exit_code, stdout, stderr = execute(cmd, mute=True)
                 if not exit_code:
                     logger.info('installation of service %s is in progress' % self.servicename)
 
