@@ -198,9 +198,10 @@ class Dask(object):
                 # Remove empty entries from list (caused by multiple \t)
                 _l = line
                 _l = [_f for _f in _l.split('\t') if _f]
-
+                logger.debug('_l=%s' % _l)
                 if first_line == []:  # "NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE
                     first_line = _l[1:]
+                    logger.debug('first line=%s' % first_line)
                 else:
                     dictionary[_l[0]] = {}
                     for i in range(len(_l[1:])):
