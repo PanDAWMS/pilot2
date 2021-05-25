@@ -196,8 +196,8 @@ class Dask(object):
             logger.debug('line=%s' % line)
             try:
                 # Remove empty entries from list (caused by multiple \t)
-                _l = line
-                _l = [_f for _f in _l.split('\t') if _f]
+                _l = re.sub(' +', ' ', line)
+                _l = [_f for _f in _l.split(' ') if _f]
                 logger.debug('_l=%s' % _l)
                 if first_line == []:  # "NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE
                     first_line = _l[1:]
