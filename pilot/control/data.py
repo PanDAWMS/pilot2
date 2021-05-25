@@ -416,38 +416,37 @@ def stage_out_auto(site, files):
 
 
 def xcache_proxy(output):
+    """
+
+    """
 
     for line in output.split('\n'):
         if 'ALRB_XCACHE_PROXY' in line:
-            set_xcache_proxy(line, remote='REMOTE' in line)
-        if 'Messages logged in' in line:
-            set_xcache_log(line)
+            remote = 'REMOTE' in line
+            name = 'ALRB_XCACHE_PROXY_REMOTE' if remote else 'ALRB_XCACHE_PROXY'
+            pattern = r'\ export\ ALRB_XCACHE_PROXY_REMOTE\=\"(.+)\"' if remote else r'\ export\ ALRB_XCACHE_PROXY\=\"(.+)\"'
+            set_xcache_var(line, name=name, pattern=pattern)
+        elif 'ALRB_XCACHE_MYPROCESS' in line:
+            set_xcache_var(line, name='ALRB_XCACHE_MYPROCESS', pattern=r'\ ALRB_XCACHE_MYPROCESS\=(.+)')
+        elif 'Messages logged in' in line:
+            set_xcache_var(line, name='ALRB_XCACHE_LOG', pattern=r'xcache\ started\ successfully.\ \ Messages\ logged\ in\ (.+)')
 
 
-def set_xcache_proxy(line, remote=None):
+def set_xcache_var(line, name='', pattern=''):
+    """
+    Extract the value of a given environmental variable from a given stdout line.
+
+    :param line: line from stdout to be investigated (string).
+    :param name: name of env var (string).
+    :param pattern: regex pattern (string).
+    :return:
+    """
 
     import re
-    pattern = r'\ export\ ALRB_XCACHE_PROXY_REMOTE\=\"(.+)\"' if remote else r'\ export\ ALRB_XCACHE_PROXY\=\"(.+)\"'
     pattern = re.compile(pattern)
     result = re.findall(pattern, line)
     if result:
-        if remote:
-            os.environ['ALRB_XCACHE_PROXY_REMOTE'] = result[0]
-        else:
-            os.environ['ALRB_XCACHE_PROXY'] = result[0]
-
-
-def set_xcache_log(line):
-
-    import re
-    pattern = r'xcache\ started\ successfully.\ \ Messages\ logged\ in\ (.+)'
-    pattern = re.compile(pattern)
-    result = re.findall(pattern, line)
-    if result:
-        os.environ['ALRB_XCACHE_LOG'] = result[0]
-        logger.debug('extracted xcache log path: ALRB_XCACHE_LOG=\'%s\'' % result[0])
-    else:
-        logger.warning('failed to extract log path for ALRB_XCACHE_LOG from line: \'%s\'' % line)
+        os.environ[name] = result[0]
 
 
 def copytool_in(queues, traces, args):
