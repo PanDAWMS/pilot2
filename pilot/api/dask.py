@@ -12,6 +12,7 @@
 #from pilot.util.math import mean, sum_square_dev, sum_dev, chi2, float_to_rounded_string
 from pilot.util.container import execute
 from pilot.util.filehandling import establish_logging, write_file
+from pilot.util.parameters import convert_to_int
 
 import os
 
@@ -24,6 +25,7 @@ class Dask(object):
     Dask interface class.
     """
 
+    servicename = 'single-dask'
     status = None
     loadbalancerip = None
     servicetype = "LoadBalancer"
@@ -38,6 +40,9 @@ class Dask(object):
         :param kwargs:
         """
 
+        _servicename = kwargs.get('servicename', None)
+        if _servicename:
+            self.servicename = _servicename
         _servicetype = kwargs.get('servicetype', None)
         if _servicetype:
             self.servicetype = _servicetype
@@ -69,7 +74,8 @@ class Dask(object):
                 self.status = 'failed'
             else:
                 # parse output
-                pass
+                dictionary = self._convert_to_dict(stdout)
+                logger.debug('d=%s' % str(dictionary))
 
     def _validate(self):
         """
@@ -137,3 +143,35 @@ class Dask(object):
         status = write_file(filename, script)
         if status:
             logger.debug('generated script: %s' % filename)
+
+    def _convert_to_dict(self, output):
+        """
+
+        """
+
+        dictionary = {}
+        summary_keys = []  # to keep track of content
+        header_locked = False
+
+        for line in output.split('\n'):
+            try:
+                # Remove empty entries from list (caused by multiple \t)
+                _l = line.replace('\n', '')
+                _l = [_f for _f in _l.split('\t') if _f]  # Python 3
+
+                # define dictionary keys
+                if type(_l[0]) == str and not header_locked:
+                    summary_keys = _l
+                    for key in _l:
+                        dictionary[key] = []
+                    header_locked = True
+                else:  # sort the memory measurements in the correct columns
+                    for i, key in enumerate(_l):
+                        # for key in _l:
+                        key_entry = summary_keys[i]  # e.g. Time
+                        value = convert_to_int(key)
+                        dictionary[key_entry].append(value)
+            except Exception:
+                logger.warning("unexpected format of utility output: %s" % line)
+
+        return dictionary
