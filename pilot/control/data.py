@@ -32,7 +32,7 @@ from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT, LOG_TRANSFER_IN_PROGRESS,\
     LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME, UTILITY_BEFORE_STAGEIN
 from pilot.util.container import execute
-from pilot.util.filehandling import remove
+from pilot.util.filehandling import remove, write_file
 from pilot.util.processes import threads_aborted
 from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
 from pilot.util.timing import add_to_pilot_timing
@@ -415,42 +415,39 @@ def stage_out_auto(site, files):
     return files
 
 
-def xcache_proxy(output):
+def write_output(filename, output):
     """
-    Extract env vars from xcache stdout and set them.
+    Write command output to file.
 
-    :param output: command output (string).
+    :param filename: file name (string).
+    :param output: command stdout/stderr (string).
     :return:
     """
 
-    # loop over each line in the xcache stdout and identify the needed environmental variables
-    for line in output.split('\n'):
-        if 'ALRB_XCACHE_PROXY' in line:
-            remote = 'REMOTE' in line
-            name = 'ALRB_XCACHE_PROXY_REMOTE' if remote else 'ALRB_XCACHE_PROXY'
-            pattern = r'\ export\ ALRB_XCACHE_PROXY_REMOTE\=\"(.+)\"' if remote else r'\ export\ ALRB_XCACHE_PROXY\=\"(.+)\"'
-            set_xcache_var(line, name=name, pattern=pattern)
-        elif 'ALRB_XCACHE_MYPROCESS' in line:
-            set_xcache_var(line, name='ALRB_XCACHE_MYPROCESS', pattern=r'\ ALRB_XCACHE_MYPROCESS\=(.+)')
-        elif 'Messages logged in' in line:
-            set_xcache_var(line, name='ALRB_XCACHE_LOG', pattern=r'xcache\ started\ successfully.\ \ Messages\ logged\ in\ (.+)')
+    try:
+        write_file(filename, output, unique=True)
+    except PilotException as e:
+        logger.warning('failed to write utility output to file: %s, %s' % (e, output))
+    else:
+        logger.debug('wrote %s' % filename)
 
 
-def set_xcache_var(line, name='', pattern=''):
+def write_utility_output(workdir, step, stdout, stderr):
     """
-    Extract the value of a given environmental variable from a given stdout line.
+    Write the utility command output to stdout, stderr files to the job.workdir for the current step.
+    -> <step>_stdout.txt, <step>_stderr.txt
+    Example of step: xcache.
 
-    :param line: line from stdout to be investigated (string).
-    :param name: name of env var (string).
-    :param pattern: regex pattern (string).
+    :param workdir: job workdir (string).
+    :param step: utility step (string).
+    :param stdout: command stdout (string).
+    :param stderr: command stderr (string).
     :return:
     """
 
-    import re
-    pattern = re.compile(pattern)
-    result = re.findall(pattern, line)
-    if result:
-        os.environ[name] = result[0]
+    # dump to files
+    write_output(os.path.join(workdir, step + '_stdout.txt'), stdout)
+    write_output(os.path.join(workdir, step + '_stderr.txt'), stderr)
 
 
 def copytool_in(queues, traces, args):
@@ -480,15 +477,26 @@ def copytool_in(queues, traces, args):
             user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
             cmd = user.get_utility_commands(job=job, order=UTILITY_BEFORE_STAGEIN)
             if cmd:
-                exit_code, stdout, stderr = execute(cmd.get('command'))
-                logger.debug('exit_code=%d' % exit_code)
-                logger.debug('stderr=%s' % stderr)
-                logger.debug('stdout=%s' % stdout)
-                # move code to user area
-                xcache_proxy(stdout)
+                # xcache debug
+                exit_code, stdout, stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                logger.debug('[before xcache start] stdout=%s' % stdout)
+                logger.debug('[before xcache start] stderr=%s' % stderr)
 
-            logger.debug('ALRB_XCACHE_PROXY=%s' % os.environ.get('ALRB_XCACHE_PROXY', '<not set>'))
-            logger.debug('ALRB_XCACHE_PROXY_REMOTE=%s' % os.environ.get('ALRB_XCACHE_PROXY_REMOTE', '<not set>'))
+                exit_code, stdout, stderr = execute(cmd.get('command'))
+                logger.debug('stdout=%s' % stdout)
+                logger.debug('stderr=%s' % stderr)
+
+                # xcache debug
+                exit_code, stdout, stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                logger.debug('[after xcache start] stdout=%s' % stdout)
+                logger.debug('[after xcache start] stderr=%s' % stderr)
+
+                # perform any action necessary after command execution (e.g. stdout processing)
+                kwargs = {'label': cmd.get('label', 'utility'), 'output': stdout}
+                user.post_prestagein_utility_command(**kwargs)
+
+                # write output to log files
+                write_utility_output(job.workdir, cmd.get('label', 'utility'), stdout, stderr)
 
             # place it in the current stage-in queue (used by the jobs' queue monitoring)
             put_in_queue(job, queues.current_data_in)

@@ -256,3 +256,18 @@ def update_server(job):
     """
 
     pass
+
+
+def post_prestagein_utility_command(**kwargs):
+    """
+    Execute any post pre-stage-in utility commands.
+
+    :param kwargs: kwargs (dictionary).
+    :return:
+    """
+
+    # label = kwargs.get('label', 'unknown_label')
+    # stdout = kwargs.get('output', None)
+
+    pass
+

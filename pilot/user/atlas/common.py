@@ -1882,28 +1882,97 @@ def get_utility_commands(order=None, job=None):
     if order == UTILITY_BEFORE_PAYLOAD and job.preprocess:
         if job.preprocess.get('command', ''):
             com = download_command(job.preprocess, job.workdir)
+            com['label'] = 'preprocess'
     elif order == UTILITY_WITH_PAYLOAD:
-        com = {'command': 'NetworkMonitor', 'args': ''}
+        com = {'command': 'NetworkMonitor', 'args': '', 'label': 'networkmonitor'}
     elif order == UTILITY_AFTER_PAYLOAD_STARTED:
         cmd = config.Pilot.utility_after_payload_started
         if cmd:
-            com = {'command': cmd, 'args': ''}
+            com = {'command': cmd, 'args': '', 'label': cmd.lower()}
     elif order == UTILITY_AFTER_PAYLOAD_STARTED2 and job.coprocess:
         if job.coprocess.get('command', ''):
             com = download_command(job.coprocess, job.workdir)
+            com['label'] = 'coprocess'
     elif order == UTILITY_AFTER_PAYLOAD and job.postprocess:
         if job.postprocess.get('command', ''):
             com = download_command(job.postprocess, job.workdir)
+            com['label'] = 'postprocess'
     elif order == UTILITY_AFTER_PAYLOAD_FINISHED:
         if job.postprocess and job.postprocess.get('command', ''):
             com = download_command(job.postprocess, job.workdir)
+            com['label'] = 'postprocess'
         if 'pilotXcache' in job.infosys.queuedata.catchall:
             com = xcache_deactivation_command(job.workdir)
+            com['label'] = 'xcache_kill'
     elif order == UTILITY_BEFORE_STAGEIN:
         if 'pilotXcache' in job.infosys.queuedata.catchall:
             com = xcache_activation_command(job.jobid)
+            com['label'] = 'xcache'
 
     return com
+
+
+def post_prestagein_utility_command(**kwargs):
+    """
+    Execute any post pre-stage-in utility commands.
+
+    :param kwargs: kwargs (dictionary).
+    :return:
+    """
+
+    label = kwargs.get('label', 'unknown_label')
+    stdout = kwargs.get('output', None)
+
+    if stdout:
+        logger.debug('processing stdout for label=%s' % label)
+        xcache_proxy(stdout)
+    else:
+        logger.warning('no output for label=%s' % label)
+
+    alrb_xcache_files = os.environ.get('ALRB_XCACHE_FILES', '')
+    if alrb_xcache_files:
+        cmd = 'cat $ALRB_XCACHE_FILES/settings.sh'
+        exit_code, _stdout, _stderr = execute(cmd, usecontainer=False)
+        logger.debug('cmd=%s:\n\n%s\n\n' % _stdout)
+
+
+def xcache_proxy(output):
+    """
+    Extract env vars from xcache stdout and set them.
+
+    :param output: command output (string).
+    :return:
+    """
+
+    # loop over each line in the xcache stdout and identify the needed environmental variables
+    for line in output.split('\n'):
+        if 'ALRB_XCACHE_PROXY' in line:
+            remote = 'REMOTE' in line
+            name = 'ALRB_XCACHE_PROXY_REMOTE' if remote else 'ALRB_XCACHE_PROXY'
+            pattern = r'\ export\ ALRB_XCACHE_PROXY_REMOTE\=\"(.+)\"' if remote else r'\ export\ ALRB_XCACHE_PROXY\=\"(.+)\"'
+            set_xcache_var(line, name=name, pattern=pattern)
+        elif 'ALRB_XCACHE_MYPROCESS' in line:
+            set_xcache_var(line, name='ALRB_XCACHE_MYPROCESS', pattern=r'\ ALRB_XCACHE_MYPROCESS\=(.+)')
+        elif 'Messages logged in' in line:
+            set_xcache_var(line, name='ALRB_XCACHE_LOG', pattern=r'xcache\ started\ successfully.\ \ Messages\ logged\ in\ (.+)')
+        elif 'ALRB_XCACHE_FILES' in line:
+            set_xcache_var(line, name='ALRB_XCACHE_FILES', pattern=r'\ ALRB_XCACHE_FILES\=(.+)')
+
+
+def set_xcache_var(line, name='', pattern=''):
+    """
+    Extract the value of a given environmental variable from a given stdout line.
+
+    :param line: line from stdout to be investigated (string).
+    :param name: name of env var (string).
+    :param pattern: regex pattern (string).
+    :return:
+    """
+
+    pattern = re.compile(pattern)
+    result = re.findall(pattern, line)
+    if result:
+        os.environ[name] = result[0]
 
 
 def xcache_activation_command(jobid):

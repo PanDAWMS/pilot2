@@ -92,7 +92,7 @@ class Executor(object):
         cmd_dictionary = user.get_utility_commands(order=UTILITY_BEFORE_PAYLOAD, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
-            logger.debug('utility command to be executed before the payload: %s' % cmd)
+            logger.info('utility command (\'%s\') to be executed before the payload: %s' % (cmd_dictionary.get('label', 'utility'), cmd))
 
         return cmd
 
@@ -114,7 +114,7 @@ class Executor(object):
         cmd_dictionary = user.get_utility_commands(order=UTILITY_WITH_PAYLOAD, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
-            logger.debug('utility command to be executed with the payload: %s' % cmd)
+            logger.info('utility command (\'%s\') to be executed with the payload: %s' % (cmd_dictionary.get('label', 'utility'), cmd))
 
         return cmd
 
@@ -138,7 +138,7 @@ class Executor(object):
         cmd_dictionary = user.get_utility_commands(order=order, job=self.__job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
-            logger.info('utility command to be executed after the payload: %s' % cmd)
+            logger.info('utility command (\'%s\') to be executed after the payload: %s' % (cmd_dictionary.get('label', 'utility'), cmd))
 
         return cmd
 
@@ -231,7 +231,7 @@ class Executor(object):
         cmd_dictionary = user.get_utility_commands(order=UTILITY_AFTER_PAYLOAD_FINISHED, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
-            logger.debug('utility command to be executed after the payload has finished: %s' % cmd)
+            logger.info('utility command (\'%s\') to be executed after the payload has finished: %s' % (cmd_dictionary.get('label', 'utility'), cmd))
 
         return cmd
 
@@ -285,13 +285,20 @@ class Executor(object):
             elif step == 'postprocess':
                 self.__postprocess_stdout_name = name_stdout
                 self.__postprocess_stderr_name = name_stderr
-            write_file(os.path.join(workdir, step + '_stdout.txt'), stdout, unique=True)
+            name = os.path.join(workdir, step + '_stdout.txt')
+            write_file(name, stdout, unique=True)
         except PilotException as e:
             logger.warning('failed to write utility stdout to file: %s, %s' % (e, stdout))
+        else:
+            logger.debug('wrote %s' % name)
+
         try:
-            write_file(os.path.join(workdir, step + '_stderr.txt'), stderr, unique=True)
+            name = os.path.join(workdir, step + '_stderr.txt')
+            write_file(name, stderr, unique=True)
         except PilotException as e:
             logger.warning('failed to write utility stderr to file: %s, %s' % (e, stderr))
+        else:
+            logger.debug('wrote %s' % name)
 
     def pre_payload(self, job):
         """
@@ -581,6 +588,11 @@ class Executor(object):
             # now run the main payload, when it finishes, run the postprocess (if necessary)
             # note: no need to run any main payload in HPO Horovod jobs on Kubernetes
             if os.environ.get('HARVESTER_HOROVOD', '') == '':
+
+                exit_code, stdout, stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                logger.debug('[before payload start] stdout=%s' % stdout)
+                logger.debug('[before payload start] stderr=%s' % stderr)
+
                 proc = self.run_payload(self.__job, cmd, self.__out, self.__err)
             else:
                 proc = None
@@ -626,6 +638,10 @@ class Executor(object):
                     state = 'finished' if exit_code == 0 else 'failed'
                 set_pilot_state(job=self.__job, state=state)
                 logger.info('\n\nfinished pid=%s exit_code=%s state=%s\n' % (proc.pid, exit_code, self.__job.state))
+
+                exit_code, stdout, stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                logger.debug('[after payload finish] stdout=%s' % stdout)
+                logger.debug('[after payload finish] stderr=%s' % stderr)
 
                 # stop the utility command (e.g. a coprocess if necessary
                 if proc_co:
@@ -673,7 +689,18 @@ class Executor(object):
                 exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'postprocess')
             elif cmd_after_payload:
                 logger.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
-                exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'xcache')
+
+                # xcache debug
+                exit_code, stdout, stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                logger.debug('[before xcache kill] stdout=%s' % stdout)
+                logger.debug('[before xcache kill] stderr=%s' % stderr)
+
+                exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'xcache_kill')
+
+                # xcache debug
+                exit_code, stdout, stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                logger.debug('[after xcache kill] stdout=%s' % stdout)
+                logger.debug('[after xcache kill] stderr=%s' % stderr)
 
         return exit_code
 
