@@ -274,4 +274,4 @@ class Dask(object):
             return
 
         logger.info('setting scale to: %d' % number)
-        self.cluster.scale = number
+        self.cluster.scale(number)
