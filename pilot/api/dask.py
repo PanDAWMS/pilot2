@@ -72,7 +72,7 @@ class Dask(object):
         for cmd in commands:
             exit_code, stdout, stderr = execute('which %s' % cmd, mute=True)
             found = True if not 'not found' in stdout else False
-            if found not in stdout:
+            if not found:
                 logger.warning(stdout)
                 break
         if not found:
