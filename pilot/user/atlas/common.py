@@ -1932,8 +1932,8 @@ def post_prestagein_utility_command(**kwargs):
     alrb_xcache_files = os.environ.get('ALRB_XCACHE_FILES', '')
     if alrb_xcache_files:
         cmd = 'cat $ALRB_XCACHE_FILES/settings.sh'
-        exit_code, _stdout, _stderr = execute(cmd, usecontainer=False)
-        logger.debug('cmd=%s:\n\n%s\n\n' % _stdout)
+        exit_code, _stdout, _stderr = execute(cmd)
+        logger.debug('cmd=%s:\n\n%s\n\n' % (cmd, _stdout))
 
 
 def xcache_proxy(output):
