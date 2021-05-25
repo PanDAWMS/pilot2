@@ -478,18 +478,18 @@ def copytool_in(queues, traces, args):
             cmd = user.get_utility_commands(job=job, order=UTILITY_BEFORE_STAGEIN)
             if cmd:
                 # xcache debug
-                exit_code, stdout, stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
-                logger.debug('[before xcache start] stdout=%s' % stdout)
-                logger.debug('[before xcache start] stderr=%s' % stderr)
+                exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                logger.debug('[before xcache start] stdout=%s' % _stdout)
+                logger.debug('[before xcache start] stderr=%s' % _stderr)
 
                 exit_code, stdout, stderr = execute(cmd.get('command'))
                 logger.debug('stdout=%s' % stdout)
                 logger.debug('stderr=%s' % stderr)
 
                 # xcache debug
-                exit_code, stdout, stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
-                logger.debug('[after xcache start] stdout=%s' % stdout)
-                logger.debug('[after xcache start] stderr=%s' % stderr)
+                exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                logger.debug('[after xcache start] stdout=%s' % _stdout)
+                logger.debug('[after xcache start] stderr=%s' % _stderr)
 
                 # perform any action necessary after command execution (e.g. stdout processing)
                 kwargs = {'label': cmd.get('label', 'utility'), 'output': stdout}

@@ -8,11 +8,8 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2021
 
 #from pilot.common.exception import NotDefined, NotSameLength, UnknownException
-#from pilot.util.filehandling import get_table_from_file
-#from pilot.util.math import mean, sum_square_dev, sum_dev, chi2, float_to_rounded_string
 from pilot.util.container import execute
 from pilot.util.filehandling import establish_logging, write_file
-from pilot.util.parameters import convert_to_int
 
 import os
 import re
