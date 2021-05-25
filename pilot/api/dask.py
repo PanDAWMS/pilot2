@@ -15,6 +15,7 @@ from pilot.util.filehandling import establish_logging, write_file
 from pilot.util.parameters import convert_to_int
 
 import os
+import re
 
 import logging
 logger = logging.getLogger(__name__)
@@ -67,15 +68,50 @@ class Dask(object):
             self.status = 'validated'
 
             # is the single-dask cluster already running?
-            cmd = 'kubectl get services'
-            exit_code, stdout, stderr = execute(cmd, mute=True)
-            if exit_code:
-                logger.warning('failed to execute \'%s\': %s' % (cmd, stdout))
-                self.status = 'failed'
-            else:
-                # parse output
-                dictionary = self._convert_to_dict(stdout)
-                logger.debug('d=%s' % str(dictionary))
+            name = '%s-scheduler' % self.servicename
+            if self.is_running(name=name):
+                logger.info('service %s is running')
+
+    def is_running(self, name='single-dask-scheduler'):
+        """
+
+        """
+
+        status = False
+        dictionary = self._get_dictionary(cmd='kubectl get services')
+        for key in dictionary:
+            if key == name:
+                status = True if self._is_valid_ip(dictionary[key]['EXTERNAL-IP']) else False
+                break
+
+        return status
+
+    def _is_valid_ip(self, ip):
+        """
+
+        """
+
+        regex = "^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$"
+        return True if re.search(regex, ip) else False
+
+    def _get_dictionary(self, cmd=None):
+        """
+
+        """
+
+        dictionary = {}
+        if not cmd:
+            return dictionary
+
+        exit_code, stdout, stderr = execute(cmd, mute=True)
+        if exit_code:
+            logger.warning('failed to execute \'%s\': %s' % (cmd, stdout))
+            self.status = 'failed'
+        else:
+            # parse output
+            dictionary = self._convert_to_dict(stdout)
+
+        return dictionary
 
     def _validate(self):
         """
@@ -153,24 +189,21 @@ class Dask(object):
         summary_keys = []  # to keep track of content
         header_locked = False
 
+        dictionary = {}
+        first_line = []
         for line in output.split('\n'):
             try:
                 # Remove empty entries from list (caused by multiple \t)
-                _l = line.replace('\n', '')
-                _l = [_f for _f in _l.split('\t') if _f]  # Python 3
+                _l = line
+                _l = [_f for _f in _l.split('\t') if _f]
 
-                # define dictionary keys
-                if type(_l[0]) == str and not header_locked:
-                    summary_keys = _l
-                    for key in _l:
-                        dictionary[key] = []
-                    header_locked = True
-                else:  # sort the memory measurements in the correct columns
-                    for i, key in enumerate(_l):
-                        # for key in _l:
-                        key_entry = summary_keys[i]  # e.g. Time
-                        value = convert_to_int(key)
-                        dictionary[key_entry].append(value)
+                if first_line == []:  # "NAME TYPE CLUSTER-IP EXTERNAL-IP PORT(S) AGE
+                    first_line = _l[1:]
+                else:
+                    dictionary[_l[0]] = {}
+                    for i in range(len(_l[1:])):
+                        dictionary[_l[0]][first_line[i]] = _l[1:][i]
+
             except Exception:
                 logger.warning("unexpected format of utility output: %s" % line)
 
