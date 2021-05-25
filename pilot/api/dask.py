@@ -68,6 +68,7 @@ class Dask(object):
                 logger.warning('failed to execute \'%s\': %s' % (cmd, stdout))
                 self.status = 'failed'
             else:
+                pass
 
     def _validate(self):
         """
