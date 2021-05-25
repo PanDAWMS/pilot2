@@ -652,8 +652,7 @@ class Executor(object):
                     logger.warning('detected unset exit_code from wait_graceful - reset to -1')
                     exit_code = -1
 
-                if state != 'failed':
-                    exit_code = self.run_utility_after_payload_finished()
+                exit_code = self.run_utility_after_payload_finished(state)
 
                 self.post_payload(self.__job)
 
@@ -670,10 +669,11 @@ class Executor(object):
 
         return exit_code
 
-    def run_utility_after_payload_finished(self):
+    def run_utility_after_payload_finished(self, state):
         """
         Run utility command after the main payload has finished.
 
+        :param state: payload state; finished/failed (string).
         :return: exit code (int).
         """
 
@@ -683,7 +683,7 @@ class Executor(object):
         except Exception as e:
             logger.error(e)
         else:
-            if cmd_after_payload and self.__job.postprocess:
+            if cmd_after_payload and self.__job.postprocess and state != 'failed':
                 cmd_after_payload = self.__job.setup + cmd_after_payload
                 logger.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
                 exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'postprocess')

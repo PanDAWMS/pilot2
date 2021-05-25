@@ -1901,7 +1901,7 @@ def get_utility_commands(order=None, job=None):
         if job.postprocess and job.postprocess.get('command', ''):
             com = download_command(job.postprocess, job.workdir)
             com['label'] = 'postprocess'
-        if 'pilotXcache' in job.infosys.queuedata.catchall:
+        if 'pilotXcache' in job.infosys.queuedata.catchall:  # should be UTILITY_AFTER_PAYLOAD_FINISHED2
             com = xcache_deactivation_command(job.workdir)
             com['label'] = 'xcache_kill'
     elif order == UTILITY_BEFORE_STAGEIN:
