@@ -251,6 +251,7 @@ class Dask(object):
         """
 
         logger.info('connecting to HelmCluster')
+        import dask_kubernetes
         self.cluster = dask_kubernetes.HelmCluster(release_name=self.servicename)
 
     def scale(self, number):
