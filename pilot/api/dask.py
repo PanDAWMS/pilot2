@@ -94,6 +94,8 @@ class Dask(object):
             else:
                 logger.info('service %s is not yet running - proceed with installation' % name)
 
+                # perform helm updates before actual instqllation
+                cmd = ''
                 #
                 override_option = "-f %s" % self.overrides if self.overrides else ""
                 cmd = 'helm install %s %s dask/dask' % (override_option, self.servicename)
@@ -242,13 +244,13 @@ class Dask(object):
 
         return dictionary
 
-    def connect_cluster(self):
+    def connect_cluster(self, release_name=self.servicename, manager=dask_kubernetes.HelmCluster):
         """
 
         """
 
-        self.cluster = dask_kubernetes.HelmCluster(release_name=self.servicename)
-        logger.info('connected to HelmCluster')
+        self.cluster = manager(release_name=self.servicename)
+        logger.info('connected to %s' % manager.__name__)
 
     def scale(self, number):
         """
@@ -267,3 +269,12 @@ class Dask(object):
 
         logger.info('setting scale to: %d' % number)
         self.cluster.scale(number)
+
+    def shutdown(self):
+        """
+        Shutdown logging.
+
+        """
+
+        logging.handlers = []
+        logging.shutdown()
