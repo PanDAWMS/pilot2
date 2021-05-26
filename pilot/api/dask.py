@@ -244,12 +244,14 @@ class Dask(object):
 
         return dictionary
 
-    def connect_cluster(self, release_name=self.servicename, manager=dask_kubernetes.HelmCluster):
+    def connect_cluster(self, release_name=None, manager=dask_kubernetes.HelmCluster):
         """
 
         """
 
-        self.cluster = manager(release_name=self.servicename)
+        if not release_name:
+            release_name = self.servicename
+        self.cluster = manager(release_name=release_name)
         logger.info('connected to %s' % manager.__name__)
 
     def scale(self, number):
