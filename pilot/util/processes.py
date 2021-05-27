@@ -178,7 +178,8 @@ def kill_processes(pid):
 
     # kill any remaining orphan processes
     # note: this should no longer be necessary since ctypes has made sure all subprocesses are parented
-    # kill_orphans()
+    # if orphan process killing is not desired, set env var PILOT_NOKILL
+    kill_orphans()
 
 
 def kill_child_processes(pid):

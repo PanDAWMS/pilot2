@@ -25,6 +25,7 @@ except Exception:
 
 from json import dumps  #, loads
 from re import findall
+from glob import glob
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import ExcThread, PilotException  #, JobAlreadyRunning
@@ -495,16 +496,18 @@ def get_debug_command(cmd):
     try:
         tmp = cmd.split(' ')
         com = tmp[0]
-        opts = tmp[1]
     except Exception as e:
         logger.warning('failed to identify debug command: %s' % e)
     else:
         if com not in allowed_commands:
             logger.warning('command=%s is not in the list of allowed commands: %s' % (com, str(allowed_commands)))
-        elif ';' in opts or '&#59' in opts:
+        elif ';' in cmd or '&#59' in cmd:
             logger.warning('debug command cannot contain \';\': \'%s\'' % cmd)
         elif com in forbidden_commands:
             logger.warning('command=%s is not allowed' % com)
+        else:
+            debug_mode = True
+            debug_command = cmd
     return debug_mode, debug_command
 
 
@@ -527,7 +530,7 @@ def handle_backchannel_command(res, job, args, test_tobekilled=False):
         # warning: server might return comma-separated string, 'debug,tobekilled'
         cmd = res.get('command')
         # is it a 'command options'-type? debug_command=tail .., ls .., gdb .., ps .., du ..
-        if ' ' in cmd:
+        if ' ' in cmd and 'tobekilled' not in cmd:
             try:
                 job.debug, job.debug_command = get_debug_command(cmd)
             except Exception as e:
@@ -547,14 +550,23 @@ def handle_backchannel_command(res, job, args, test_tobekilled=False):
             logger.info('pilot received a panda server signal to softkill job %s at %s' %
                         (job.jobid, time_stamp()))
             # event service kill instruction
+            job.debug_command = 'softkill'
         elif 'debug' in cmd:
             logger.info('pilot received a command to turn on standard debug mode from the server')
             job.debug = True
+            job.debug_command = 'debug'
         elif 'debugoff' in cmd:
             logger.info('pilot received a command to turn off debug mode from the server')
             job.debug = False
+            job.debug_command = 'debugoff'
         else:
             logger.warning('received unknown server command via backchannel: %s' % cmd)
+
+
+    job.debug = True
+    # job.debug_command = 'tail payload.stdout' # OK
+    # job.debug_command = 'ls -ltr workDir'  # test with user job
+    job.debug_command = 'ls -ltr %s' % job.workdir
 
 
 def add_data_structure_ids(data, version_tag):
@@ -622,9 +634,9 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
 
     # in debug mode, also send a tail of the latest log file touched by the payload
     if job.debug:
-        stdout_tail = get_payload_log_tail(job)
-        if stdout_tail:
-            data['stdout'] = stdout_tail
+        stdout = get_debug_stdout(job.debug_command, job.workdir)
+        if stdout:
+            data['stdout'] = stdout
 
     # add the core count
     if job.corecount and job.corecount != 'null' and job.corecount != 'NULL':
@@ -663,6 +675,82 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
         add_error_codes(data, job)
 
     return data
+
+
+def get_debug_stdout(debug_command, workdir):
+    """
+    Return the requested output from a given debug command.
+
+    :param debug_command: full debug command (string).
+    :param workdir: job work directory (string).
+    :return: output (string).
+    """
+
+    if debug_command == 'debug':
+        return get_payload_log_tail(workdir)
+    elif 'tail' in debug_command:
+        return get_requested_log_tail(debug_command, workdir)
+    elif 'ls ' in debug_command:
+        return get_ls(debug_command, workdir)
+    else:
+        logger.warning('command not handled yet: %s' % debug_command)
+        return ''
+
+
+def get_ls(debug_command, workdir):
+    """
+
+    """
+
+    items = debug_command.split(' ')
+    # cmd = items[0]
+    options = ' '.join(items[1:])
+    path = options.split(' ')[-1] if ' ' in options else options
+    finalpath = os.path.join(workdir, path)
+    debug_command = debug_command.replace(path, finalpath)
+
+    ec, stdout, stderr = execute(debug_command)
+    logger.debug("%s:\n\n%s\n\n" % (debug_command, stdout))
+
+    return stdout
+
+
+def get_requested_log_tail(debug_command, workdir):
+    """
+    Return the tail of the requested log.
+
+    Examples
+      tail workdir/tmp.stdout* <- pilot finds the requested log file in the specified relative path
+      tail log.RAWtoALL <- pilot finds the requested log file
+
+    :param debug_command: full debug command (string).
+    :param workdir: job work directory (string).
+    :return: output (string).
+    """
+
+    _tail = ""
+    items = debug_command.split(' ')
+    cmd = items[0]
+    options = ' '.join(items[1:])
+    logger.debug('debug command: %s' % cmd)
+    logger.debug('debug options: %s' % options)
+
+    # assume that the path is the last of the options; <some option> <some path>
+    path = options.split(' ')[-1] if ' ' in options else options
+    fullpath = os.path.join(workdir, path)
+
+    # find all files with the given pattern and pick the latest updated file (if several)
+    files = glob(fullpath)
+    if files:
+        logger.info('files found: %s' % str(files))
+        _tail = get_latest_log_tail(files)
+    else:
+        logger.warning('did not find \'%s\' in path %s' % (path, fullpath))
+
+    if _tail:
+        logger.debug('tail =\n\n%s\n\n' % _tail)
+
+    return _tail
 
 
 def add_error_codes(data, job):
@@ -798,15 +886,13 @@ def remove_pilot_logs_from_list(list_of_files):
     return new_list_of_files
 
 
-def get_payload_log_tail(job):
+def get_payload_log_tail(workdir):
     """
     Return the tail of the payload stdout or its latest updated log file.
 
-    :param job: job object.
+    :param workdir: job work directory (string).
     :return: tail of stdout (string).
     """
-
-    stdout_tail = ""
 
     # find the latest updated log file
     # list_of_files = get_list_of_log_files()
@@ -816,10 +902,22 @@ def get_payload_log_tail(job):
 
     if not list_of_files:
         logger.info('no log files were found (will use default %s)' % config.Payload.payloadstdout)
-        list_of_files = [os.path.join(job.workdir, config.Payload.payloadstdout)]
+        list_of_files = [os.path.join(workdir, config.Payload.payloadstdout)]
+
+    return get_latest_log_tail(list_of_files)
+
+
+def get_latest_log_tail(files):
+    """
+    Get the tail of the latest updated file from the given file list.
+
+    :param files: files (list).
+    """
+
+    stdout_tail = ""
 
     try:
-        latest_file = max(list_of_files, key=os.path.getmtime)
+        latest_file = max(files, key=os.path.getmtime)
         logger.info('tail of file %s will be added to heartbeat' % latest_file)
 
         # now get the tail of the found log file and protect against potentially large tails
