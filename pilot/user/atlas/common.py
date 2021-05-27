@@ -34,8 +34,7 @@ from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.auxiliary import is_python3
 from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
-    UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_AFTER_PAYLOAD_STARTED2,\
-    UTILITY_BEFORE_STAGEIN, UTILITY_AFTER_PAYLOAD_FINISHED2
+    UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_AFTER_PAYLOAD_STARTED2, UTILITY_BEFORE_STAGEIN, UTILITY_AFTER_PAYLOAD_FINISHED2
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy,\
     copy_pilot_source, write_file, read_json, read_file, update_extension, get_local_file_size, calculate_checksum
@@ -1837,6 +1836,8 @@ def download_command(process, workdir):
     """
     Download the pre/postprocess commands if necessary.
 
+    Process FORMAT: {'command': <command>, 'args': <args>, 'label': <some name>}
+
     :param process: pre/postprocess dictionary.
     :param workdir: job workdir (string).
     :return: updated pre/postprocess dictionary.
@@ -1870,46 +1871,87 @@ def get_utility_commands(order=None, job=None):
     should be returned. If order=UTILITY_WITH_STAGEIN, the commands that should be executed parallel with stage-in will
     be returned.
 
-    FORMAT: {'command': <command>, 'args': <args>}
+    FORMAT: {'command': <command>, 'args': <args>, 'label': <some name>}
 
     :param order: optional sorting order (see pilot.util.constants).
     :param job: optional job object.
     :return: dictionary of utilities to be executed in parallel with the payload.
     """
 
-    com = {}
-
     if order == UTILITY_BEFORE_PAYLOAD and job.preprocess:
-        if job.preprocess.get('command', ''):
-            com = download_command(job.preprocess, job.workdir)
-            com['label'] = 'preprocess'
+        return get_precopostprocess_command(job.preprocess, job.workdir, 'preprocess')
     elif order == UTILITY_WITH_PAYLOAD:
-        com = {'command': 'NetworkMonitor', 'args': '', 'label': 'networkmonitor'}
+        return {'command': 'NetworkMonitor', 'args': '', 'label': 'networkmonitor'}
     elif order == UTILITY_AFTER_PAYLOAD_STARTED:
+        return get_utility_after_payload_started()
+    elif order == UTILITY_AFTER_PAYLOAD_STARTED2 and job.coprocess:
+        return get_precopostprocess_command(job.coprocess, job.workdir, 'coprocess')
+    elif order == UTILITY_AFTER_PAYLOAD_FINISHED:
+        return get_xcache_command(job.infosys.queuedata.catchall, job.workdir, job.jobid, 'xcache_kill', xcache_deactivation_command)
+    elif order == UTILITY_AFTER_PAYLOAD_FINISHED2:
+        return get_precopostprocess_command(job.postprocess, job.workdir, 'postprocess')
+    elif order == UTILITY_BEFORE_STAGEIN:
+        return get_xcache_command(job.infosys.queuedata.catchall, job.workdir, job.jobid, 'xcache_start', xcache_activation_command)
+
+
+def get_precopostprocess_command(process, workdir, label):
+    """
+    Return the pre/co/post-process command dictionary.
+
+    Command FORMAT: {'command': <command>, 'args': <args>, 'label': <some name>}
+
+    The returned command has the structure: { 'command': <string>, }
+    :param process: pre/co/post-process (dictionary).
+    :param workdir: working directory (string).
+    :param label: label (string).
+    :return: command (dictionary).
+    """
+
+    com = {}
+    if process.get('command', ''):
+        com = download_command(process, workdir)
+        com['label'] = label
+    return com
+
+
+def get_utility_after_payload_started():
+    """
+    Return the command dictionary for the utility after the payload has started.
+
+    Command FORMAT: {'command': <command>, 'args': <args>, 'label': <some name>}
+
+    :return: command (dictionary).
+    """
+
+    com = {}
+    try:
         cmd = config.Pilot.utility_after_payload_started
+    except Exception:
+        pass
+    else:
         if cmd:
             com = {'command': cmd, 'args': '', 'label': cmd.lower()}
-    elif order == UTILITY_AFTER_PAYLOAD_STARTED2 and job.coprocess:
-        if job.coprocess.get('command', ''):
-            com = download_command(job.coprocess, job.workdir)
-            com['label'] = 'coprocess'
-    elif order == UTILITY_AFTER_PAYLOAD and job.postprocess:
-        if job.postprocess.get('command', ''):
-            com = download_command(job.postprocess, job.workdir)
-            com['label'] = 'postprocess'
-    elif order == UTILITY_AFTER_PAYLOAD_FINISHED:
-        if 'pilotXcache' in job.infosys.queuedata.catchall:
-            com = xcache_deactivation_command(job.workdir)
-            com['label'] = 'xcache_kill'
-    elif order == UTILITY_AFTER_PAYLOAD_FINISHED2:
-        if job.postprocess and job.postprocess.get('command', ''):
-            com = download_command(job.postprocess, job.workdir)
-            com['label'] = 'postprocess'
-    elif order == UTILITY_BEFORE_STAGEIN:
-        if 'pilotXcache' in job.infosys.queuedata.catchall:
-            com = xcache_activation_command(job.jobid)
-            com['label'] = 'xcache'
+    return com
 
+
+def get_xcache_command(catchall, workdir, jobid, label, xcache_function):
+    """
+    Return the proper xcache command for either activation or deactivation.
+
+    Command FORMAT: {'command': <command>, 'args': <args>, 'label': <some name>}
+
+    :param catchall: queuedata catchall field (string).
+    :param workdir: job working directory (string).
+    :param jobid: PanDA job id (string).
+    :param label: label (string).
+    :param xcache_function: activation/deactivation function name (function).
+    :return: command (dictionary).
+    """
+
+    com = {}
+    if 'pilotXcache' in catchall:
+        com = xcache_function(jobid=jobid, workdir=workdir)
+        com['label'] = label
     return com
 
 
@@ -1976,10 +2018,13 @@ def set_xcache_var(line, name='', pattern=''):
         os.environ[name] = result[0]
 
 
-def xcache_activation_command(jobid):
+def xcache_activation_command(workdir='', jobid=''):
     """
     Return the xcache service activation command.
 
+    Note: the workdir is not used here, but the function prototype needs it in the called (xcache_activation_command needs it).
+
+    :param workdir: unused work directory - do not remove (string).
     :param jobid: PanDA job id to guarantee that xcache process is unique (int).
     :return: xcache command (string).
     """
@@ -1996,13 +2041,16 @@ def xcache_activation_command(jobid):
     return {'command': command, 'args': ''}
 
 
-def xcache_deactivation_command(workdir):
+def xcache_deactivation_command(workdir='', jobid=''):
     """
     Return the xcache service deactivation command.
     This service should be stopped after the payload has finished.
     Copy the messages log before shutting down.
 
+    Note: the job id is not used here, but the function prototype needs it in the called (xcache_activation_command needs it).
+
     :param workdir: payload work directory (string).
+    :param jobid: unused job id - do not remove (string).
     :return: xcache command (string).
     """
 

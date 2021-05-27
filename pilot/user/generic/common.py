@@ -12,7 +12,7 @@ from signal import SIGTERM
 
 from pilot.common.exception import TrfDownloadFailure
 from pilot.util.config import config
-from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_AFTER_PAYLOAD
+from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED
 from pilot.util.filehandling import read_file
 from .setup import get_analysis_trf
 
@@ -130,7 +130,7 @@ def get_utility_commands(order=None, job=None):
     If the optional order parameter is set, the function should return the list of corresponding commands.
     E.g. if order=UTILITY_BEFORE_PAYLOAD, the function should return all commands that are to be executed before the
     payload. If order=UTILITY_WITH_PAYLOAD, the corresponding commands will be prepended to the payload execution
-    string. If order=UTILITY_AFTER_PAYLOAD, the commands that should be executed after the payload has been started
+    string. If order=UTILITY_AFTER_PAYLOAD_STARTED, the commands that should be executed after the payload has been started
     should be returned.
 
     FORMAT: {'command': <command>, 'args': <args>}
@@ -160,14 +160,14 @@ def get_utility_command_execution_order(name):
     Should the given utility command be executed before or after the payload?
 
     :param name: utility name (string).
-    :return: execution order constant (UTILITY_BEFORE_PAYLOAD or UTILITY_AFTER_PAYLOAD)
+    :return: execution order constant (UTILITY_BEFORE_PAYLOAD or UTILITY_AFTER_PAYLOAD_STARTED)
     """
 
     # example implementation
     if name == 'monitor':
         return UTILITY_BEFORE_PAYLOAD
     else:
-        return UTILITY_AFTER_PAYLOAD
+        return UTILITY_AFTER_PAYLOAD_STARTED
 
 
 def post_utility_command_action(name, job):
