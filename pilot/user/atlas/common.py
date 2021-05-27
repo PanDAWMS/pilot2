@@ -1888,7 +1888,7 @@ def get_utility_commands(order=None, job=None):
         return get_precopostprocess_command(job.coprocess, job.workdir, 'coprocess')
     elif order == UTILITY_AFTER_PAYLOAD_FINISHED:
         return get_xcache_command(job.infosys.queuedata.catchall, job.workdir, job.jobid, 'xcache_kill', xcache_deactivation_command)
-    elif order == UTILITY_AFTER_PAYLOAD_FINISHED2:
+    elif order == UTILITY_AFTER_PAYLOAD_FINISHED2 and job.postprocess:
         return get_precopostprocess_command(job.postprocess, job.workdir, 'postprocess')
     elif order == UTILITY_BEFORE_STAGEIN:
         return get_xcache_command(job.infosys.queuedata.catchall, job.workdir, job.jobid, 'xcache_start', xcache_activation_command)
