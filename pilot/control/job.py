@@ -833,11 +833,11 @@ def get_payload_log_tail(job):
 
 def validate(queues, traces, args):
     """
-    (add description)
+    Perform validation of job.
 
-    :param queues:
-    :param traces:
-    :param args:
+    :param queues: queues object.
+    :param traces: traces object.
+    :param args: args object.
     :return:
     """
 
@@ -904,21 +904,7 @@ def validate(queues, traces, args):
             store_jobid(job.jobid, args.sourcedir)
 
             # run the delayed space check now
-            proceed_with_local_space_check = True if (args.harvester_submitmode.lower() == 'push' and args.update_server) else False
-            if proceed_with_local_space_check:
-                logger.debug('pilot will now perform delayed space check')
-                ec, diagnostics = check_local_space()
-                if ec != 0:
-                    traces.pilot['error_code'] = errors.NOLOCALSPACE
-                    # set the corresponding error code
-                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOLOCALSPACE, msg=diagnostics)
-                    logger.debug('Failed to validate job=%s' % job.jobid)
-                    put_in_queue(job, queues.failed_jobs)
-                else:
-                    put_in_queue(job, queues.validated_jobs)
-            else:
-                put_in_queue(job, queues.validated_jobs)
-
+            delayed_space_check(queues, traces, args, job)
         else:
             logger.debug('Failed to validate job=%s' % job.jobid)
             put_in_queue(job, queues.failed_jobs)
@@ -931,6 +917,33 @@ def validate(queues, traces, args):
         logger.debug('will not set job_aborted yet')
 
     logger.debug('[job] validate thread has finished')
+
+
+def delayed_space_check(queues, traces, args, job):
+    """
+    Run the delayed space check if necessary.
+
+    :param queues: queues object.
+    :param traces: traces object.
+    :param args: args object.
+    :param job: job object.
+    :return:
+    """
+
+    proceed_with_local_space_check = True if (args.harvester_submitmode.lower() == 'push' and args.update_server) else False
+    if proceed_with_local_space_check:
+        logger.debug('pilot will now perform delayed space check')
+        ec, diagnostics = check_local_space()
+        if ec != 0:
+            traces.pilot['error_code'] = errors.NOLOCALSPACE
+            # set the corresponding error code
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOLOCALSPACE, msg=diagnostics)
+            logger.debug('Failed to validate job=%s' % job.jobid)
+            put_in_queue(job, queues.failed_jobs)
+        else:
+            put_in_queue(job, queues.validated_jobs)
+    else:
+        put_in_queue(job, queues.validated_jobs)
 
 
 def create_k8_link(job_dir):
