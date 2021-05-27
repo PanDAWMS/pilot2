@@ -210,17 +210,17 @@ class Executor(object):
 #                # also store the full command in case it needs to be restarted later (by the job_monitor() thread)
 #                job.utilities[cmd_dictionary.get('command')] = [proc, 1, utilitycommand]
 
-    def utility_after_payload_finished(self, job, horovod_mode):
+    def utility_after_payload_finished(self, job, order):
         """
         Prepare commands/utilities to run after payload has finished.
 
         This command will be executed later.
 
-        REFACTOR
+        The order constant can be UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_AFTER_PAYLOAD_FINISHED2
 
         :param job: job object.
-        :param horovod_mode: True if HARVESTER_HOROVOD is set (Boolean).
-        :return:
+        :param order: constant used for utility selection (constant).
+        :return: command (string), label (string).
         """
 
         cmd = ""
@@ -229,15 +229,13 @@ class Executor(object):
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
-        order = UTILITY_AFTER_PAYLOAD_FINISHED if not horovod_mode else UTILITY_AFTER_PAYLOAD_FINISHED2
-
         # should any additional commands be prepended to the payload execution string?
         cmd_dictionary = user.get_utility_commands(order=order, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
             logger.info('utility command (\'%s\') to be executed after the payload has finished: %s' % (cmd_dictionary.get('label', 'utility'), cmd))
 
-        return cmd
+        return cmd, cmd_dictionary.get('label')
 
     def execute_utility_command(self, cmd, job, label):
         """
@@ -606,7 +604,7 @@ class Executor(object):
                 # run the post-process command even if there was no main payload
                 if os.environ.get('HARVESTER_HOROVOD', '') != '':
                     logger.info('No need to execute any main payload')
-                    exit_code = self.run_utility_after_payload_finished(True, horovod_mode=True)
+                    exit_code = self.run_utility_after_payload_finished(True, UTILITY_AFTER_PAYLOAD_FINISHED2)
                     self.post_payload(self.__job)
                 else:
                     break
@@ -656,7 +654,8 @@ class Executor(object):
                     logger.warning('detected unset exit_code from wait_graceful - reset to -1')
                     exit_code = -1
 
-                exit_code = self.run_utility_after_payload_finished(state)
+                for order in [UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_AFTER_PAYLOAD_FINISHED2]:
+                    exit_code = self.run_utility_after_payload_finished(state, order)
 
                 self.post_payload(self.__job)
 
@@ -673,40 +672,44 @@ class Executor(object):
 
         return exit_code
 
-    def run_utility_after_payload_finished(self, state, horovod_mode=False):
+    def run_utility_after_payload_finished(self, state, order):
         """
         Run utility command after the main payload has finished.
         In horovod mode, select the corresponding post-process. Otherwise, select different post-process (e.g. Xcache).
 
+        The order constant can be UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_AFTER_PAYLOAD_FINISHED2
+
         :param state: payload state; finished/failed (string).
-        :param horovod_mode: True if HARVESTER_HOROVOD is set (Boolean).
+        :param order: constant used for utility selection (constant).
         :return: exit code (int).
         """
 
         exit_code = 0
         try:
-            cmd_after_payload = self.utility_after_payload_finished(self.__job, horovod_mode=horovod_mode)
+            cmd_after_payload, label = self.utility_after_payload_finished(self.__job, order)
         except Exception as e:
             logger.error(e)
         else:
             if cmd_after_payload and self.__job.postprocess and state != 'failed':
                 cmd_after_payload = self.__job.setup + cmd_after_payload
                 logger.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
-                exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'postprocess')
+                exit_code = self.execute_utility_command(cmd_after_payload, self.__job, label)
             elif cmd_after_payload:
                 logger.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
 
                 # xcache debug
-                exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
-                logger.debug('[before xcache kill] stdout=%s' % _stdout)
-                logger.debug('[before xcache kill] stderr=%s' % _stderr)
+                if 'xcache' in cmd_after_payload:
+                    _exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                    logger.debug('[before xcache kill] stdout=%s' % _stdout)
+                    logger.debug('[before xcache kill] stderr=%s' % _stderr)
 
-                exit_code = self.execute_utility_command(cmd_after_payload, self.__job, 'xcache_kill')
+                exit_code = self.execute_utility_command(cmd_after_payload, self.__job, label)
 
                 # xcache debug
-                _exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
-                logger.debug('[after xcache kill] stdout=%s' % _stdout)
-                logger.debug('[after xcache kill] stderr=%s' % _stderr)
+                if 'xcache' in cmd_after_payload:
+                    _exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                    logger.debug('[after xcache kill] stdout=%s' % _stdout)
+                    logger.debug('[after xcache kill] stderr=%s' % _stderr)
 
         return exit_code
 
