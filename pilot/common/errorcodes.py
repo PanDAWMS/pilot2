@@ -147,6 +147,7 @@ class ErrorCodes:
     XRDCPERROR = 1362
     KILLPAYLOAD = 1363  # note, not a failure but a kill instruction from Raythena
     MISSINGCREDENTIALS = 1364
+    NOCTYPES = 1365
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -272,7 +273,8 @@ class ErrorCodes:
         REMOTEFILECOULDNOTBEOPENED: "Remote file could not be opened",
         XRDCPERROR: "Xrdcp was unable to open file",
         KILLPAYLOAD: "Raythena has decided to kill payload",
-        MISSINGCREDENTIALS: "Unable to locate credentials for S3 transfer"
+        MISSINGCREDENTIALS: "Unable to locate credentials for S3 transfer",
+        NOCTYPES: "Python module ctypes not available on worker node"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]

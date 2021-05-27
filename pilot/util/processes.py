@@ -177,7 +177,8 @@ def kill_processes(pid):
                     kill_process(i)
 
     # kill any remaining orphan processes
-    kill_orphans()
+    # note: this should no longer be necessary since ctypes has made sure all subprocesses are parented
+    # kill_orphans()
 
 
 def kill_child_processes(pid):

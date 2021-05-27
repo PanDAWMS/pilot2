@@ -893,8 +893,7 @@ def validate(queues, traces, args):
 
             # pre-cleanup
             pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-            utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user],
-                                   0)  # Python 2/3
+            utilities = __import__('pilot.user.%s.utilities' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
             try:
                 utilities.precleanup()
             except Exception as e:
@@ -905,6 +904,9 @@ def validate(queues, traces, args):
 
             # run the delayed space check now
             delayed_space_check(queues, traces, args, job)
+
+            # make sure that ctypes is available (needed at the end by orphan killer)
+            verify_ctypes(queues, job)
         else:
             logger.debug('Failed to validate job=%s' % job.jobid)
             put_in_queue(job, queues.failed_jobs)
@@ -917,6 +919,35 @@ def validate(queues, traces, args):
         logger.debug('will not set job_aborted yet')
 
     logger.debug('[job] validate thread has finished')
+
+
+def verify_ctypes(queues, job):
+    """
+    Verify ctypes and make sure all subprocess are parented.
+
+    :param queues: queues object.
+    :param job: job object.
+    :return:
+    """
+
+    try:
+        import ctypes
+    except Exception as e:
+        diagnostics = 'ctypes python module could not be imported: %s' % e
+        logger.warning(diagnostics)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOCTYPES, msg=diagnostics)
+        logger.debug('Failed to validate job=%s' % job.jobid)
+        put_in_queue(job, queues.failed_jobs)
+    else:
+        logger.debug('ctypes python module imported')
+
+        # make sure all children are parented by the pilot
+        # specifically, this will include any 'orphans', i.e. if the pilot kills all subprocesses at the end,
+        # 'orphans' will be included (orphans seem like the wrong name)
+        libc = ctypes.CDLL('libc.so.6')
+        PR_SET_CHILD_SUBREAPER = 36
+        libc.prctl(PR_SET_CHILD_SUBREAPER, 1)
+        logger.debug('all child subprocesses will be parented')
 
 
 def delayed_space_check(queues, traces, args, job):
