@@ -154,8 +154,8 @@ def copy_out(files, **kwargs):
 
         import re
         # bucket = re.sub(r'gs://(.*?)/.*', r'\1', fspec.turl)
-        reObj = re.match(r'gs://([^/]*)/(.*)', fspec.turl)
-        (bucket, remote_path) = reObj.groups()
+        reobj = re.match(r'gs://([^/]*)/(.*)', fspec.turl)
+        (bucket, remote_path) = reobj.groups()
 
         # ["pilotlog.txt", "payload.stdout", "payload.stderr"]:
         for logfile in os.listdir(workdir):
@@ -208,9 +208,9 @@ def upload_file(file_name, bucket, object_name=None):
         blob = gs_bucket.blob(object_name)
         blob.upload_from_filename(filename=file_name)
         if file_name.endswith(config.Pilot.pilotlog):
-            url_pilotLog = blob.public_url
-            os.environ['GTAG'] = url_pilotLog
-            logger.debug("Set envvar GTAG with the pilotLot URL=%s" % url_pilotLog)
+            url_pilotlog = blob.public_url
+            os.environ['GTAG'] = url_pilotlog
+            logger.debug("Set envvar GTAG with the pilotLot URL=%s" % url_pilotlog)
     except Exception as e:
         diagnostics = 'exception caught in gs client: %s' % e
         logger.critical(diagnostics)
