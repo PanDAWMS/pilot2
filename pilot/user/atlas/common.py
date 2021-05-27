@@ -35,7 +35,7 @@ from pilot.util.auxiliary import is_python3
 from pilot.util.config import config
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED,\
     UTILITY_AFTER_PAYLOAD, UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_AFTER_PAYLOAD_STARTED2,\
-    UTILITY_BEFORE_STAGEIN
+    UTILITY_BEFORE_STAGEIN, UTILITY_AFTER_PAYLOAD_FINISHED2
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy,\
     copy_pilot_source, write_file, read_json, read_file, update_extension, get_local_file_size, calculate_checksum
@@ -1898,12 +1898,13 @@ def get_utility_commands(order=None, job=None):
             com = download_command(job.postprocess, job.workdir)
             com['label'] = 'postprocess'
     elif order == UTILITY_AFTER_PAYLOAD_FINISHED:
+        if 'pilotXcache' in job.infosys.queuedata.catchall:
+            com = xcache_deactivation_command(job.workdir)
+            com['label'] = 'xcache_kill'
+    elif order == UTILITY_AFTER_PAYLOAD_FINISHED2:
         if job.postprocess and job.postprocess.get('command', ''):
             com = download_command(job.postprocess, job.workdir)
             com['label'] = 'postprocess'
-        if 'pilotXcache' in job.infosys.queuedata.catchall:  # should be UTILITY_AFTER_PAYLOAD_FINISHED2
-            com = xcache_deactivation_command(job.workdir)
-            com['label'] = 'xcache_kill'
     elif order == UTILITY_BEFORE_STAGEIN:
         if 'pilotXcache' in job.infosys.queuedata.catchall:
             com = xcache_activation_command(job.jobid)
@@ -1990,7 +1991,7 @@ def xcache_activation_command(jobid):
     # ${ALRB_XCACHE_PROXY}root://atlasxrootd-kit.gridka.de:1094//pnfs/gridka.de/../DAOD_FTAG4.24348858._000020.pool.root.1
     command = "%s " % get_asetup(asetup=False)
     # add 'xcache list' which will also kill any orphaned processes lingering in the system
-    command += "lsetup xcache; xcache list; xcache start -d $PWD/%s/xcache -C centos7 --disklow 4g --diskhigh 5g" % jobid
+    command += "lsetup xcache; xcache list; xcache start -d $PWD/%s/xcache -C centos7 --disklow 4g --diskhigh 5g -b 4" % jobid
 
     return {'command': command, 'args': ''}
 

@@ -21,6 +21,7 @@ def create_input_file_metadata(file_dictionary, workdir, filename="PoolFileCatal
     """
     Create a Pool File Catalog for the files listed in the input dictionary.
     The function creates properly formatted XML (pretty printed) and writes the XML to file.
+    Note: any environment variables in the pfn tags will be expanded (see pilot/control/data::get_input_file_dictionary()).
 
     Format:
     dictionary = {'guid': 'pfn', ..}

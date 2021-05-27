@@ -683,6 +683,7 @@ def get_input_file_dictionary(indata):
     Return an input file dictionary.
     Format: {'guid': 'pfn', ..}
     Normally use_turl would be set to True if direct access is used.
+    Note: any environment variables in the turls will be expanded
 
     :param indata: list of FileSpec objects.
     :return: file dictionary.
@@ -692,6 +693,7 @@ def get_input_file_dictionary(indata):
 
     for fspec in indata:
         ret[fspec.guid] = fspec.turl if fspec.status == 'remote_io' else fspec.lfn
+        ret[fspec.guid] = os.path.expandvars(ret[fspec.guid])
 
         # correction for ND and mv
         # in any case use the lfn instead of pfn since there are trf's that have problems with pfn's

@@ -23,7 +23,7 @@ from pilot.util.auxiliary import set_pilot_state, show_memory_usage
 from pilot.util.container import execute
 from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, UTILITY_AFTER_PAYLOAD_STARTED, \
     UTILITY_AFTER_PAYLOAD_FINISHED, PILOT_PRE_SETUP, PILOT_POST_SETUP, PILOT_PRE_PAYLOAD, PILOT_POST_PAYLOAD, \
-    UTILITY_AFTER_PAYLOAD_STARTED2
+    UTILITY_AFTER_PAYLOAD_STARTED2, UTILITY_AFTER_PAYLOAD_FINISHED2
 from pilot.util.filehandling import write_file
 from pilot.util.processes import kill_processes
 from pilot.util.timing import add_to_pilot_timing
@@ -210,7 +210,7 @@ class Executor(object):
 #                # also store the full command in case it needs to be restarted later (by the job_monitor() thread)
 #                job.utilities[cmd_dictionary.get('command')] = [proc, 1, utilitycommand]
 
-    def utility_after_payload_finished(self, job):
+    def utility_after_payload_finished(self, job, horovod_mode):
         """
         Prepare commands/utilities to run after payload has finished.
 
@@ -219,6 +219,8 @@ class Executor(object):
         REFACTOR
 
         :param job: job object.
+        :param horovod_mode: True if HARVESTER_HOROVOD is set (Boolean).
+        :return:
         """
 
         cmd = ""
@@ -227,8 +229,10 @@ class Executor(object):
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
+        order = UTILITY_AFTER_PAYLOAD_FINISHED if not horovod_mode else UTILITY_AFTER_PAYLOAD_FINISHED2
+
         # should any additional commands be prepended to the payload execution string?
-        cmd_dictionary = user.get_utility_commands(order=UTILITY_AFTER_PAYLOAD_FINISHED, job=job)
+        cmd_dictionary = user.get_utility_commands(order=order, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
             logger.info('utility command (\'%s\') to be executed after the payload has finished: %s' % (cmd_dictionary.get('label', 'utility'), cmd))
@@ -602,7 +606,7 @@ class Executor(object):
                 # run the post-process command even if there was no main payload
                 if os.environ.get('HARVESTER_HOROVOD', '') != '':
                     logger.info('No need to execute any main payload')
-                    exit_code = self.run_utility_after_payload_finished(True)
+                    exit_code = self.run_utility_after_payload_finished(True, horovod_mode=True)
                     self.post_payload(self.__job)
                 else:
                     break
@@ -669,17 +673,19 @@ class Executor(object):
 
         return exit_code
 
-    def run_utility_after_payload_finished(self, state):
+    def run_utility_after_payload_finished(self, state, horovod_mode=False):
         """
         Run utility command after the main payload has finished.
+        In horovod mode, select the corresponding post-process. Otherwise, select different post-process (e.g. Xcache).
 
         :param state: payload state; finished/failed (string).
+        :param horovod_mode: True if HARVESTER_HOROVOD is set (Boolean).
         :return: exit code (int).
         """
 
         exit_code = 0
         try:
-            cmd_after_payload = self.utility_after_payload_finished(self.__job)
+            cmd_after_payload = self.utility_after_payload_finished(self.__job, horovod_mode=horovod_mode)
         except Exception as e:
             logger.error(e)
         else:
