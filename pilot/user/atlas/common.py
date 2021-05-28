@@ -191,7 +191,7 @@ def open_remote_files(indata, workdir):
                                 not_opened += turl if not not_opened else ",%s" % turl
                         if not_opened:
                             ec = errors.REMOTEFILECOULDNOTBEOPENED
-                            diagnostics = "turl not opened:%s" % not_opened if "," not in not_opened else "turls not opened:%s" % not_opened
+                            diagnostics = "Remote file could not be opened: %s" % not_opened if "," not in not_opened else "turls not opened:%s" % not_opened
     else:
         logger.info('nothing to verify (for remote files)')
 

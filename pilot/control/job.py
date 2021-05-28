@@ -565,8 +565,10 @@ def handle_backchannel_command(res, job, args, test_tobekilled=False):
 
     job.debug = True
     # job.debug_command = 'tail payload.stdout' # OK
-    # job.debug_command = 'ls -ltr workDir'  # test with user job
-    job.debug_command = 'ls -ltr %s' % job.workdir
+    # job.debug_command = 'ls -ltr workDir'  # test with user jo
+    # job.debug_command = 'ls -ltr %s' % job.workdir
+    # 'ps -ef'
+    job.debug_command = 'ps axo pgid,ppid,comm,args'
 
 
 def add_data_structure_ids(data, version_tag):
@@ -692,14 +694,34 @@ def get_debug_stdout(debug_command, workdir):
         return get_requested_log_tail(debug_command, workdir)
     elif 'ls ' in debug_command:
         return get_ls(debug_command, workdir)
+    elif 'ps ' in debug_command or 'gdb ' in debug_command:
+        return get_general_command_stdout(debug_command)
     else:
         logger.warning('command not handled yet: %s' % debug_command)
         return ''
 
 
-def get_ls(debug_command, workdir):
+def get_general_command_stdout(debug_command):
+    """
+    Return the output from the requested debug command.
+
+    :param debug_command: full debug command (string).
+    :return: output (string).
     """
 
+    ec, stdout, stderr = execute(debug_command)
+    logger.debug("%s:\n\n%s\n\n" % (debug_command, stdout))
+
+    return stdout
+
+
+def get_ls(debug_command, workdir):
+    """
+    Return the requested ls debug command.
+
+    :param debug_command: full debug command (string).
+    :param workdir: job work directory (string).
+    :return: output (string).
     """
 
     items = debug_command.split(' ')
@@ -717,7 +739,7 @@ def get_ls(debug_command, workdir):
 
 def get_requested_log_tail(debug_command, workdir):
     """
-    Return the tail of the requested log.
+    Return the tail of the requested debug log.
 
     Examples
       tail workdir/tmp.stdout* <- pilot finds the requested log file in the specified relative path
