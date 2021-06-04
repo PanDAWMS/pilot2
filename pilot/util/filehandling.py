@@ -524,6 +524,28 @@ def tar_files(wkdir, excludedfiles, logfile_name, attempt=0):
     return 0
 
 
+def move(path1, path2):
+    """
+    Move a file from path1 to path2.
+
+    :param path1: source path (string).
+    :param path2: destination path2 (string).
+    """
+
+    if not os.path.exists(path1):
+        logger.warning('file copy failure: path does not exist: %s' % path1)
+        raise NoSuchFile("File does not exist: %s" % path1)
+
+    try:
+        import shutil
+        shutil.move(path1, path2)
+    except IOError as e:
+        logger.warning("exception caught during file move: %s" % e)
+        raise FileHandlingFailure(e)
+    else:
+        logger.info("moved %s to %s" % (path1, path2))
+
+
 def copy(path1, path2):
     """
     Copy path1 to path2.
