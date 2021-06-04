@@ -41,15 +41,16 @@ from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PI
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
 from pilot.util.container import execute
 from pilot.util.filehandling import find_text_files, tail, is_json, copy, remove, write_json, establish_logging, write_file, \
-    create_symlink
+    create_symlink, locate_file
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file, \
     is_harvester_mode, get_worker_attributes_file, publish_job_report, publish_work_report, get_event_status_file, \
     publish_stageout_files
 from pilot.util.jobmetrics import get_job_metrics
 from pilot.util.math import mean
+from pilot.util.middleware import containerise_general_command
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
-from pilot.util.processes import cleanup, threads_aborted, kill_process
+from pilot.util.processes import cleanup, threads_aborted, kill_process, get_pid_from_command, kill_processes
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.queuehandling import scan_for_jobs, put_in_queue, queue_report, purge_queue
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since, time_stamp
@@ -562,13 +563,14 @@ def handle_backchannel_command(res, job, args, test_tobekilled=False):
         else:
             logger.warning('received unknown server command via backchannel: %s' % cmd)
 
-
-    job.debug = True
-    # job.debug_command = 'tail payload.stdout' # OK
-    # job.debug_command = 'ls -ltr workDir'  # test with user jo
+    # for testing debug mode
+    #job.debug = True
+    # job.debug_command = 'tail payload.stdout'
+    # job.debug_command = 'ls -ltr workDir'  # not really tested
     # job.debug_command = 'ls -ltr %s' % job.workdir
-    # 'ps -ef'
-    job.debug_command = 'ps axo pgid,ppid,comm,args'
+    # job.debug_command = 'ps -ef'
+    # job.debug_command = 'ps axo pid,ppid,pgid,args'
+    #job.debug_command = 'gdb --pid % -ex \'generate-core-file\''
 
 
 def add_data_structure_ids(data, version_tag):
@@ -636,9 +638,22 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
 
     # in debug mode, also send a tail of the latest log file touched by the payload
     if job.debug:
-        stdout = get_debug_stdout(job.debug_command, job.workdir)
+        # for gdb commands, use the proper gdb version (the system one may be too old)
+        #if 'gdb ' in job.debug_command:
+        #    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        #    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+        #    user.preprocess_debug_command(job)
+
+        stdout = get_debug_stdout(job)
         if stdout:
             data['stdout'] = stdout
+
+            # in case gdb was successfully used, the payload can now be killed
+            if 'gdb ' in job.debug_command and job.pid:
+                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL,
+                                                                                 msg='payload was killed after gdb produced requested core file')
+                logger.debug('will proceed to kill payload processes')
+                kill_processes(job.pid)
 
     # add the core count
     if job.corecount and job.corecount != 'null' and job.corecount != 'NULL':
@@ -679,40 +694,89 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     return data
 
 
-def get_debug_stdout(debug_command, workdir):
+def get_debug_stdout(job):
     """
     Return the requested output from a given debug command.
 
-    :param debug_command: full debug command (string).
-    :param workdir: job work directory (string).
+    :param job: job object.
     :return: output (string).
     """
 
-    if debug_command == 'debug':
-        return get_payload_log_tail(workdir)
-    elif 'tail' in debug_command:
-        return get_requested_log_tail(debug_command, workdir)
-    elif 'ls ' in debug_command:
-        return get_ls(debug_command, workdir)
-    elif 'ps ' in debug_command or 'gdb ' in debug_command:
-        return get_general_command_stdout(debug_command)
+    if job.debug_command == 'debug':
+        return get_payload_log_tail(job.workdir)
+    elif 'tail' in job.debug_command:
+        return get_requested_log_tail(job.debug_command, job.workdir)
+    elif 'ls ' in job.debug_command:
+        return get_ls(job.debug_command, job.workdir)
+    elif 'ps ' in job.debug_command or 'gdb ' in job.debug_command:
+        return get_general_command_stdout(job)
     else:
-        logger.warning('command not handled yet: %s' % debug_command)
+        logger.warning('command not handled yet: %s' % job.debug_command)
         return ''
 
 
-def get_general_command_stdout(debug_command):
+def get_general_command_stdout(job):
     """
     Return the output from the requested debug command.
 
-    :param debug_command: full debug command (string).
+    :param job: job object.
     :return: output (string).
     """
 
-    ec, stdout, stderr = execute(debug_command)
-    logger.debug("%s:\n\n%s\n\n" % (debug_command, stdout))
+    stdout = ''
+
+    # for gdb, we might have to process the debug command (e.g. to identify the proper pid to debug)
+    if 'gdb ' in job.debug_command and '--pid %' in job.debug_command:
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+        job.debug_command = user.process_debug_command(job.debug_command, job.jobid)
+
+    if job.debug_command:
+        if 'gdb ' in job.debug_command:
+            logger.info('gdb execution will be done by a script')
+            try:
+                containerise_general_command(job, job.infosys.queuedata.container_options,
+                                             label='general',
+                                             container_type='container')
+            except PilotException as e:
+                logger.warning('general containerisation threw a pilot exception: %s' % e)
+            except Exception as e:
+                logger.warning('general containerisation threw an exception: %s' % e)
+
+            # in case a core file was produced, locate it
+            path = locate_core_file(job.debug_command)
+            if path:
+                # copy it to the working directory (so it will be saved in the log)
+                try:
+                    copy(path, job.workdir)
+                except Exception:
+                    pass
+        else:
+            ec, stdout, stderr = execute(job.debug_command)
+            logger.debug("%s:\n\n%s\n\n" % (job.debug_command, stdout))
 
     return stdout
+
+
+def locate_core_file(debug_command):
+    """
+
+    """
+
+    path = None
+    pid = get_pid_from_command(debug_command)
+    if pid:
+        filename = 'core.%d' % pid
+        path = os.path.join(os.environ.get('PILOT_HOME', '.'), filename)
+        if os.path.exists(path):
+            logger.debug('found core file at: %s' % path)
+
+        else:
+            logger.debug('did not find %s in %s' % (filename, path))
+    else:
+        logger.warning('cannot locate core file since pid could not be extracted from debug command')
+
+    return path
 
 
 def get_ls(debug_command, workdir):
@@ -728,6 +792,8 @@ def get_ls(debug_command, workdir):
     # cmd = items[0]
     options = ' '.join(items[1:])
     path = options.split(' ')[-1] if ' ' in options else options
+    if path.startswith('-'):
+        path = '.'
     finalpath = os.path.join(workdir, path)
     debug_command = debug_command.replace(path, finalpath)
 
@@ -2385,10 +2451,15 @@ def job_monitor(queues, traces, args):  # noqa: C901
                         update_time = send_heartbeat_if_time(jobs[i], args, update_time)
 
                         # note: when sending a state change to the server, the server might respond with 'tobekilled'
-                        if jobs[i].state == 'failed':
-                            logger.warning('job state is \'failed\' - order log transfer and abort job_monitor() (1)')
-                            jobs[i].stageout = 'log'  # only stage-out log file
-                            put_in_queue(jobs[i], queues.data_out)
+                        try:
+                            jobs[i]
+                        except Exception as e:
+                            logger.warning('detected stale jobs[i] object in job_monitor: %s' % e)
+                        else:
+                            if jobs[i].state == 'failed':
+                                logger.warning('job state is \'failed\' - order log transfer and abort job_monitor() (1)')
+                                jobs[i].stageout = 'log'  # only stage-out log file
+                                put_in_queue(jobs[i], queues.data_out)
 
                     # sleep for a while if stage-in has not completed
                     time.sleep(1)

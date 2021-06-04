@@ -101,62 +101,6 @@ class Args:
     pass
 
 
-# rename module to pilot2 to avoid conflict in import with pilot directory
-def import_module(**kwargs):
-    """
-    This function allows for importing the pilot code.
-
-    :param kwargs: pilot options (dictionary).
-    :return: pilot error code (integer).
-    """
-
-    argument_dictionary = {'-a': kwargs.get('workdir', ''),
-                           '-d': kwargs.get('debug', None),
-                           '-w': kwargs.get('workflow', 'generic'),
-                           '-l': kwargs.get('lifetime', '3600'),
-                           '-q': kwargs.get('queue'),  # required
-                           '-r': kwargs.get('resource'),  # required
-                           '-s': kwargs.get('site'),  # required
-                           '-j': kwargs.get('job_label', 'ptest'),  # change default later to 'managed'
-                           '-i': kwargs.get('version_tag', 'PR'),
-                           '-t': kwargs.get('verify_proxy', True),
-                           '-z': kwargs.get('update_server', True),
-                           '--cacert': kwargs.get('cacert', None),
-                           '--capath': kwargs.get('capath'),
-                           '--url': kwargs.get('url', ''),
-                           '-p': kwargs.get('port', '25443'),
-                           '--country-group': kwargs.get('country_group', ''),
-                           '--working-group': kwargs.get('working_group', ''),
-                           '--allow-other-country': kwargs.get('allow_other_country', 'False'),
-                           '--allow-same-user': kwargs.get('allow_same_user', 'True'),
-                           '--pilot-user': kwargs.get('pilot_user', 'generic'),
-                           '--input-dir': kwargs.get('input_dir', ''),
-                           '--output-dir': kwargs.get('output_dir', ''),
-                           '--hpc-resource': kwargs.get('hpc_resource', ''),
-                           '--harvester-workdir': kwargs.get('harvester_workdir', ''),
-                           '--harvester-datadir': kwargs.get('harvester_datadir', ''),
-                           '--harvester-eventstatusdump': kwargs.get('harvester_eventstatusdump', ''),
-                           '--harvester-workerattributes': kwargs.get('harvester_workerattributes', ''),
-                           '--harvester-submitmode': kwargs.get('harvester_submitmode', ''),
-                           '--resource-type': kwargs.get('resource_type', '')
-                           }
-
-    args = Args()
-    parser = argparse.ArgumentParser()
-    try:
-        _items = list(argument_dictionary.items())  # Python 3
-    except Exception:
-        _items = argument_dictionary.iteritems()  # Python 2
-    for key, value in _items:
-        print(key, value)
-        parser.add_argument(key)
-        parser.parse_args(args=[key, value], namespace=args)  # convert back int and bool strings to int and bool??
-
-    # call main pilot function
-
-    return 0
-
-
 def str2bool(v):
     """ Helper function to convert string to bool """
 
@@ -477,6 +421,9 @@ def set_environment_variables(args, mainworkdir):
 
     # event service executor type
     environ['PILOT_ES_EXECUTOR_TYPE'] = args.executor_type
+
+    if args.output_dir:
+        environ['PILOT_OUTPUT_DIR'] = args.output_dir
 
     # keep track of the server urls
     _port = ":%s" % args.port

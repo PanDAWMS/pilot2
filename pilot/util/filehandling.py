@@ -1077,3 +1077,24 @@ def create_symlink(from_path='', to_path=''):
         logger.warning('failed to create symlink from %s to %s: %s' % (from_path, to_path, e))
     else:
         logger.debug('created symlink from %s to %s' % (from_path, to_path))
+
+
+def locate_file(pattern):
+    """
+    Locate a file defined by the pattern.
+
+    Example:
+        pattern = os.path.join(os.getcwd(), '**/core.123')
+        -> /Users/Paul/Development/python/tt/core.123
+
+    :param pattern: pattern name (string).
+    :return: path (string).
+    """
+
+    path = None
+    for fname in glob(pattern):
+        if os.path.isfile(fname):
+            path = fname
+
+    return path
+

@@ -270,3 +270,17 @@ def post_prestagein_utility_command(**kwargs):
     # stdout = kwargs.get('output', None)
 
     pass
+
+
+def process_debug_command(debug_command, pandaid):
+    """
+    In debug mode, the server can send a special debug command to the pilot via the updateJob backchannel.
+    This function can be used to process that command, i.e. to identify a proper pid to debug (which is unknown
+    to the server).
+
+    :param debug_command: debug command (string), payload pid (int).
+    :param pandaid: PanDA id (string).
+    :return: updated debug command (string)
+    """
+
+    return debug_command

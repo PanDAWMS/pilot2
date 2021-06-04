@@ -20,12 +20,55 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
+def containerise_general_command(job, container_options, label='command', container_type='container'):
+    """
+    Containerise a general command by execution in a script that can be run in a container.
+
+    :param job: job object.
+    :param label: label (string).
+    :param container_options: container options from queuedata (string).
+    :param container_type: optional 'container/bash'
+    :raises PilotException: for general failures.
+    :return:
+    """
+
+    cwd = getcwd()
+
+    if container_type == 'container':
+        # add bits and pieces needed to run the cmd in a container
+        pilot_user = environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+        try:
+            cmd = user.create_middleware_container_command(job.workdir, job.debug_command, container_options, label=label, proxy=False)
+        except PilotException as e:
+            raise e
+    else:
+        logger.warning('not yet implemented')
+        raise PilotException
+
+    try:
+        logger.info('*** executing %s (logging will be redirected) ***' % label)
+        exit_code, stdout, stderr = execute(cmd, job=job, usecontainer=False)
+    except Exception as e:
+        logger.info('*** %s has failed ***' % label)
+        logger.warning('exception caught: %s' % e)
+    else:
+        if exit_code == 0:
+            logger.info('*** %s has finished ***' % label)
+        else:
+            logger.info('*** %s has failed ***' % label)
+        logger.debug('%s script returned exit_code=%d' % (label, exit_code))
+
+
 def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite, container_options, external_dir,
                             label='stage-in', container_type='container'):
     """
     Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
+
     Note: a container will only be used for option container_type='container'. If this is 'bash', then stage-in/out
     will still be done by a script, but not containerised.
+
+    Note: this function is tailor made for stage-in/out.
 
     :param job: job object.
     :param xdata: list of FileSpec objects.
@@ -37,9 +80,9 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
     :param external_dir: input or output files directory (string).
     :param label: optional 'stage-in/out' (String).
     :param container_type: optional 'container/bash'
-    :return:
     :raises StageInFailure: for stage-in failures
     :raises StageOutFailure: for stage-out failures
+    :return:
     """
 
     cwd = getcwd()
@@ -122,6 +165,8 @@ def get_script_path(script):
 def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, external_dir, label='stage-in', container_type='container'):
     """
     Get the middleware container execution command.
+
+    Note: this function is tailor made for stage-in/out.
 
     :param job: job object.
     :param xdata: list of FileSpec objects.

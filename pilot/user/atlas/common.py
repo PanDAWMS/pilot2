@@ -38,6 +38,7 @@ from pilot.util.constants import UTILITY_BEFORE_PAYLOAD, UTILITY_WITH_PAYLOAD, U
 from pilot.util.container import execute
 from pilot.util.filehandling import remove, get_guid, remove_dir_tree, read_list, remove_core_dumps, copy,\
     copy_pilot_source, write_file, read_json, read_file, update_extension, get_local_file_size, calculate_checksum
+from pilot.util.processes import convert_ps_to_dict, find_cmd_pids, get_trimmed_dictionary, find_pid, is_child
 from pilot.util.tracereport import TraceReport
 
 import logging
@@ -1553,22 +1554,24 @@ def cleanup_looping_payload(workdir):
                 remove(path)
 
 
-def cleanup_payload(workdir, outputfiles=[]):
+def cleanup_payload(workdir, outputfiles=[], removecores=True):
     """
     Cleanup of payload (specifically AthenaMP) sub directories prior to log file creation.
     Also remove core dumps.
 
-    :param workdir: working directory (string)
-    :param outputfiles: list of output files
+    :param workdir: working directory (string).
+    :param outputfiles: list of output files.
+    :param removecores: remove core files if True (Boolean).
     :return:
     """
 
-    remove_core_dumps(workdir)
+    if removecores:
+        remove_core_dumps(workdir)
 
     for ampdir in glob('%s/athenaMP-workers-*' % workdir):
         for (p, d, f) in os.walk(ampdir):
             for filename in f:
-                if 'core' in filename or 'pool.root' in filename or 'tmp.' in filename:
+                if ('core' in filename and removecores) or 'pool.root' in filename or 'tmp.' in filename:
                     path = os.path.join(p, filename)
                     path = os.path.abspath(path)
                     remove(path)
@@ -1775,13 +1778,16 @@ def remove_special_files(workdir, dir_list, outputfiles):
                 remove_dir_tree(f)
 
 
-def remove_redundant_files(workdir, outputfiles=[], islooping=False):
+def remove_redundant_files(workdir, outputfiles=[], islooping=False, debugmode=False):
     """
     Remove redundant files and directories prior to creating the log file.
+
+    Note: in debug mode, any core files should not be removed before creating the log.
 
     :param workdir: working directory (string).
     :param outputfiles: list of protected output files (list).
     :param islooping: looping job variable to make sure workDir is not removed in case of looping (boolean).
+    :param debugmode: True if debug mode has been switched on (Boolean).
     :return:
     """
 
@@ -1796,7 +1802,7 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False):
     # remove core and pool.root files from AthenaMP sub directories
     try:
         logger.debug('cleaning up payload')
-        cleanup_payload(workdir, outputfiles)
+        cleanup_payload(workdir, outputfiles, removecores=not debugmode)
     except Exception as e:
         logger.warning("failed to execute cleanup_payload(): %s" % e)
 
@@ -2350,3 +2356,75 @@ def update_server(job):
             logger.warning('path does not exist: %s' % path)
     else:
         logger.debug('no need to update logstash for this job')
+
+
+def preprocess_debug_command(job):
+    """
+
+    """
+
+    return
+
+
+    # Should the pilot do the setup or does jobPars already contain the information?
+    preparesetup = should_pilot_prepare_setup(job.noexecstrcnv, job.jobparams)
+    # get the general setup command and then verify it if required
+    resource_name = get_resource_name()  # 'grid' if no hpc_resource is set
+    resource = __import__('pilot.user.atlas.resource.%s' % resource_name, globals(), locals(), [resource_name], 0)  # Python 3, -1 -> 0
+    cmd = resource.get_setup_command(job, preparesetup)
+    if not cmd.endswith(';'):
+        cmd += '; '
+    if cmd not in job.debug_command:
+        job.debug_command = cmd + job.debug_command
+
+
+def process_debug_command(debug_command, pandaid):
+    """
+    In debug mode, the server can send a special debug command to the pilot via the updateJob backchannel.
+    This function can be used to process that command, i.e. to identify a proper pid to debug (which is unknown
+    to the server).
+
+    For gdb, the server might send a command with gdb option --pid %. The pilot need to replace the % with the proper
+    pid. The default (hardcoded) process will be that of athena.py. The pilot will find the corresponding pid.
+
+    :param debug_command: debug command (string).
+    :param pandaid: PanDA id (string).
+    :return: updated debug command (string).
+    """
+
+    pandaid_pid = None
+    if '--pid %' in debug_command:
+        # replace the % with the pid for athena.py
+        # note: if athena.py is not yet running, the --pid % will remain. Otherwise the % will be replaced by the pid
+        # first find the pid (if athena.py is running)
+        cmd = 'ps axo pid,ppid,pgid,args'
+        exit_code, stdout, stderr = execute(cmd)
+        if stdout:
+            logger.debug('ps=\n\n%s\n' % stdout)
+            # convert the ps output to a dictionary
+            dictionary = convert_ps_to_dict(stdout)
+            # trim this dictionary to reduce the size (only keep the PID and PPID lists)
+            trimmed_dictionary = get_trimmed_dictionary(['PID', 'PPID'], dictionary)
+            # what is the pid of the trf?
+            pandaid_pid = find_pid(pandaid, dictionary)
+            # find all athena processes
+            pids = find_cmd_pids('athena.py', dictionary)
+            # which of the found pids are children of the trf? (which has an export PandaID=.. attached to it)
+            for pid in pids:
+                try:
+                    child = is_child(pid, pandaid_pid, trimmed_dictionary)
+                except RuntimeError as e:
+                    logger.warning('too many recursions: %s (cannot identify athena process)' % e)
+                else:
+                    if child:
+                        logger.info('pid=%d is a child process of the trf of this job' % pid)
+                        debug_command = debug_command.replace('--pid %', '--pid %d' % pid)
+                        logger.info('updated debug command: %s' % debug_command)
+                        break
+                    else:
+                        logger.info('pid=%d is not a child process of the trf of this job' % pid)
+            if not pids:
+                logger.debug('athena is not yet running (no corresponding pid)')
+                debug_command = ''  # reset the command to prevent the payload from being killed (will be killed when gdb has run)
+
+    return debug_command

@@ -899,7 +899,7 @@ def create_root_container_command(workdir, cmd):
     return command
 
 
-def create_middleware_container_command(workdir, cmd, container_options, label='stagein'):
+def create_middleware_container_command(workdir, cmd, container_options, label='stagein', proxy=True):
     """
     Create the stage-in/out container command.
 
@@ -924,10 +924,16 @@ def create_middleware_container_command(workdir, cmd, container_options, label='
     command = 'cd %s;' % workdir
 
     # add bits and pieces for the containerisation
-    middleware_container = get_middleware_container()
-    content = get_middleware_container_script(middleware_container, cmd)
+    middleware_container = get_middleware_container(label=label)
+    content = get_middleware_container_script(middleware_container, cmd, label=label)
     # store it in setup.sh
-    script_name = 'stagein.sh' if label == 'stage-in' else 'stageout.sh'
+    if label == 'stage-in':
+        script_name = 'stagein.sh'
+    elif label == 'stage-out':
+        script_name = 'stageout.sh'
+    else:
+        script_name = 'general.sh'
+
     try:
         status = write_file(os.path.join(workdir, script_name), content)
     except PilotException as e:
@@ -935,9 +941,10 @@ def create_middleware_container_command(workdir, cmd, container_options, label='
     else:
         if status:
             # generate the final container command
-            x509 = os.environ.get('X509_USER_PROXY', '')
-            if x509:
-                command += 'export X509_USER_PROXY=%s;' % x509
+            if proxy:
+                x509 = os.environ.get('X509_USER_PROXY', '')
+                if x509:
+                    command += 'export X509_USER_PROXY=%s;' % x509
             command += 'export ALRB_CONT_RUNPAYLOAD=\"source /srv/%s\";' % script_name
             command += get_asetup(alrb=True)  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
             command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % middleware_container
@@ -995,12 +1002,16 @@ def get_middleware_container_script(middleware_container, cmd, asetup=False):
     return content
 
 
-def get_middleware_container():
+def get_middleware_container(label=None):
     """
     Return the middleware container.
 
+    :param label: label (string).
     :return: path (string).
     """
+
+    if label and label == 'general':
+        return 'CentOS7'
 
     path = config.Container.middleware_container
     if path.startswith('/') and not os.path.exists(path):

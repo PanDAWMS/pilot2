@@ -630,3 +630,156 @@ def threads_aborted(abort_at=2):
         aborted = True
 
     return aborted
+
+
+def convert_ps_to_dict(output, pattern=r'(\d+) (\d+) (\d+) (.+)'):
+    """
+    Convert output from a ps command to a dictionary.
+
+    Example: ps axo pid,ppid,pgid,cmd
+      PID  PPID  PGID COMMAND
+      22091  6672 22091 bash
+      32581 22091 32581 ps something;sdfsdfds/athena.py ddfg
+      -> dictionary = { 'PID': [22091, 32581], 'PPID': [22091, 6672], .. , 'COMMAND': ['ps ..', 'bash']}
+
+    :param output: ps stdout (string).
+    :param pattern: regex pattern matching the ps output (raw string).
+    :return: dictionary.
+    """
+
+    dictionary = {}
+    first_line = []  # e.g. PID PPID PGID COMMAND
+
+    for line in output.split('\n'):
+        try:
+            # remove leading and trailing spaces
+            line = line.strip()
+            # remove multiple spaces inside the line
+            _l = re.sub(' +', ' ', line)
+
+            if first_line == []:
+                _l = [_f for _f in _l.split(' ') if _f]
+                first_line = _l
+                for i in range(len(_l)):
+                    dictionary[_l[i]] = []
+            else:  # e.g. 22091 6672 22091 bash
+                match = re.search(pattern, _l)
+                if match:
+                    for i in range(len(first_line)):
+                        try:
+                            var = int(match.group(i + 1))
+                        except Exception:
+                            var = match.group(i + 1)
+                        dictionary[first_line[i]].append(var)
+
+        except Exception as e:
+            print("unexpected format of utility output: %s" % e)
+
+    return dictionary
+
+
+def get_trimmed_dictionary(keys, dictionary):
+    """
+    Return a sub-dictionary with only the given keys.
+
+    :param keys: keys to keep (list).
+    :param dictionary: full dictionary.
+    :return: trimmed dictionary.
+    """
+
+    subdictionary = {}
+    for key in keys:
+        if key in dictionary:
+            subdictionary[key] = dictionary[key]
+
+    return subdictionary
+
+
+def find_cmd_pids(cmd, ps_dictionary):
+    """
+    Find all pids for the given command.
+    Example. cmd = 'athena.py' -> pids = [1234, 2267] (in case there are two pilots running on the WN).
+
+    :param cmd: command (string).
+    :param ps_dictionary: converted ps output (dictionary).
+    """
+
+    pids = []
+    i = -1
+    for _cmd in ps_dictionary.get('COMMAND'):
+        i += 1
+        if cmd in _cmd:
+            pids.append(ps_dictionary.get('PID')[i])
+    return pids
+
+
+def find_pid(pandaid, ps_dictionary):
+    """
+    Find the process id for the command that contains 'export PandaID=%d'.
+
+    :param pandaid: PanDA ID (string).
+    :param ps_dictionaryL ps output dictionary.
+    :return: pid (int).
+    """
+
+    pid = -1
+    i = -1
+    pandaid_cmd = 'export PandaID=%s' % pandaid
+    for _cmd in ps_dictionary.get('COMMAND'):
+        i += 1
+        if pandaid_cmd in _cmd:
+            pid = ps_dictionary.get('PID')[i]
+            break
+
+    return pid
+
+
+def is_child(pid, pandaid_pid, dictionary):
+    """
+    Is the given pid a child process of the pandaid_pid?
+    Proceed recursively until the parent pandaid_pid has been found, or return False if it fails to find it.
+    """
+
+    try:
+        # where are we at in the PID list?
+        index = dictionary.get('PID').index(pid)
+    except ValueError:
+        # not in the list
+        return False
+    else:
+        # get the corresponding ppid
+        ppid = dictionary.get('PPID')[index]
+
+        print(index, pid, ppid, pandaid_pid)
+        # is the current parent the same as the pandaid_pid? if yes, we are done
+        if ppid == pandaid_pid:
+            return True
+        else:
+            # try another pid
+            return is_child(ppid, pandaid_pid, dictionary)
+
+
+def get_pid_from_command(cmd, pattern=r'gdb --pid (\d+)'):
+    """
+    Identify an explicit process id in the given command.
+
+    Example:
+        cmd = 'gdb --pid 19114 -ex \'generate-core-file\''
+        -> pid = 19114
+
+    :param cmd: command containing a pid (string).
+    :param pattern: regex pattern (raw string).
+    :return: pid (int).
+    """
+
+    pid = None
+    match = re.search(pattern, cmd)
+    if match:
+        try:
+            pid = int(match.group(1))
+        except Exception:
+            pid = None
+    else:
+        print('no match for pattern \'%s\' in command=\'%s\'' % (pattern, cmd))
+
+    return pid
