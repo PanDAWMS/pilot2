@@ -638,22 +638,7 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
 
     # in debug mode, also send a tail of the latest log file touched by the payload
     if job.debug:
-        # for gdb commands, use the proper gdb version (the system one may be too old)
-        if 'gdb ' in job.debug_command:
-            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
-            user.preprocess_debug_command(job)
-
-        stdout = get_debug_stdout(job)
-        if stdout:
-            data['stdout'] = stdout
-
-            # in case gdb was successfully used, the payload can now be killed
-            if 'gdb ' in job.debug_command and job.pid:
-                job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL,
-                                                                                 msg='payload was killed after gdb produced requested core file')
-                logger.debug('will proceed to kill payload processes')
-                kill_processes(job.pid)
+        data['stdout'] = process_debug_mode(job)
 
     # add the core count
     if job.corecount and job.corecount != 'null' and job.corecount != 'NULL':
@@ -692,6 +677,32 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
         add_error_codes(data, job)
 
     return data
+
+
+def process_debug_mode(job):
+    """
+    Handle debug mode - preprocess debug command, get the output and kill the payload in case of gdb.
+
+    :param job: job object.
+    :return: stdout from debug command (string).
+    """
+
+    # for gdb commands, use the proper gdb version (the system one may be too old)
+    if 'gdb ' in job.debug_command:
+        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+        user.preprocess_debug_command(job)
+
+    stdout = get_debug_stdout(job)
+    if stdout:
+        # in case gdb was successfully used, the payload can now be killed
+        if 'gdb ' in job.debug_command and job.pid:
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL,
+                                                                             msg='payload was killed after gdb produced requested core file')
+            logger.debug('will proceed to kill payload processes')
+            kill_processes(job.pid)
+
+    return stdout
 
 
 def get_debug_stdout(job):
