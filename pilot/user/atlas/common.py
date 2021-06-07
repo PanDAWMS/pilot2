@@ -2360,22 +2360,20 @@ def update_server(job):
 
 def preprocess_debug_command(job):
     """
-
+    (Currently not used - not needed if e.g. gdb will be run in a container)
     """
 
     return
-
-
     # Should the pilot do the setup or does jobPars already contain the information?
-    preparesetup = should_pilot_prepare_setup(job.noexecstrcnv, job.jobparams)
+    #preparesetup = should_pilot_prepare_setup(job.noexecstrcnv, job.jobparams)
     # get the general setup command and then verify it if required
-    resource_name = get_resource_name()  # 'grid' if no hpc_resource is set
-    resource = __import__('pilot.user.atlas.resource.%s' % resource_name, globals(), locals(), [resource_name], 0)  # Python 3, -1 -> 0
-    cmd = resource.get_setup_command(job, preparesetup)
-    if not cmd.endswith(';'):
-        cmd += '; '
-    if cmd not in job.debug_command:
-        job.debug_command = cmd + job.debug_command
+    #resource_name = get_resource_name()  # 'grid' if no hpc_resource is set
+    #resource = __import__('pilot.user.atlas.resource.%s' % resource_name, globals(), locals(), [resource_name], 0)  # Python 3, -1 -> 0
+    #cmd = resource.get_setup_command(job, preparesetup)
+    #if not cmd.endswith(';'):
+    #    cmd += '; '
+    #if cmd not in job.debug_command:
+    #    job.debug_command = cmd + job.debug_command
 
 
 def process_debug_command(debug_command, pandaid):

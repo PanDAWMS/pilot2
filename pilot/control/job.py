@@ -41,7 +41,7 @@ from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PI
     SERVER_UPDATE_UPDATING, SERVER_UPDATE_NOT_DONE
 from pilot.util.container import execute
 from pilot.util.filehandling import find_text_files, tail, is_json, copy, remove, write_json, establish_logging, write_file, \
-    create_symlink, locate_file
+    create_symlink
 from pilot.util.harvester import request_new_jobs, remove_job_request_file, parse_job_definition_file, \
     is_harvester_mode, get_worker_attributes_file, publish_job_report, publish_work_report, get_event_status_file, \
     publish_stageout_files
@@ -639,10 +639,10 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     # in debug mode, also send a tail of the latest log file touched by the payload
     if job.debug:
         # for gdb commands, use the proper gdb version (the system one may be too old)
-        #if 'gdb ' in job.debug_command:
-        #    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
-        #    user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
-        #    user.preprocess_debug_command(job)
+        if 'gdb ' in job.debug_command:
+            pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+            user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+            user.preprocess_debug_command(job)
 
         stdout = get_debug_stdout(job)
         if stdout:
@@ -1131,8 +1131,8 @@ def verify_ctypes(queues, job):
         # specifically, this will include any 'orphans', i.e. if the pilot kills all subprocesses at the end,
         # 'orphans' will be included (orphans seem like the wrong name)
         libc = ctypes.CDLL('libc.so.6')
-        PR_SET_CHILD_SUBREAPER = 36
-        libc.prctl(PR_SET_CHILD_SUBREAPER, 1)
+        pr_set_child_subreaper = 36
+        libc.prctl(pr_set_child_subreaper, 1)
         logger.debug('all child subprocesses will be parented')
 
 

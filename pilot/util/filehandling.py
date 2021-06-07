@@ -1119,4 +1119,3 @@ def locate_file(pattern):
             path = fname
 
     return path
-
