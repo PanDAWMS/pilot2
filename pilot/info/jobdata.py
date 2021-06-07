@@ -274,7 +274,7 @@ class JobData(BaseData):
                     idat[key] = getattr(self.infosys.queuedata, key)
 
             finfo = FileSpec(filetype='input', **idat)
-            logger.info('added file %s' % lfn)
+            logger.info('added file \'%s\' with accessmode \'%s\'' % (lfn, accessmode))
             ret.append(finfo)
 
         return ret
