@@ -95,6 +95,7 @@ class JobData(BaseData):
     pid = None                     # payload pid
     pgrp = None                    # payload process group
     sizes = {}                     # job object sizes { timestamp: size, .. }
+    currentsize = 0                # current job object size
     command = ""                   # full payload command (set for container jobs)
     setup = ""                     # full payload setup (needed by postprocess command)
     zombies = []                   # list of zombie process ids
@@ -986,7 +987,12 @@ class JobData(BaseData):
         :return: size (int).
         """
 
-        return get_object_size(self)
+        # protect against the case where the object changes size during calculation (rare)
+        try:
+            self.currentsize = get_object_size(self)
+        except Exception:
+            pass
+        return self.currentsize
 
     def collect_zombies(self, tn=None):
         """
