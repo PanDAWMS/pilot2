@@ -1132,9 +1132,9 @@ def verify_ctypes(queues, job):
     except Exception as e:
         diagnostics = 'ctypes python module could not be imported: %s' % e
         logger.warning(diagnostics)
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOCTYPES, msg=diagnostics)
-        logger.debug('Failed to validate job=%s' % job.jobid)
-        put_in_queue(job, queues.failed_jobs)
+        #job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOCTYPES, msg=diagnostics)
+        #logger.debug('Failed to validate job=%s' % job.jobid)
+        #put_in_queue(job, queues.failed_jobs)
     else:
         logger.debug('ctypes python module imported')
 
