@@ -857,10 +857,12 @@ class StageInClient(StagingClient):
         kwargs['activity'] = activity
 
         # verify file sizes and available space for stage-in
-        if self.infosys.queuedata.maxinputsize != -1:
-            self.check_availablespace(remain_files)
-        else:
-            self.logger.info('skipping input file size check since maxinputsize=-1')
+        if getattr(copytool, 'check_availablespace', True):
+            if self.infosys.queuedata.maxinputsize != -1:
+                self.check_availablespace(remain_files)
+            else:
+                self.logger.info('skipping input file size check since maxinputsize=-1')
+
         show_memory_usage()
 
         # add the trace report
