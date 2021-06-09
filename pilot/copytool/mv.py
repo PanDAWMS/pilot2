@@ -19,6 +19,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 require_replicas = False  # indicate if given copytool requires input replicas to be resolved
+check_availablespace = False  # indicate whether space check should be applied before stage-in transfers using given copytool
 
 
 def create_output_list(files, init_dir, ddmconf):
