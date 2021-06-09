@@ -2360,20 +2360,19 @@ def update_server(job):
 
 def preprocess_debug_command(job):
     """
-    (Currently not used - not needed if e.g. gdb will be run in a container)
+
     """
 
-    return
     # Should the pilot do the setup or does jobPars already contain the information?
-    #preparesetup = should_pilot_prepare_setup(job.noexecstrcnv, job.jobparams)
+    preparesetup = should_pilot_prepare_setup(job.noexecstrcnv, job.jobparams)
     # get the general setup command and then verify it if required
-    #resource_name = get_resource_name()  # 'grid' if no hpc_resource is set
-    #resource = __import__('pilot.user.atlas.resource.%s' % resource_name, globals(), locals(), [resource_name], 0)  # Python 3, -1 -> 0
-    #cmd = resource.get_setup_command(job, preparesetup)
-    #if not cmd.endswith(';'):
-    #    cmd += '; '
-    #if cmd not in job.debug_command:
-    #    job.debug_command = cmd + job.debug_command
+    resource_name = get_resource_name()  # 'grid' if no hpc_resource is set
+    resource = __import__('pilot.user.atlas.resource.%s' % resource_name, globals(), locals(), [resource_name], 0)  # Python 3, -1 -> 0
+    cmd = resource.get_setup_command(job, preparesetup)
+    if not cmd.endswith(';'):
+        cmd += '; '
+    if cmd not in job.debug_command:
+        job.debug_command = cmd + job.debug_command
 
 
 def process_debug_command(debug_command, pandaid):
@@ -2398,7 +2397,7 @@ def process_debug_command(debug_command, pandaid):
         cmd = 'ps axo pid,ppid,pgid,args'
         exit_code, stdout, stderr = execute(cmd)
         if stdout:
-            logger.debug('ps=\n\n%s\n' % stdout)
+            #logger.debug('ps=\n\n%s\n' % stdout)
             # convert the ps output to a dictionary
             dictionary = convert_ps_to_dict(stdout)
             # trim this dictionary to reduce the size (only keep the PID and PPID lists)
@@ -2421,7 +2420,7 @@ def process_debug_command(debug_command, pandaid):
                         break
                     else:
                         logger.info('pid=%d is not a child process of the trf of this job' % pid)
-            if not pids:
+            if not pids or '--pid %' in debug_command:
                 logger.debug('athena is not yet running (no corresponding pid)')
                 debug_command = ''  # reset the command to prevent the payload from being killed (will be killed when gdb has run)
 

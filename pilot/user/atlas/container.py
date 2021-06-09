@@ -971,7 +971,7 @@ def get_root_container_script(cmd):
     return content
 
 
-def get_middleware_container_script(middleware_container, cmd, asetup=False):
+def get_middleware_container_script(middleware_container, cmd, asetup=False, label=''):
     """
     Return the content of the middleware container script.
     If asetup is True, atlasLocalSetup will be added to the command.
@@ -991,9 +991,11 @@ def get_middleware_container_script(middleware_container, cmd, asetup=False):
             content += 'export ALRB_LOCAL_PY3=YES; '
         if asetup:  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/..;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
             content += get_asetup(asetup=False)
-        content += sitename + 'lsetup rucio davix xrootd; '
-        content += 'python3 %s ' % cmd if is_python3() else 'python %s' % cmd
-
+        if label == 'stagein' or label == 'stageout':
+            content += sitename + 'lsetup rucio davix xrootd; '
+            content += 'python3 %s ' % cmd if is_python3() else 'python %s' % cmd
+        else:
+            content += cmd
     if not asetup:
         content += '\nexit $?'
 

@@ -743,8 +743,8 @@ def get_general_command_stdout(job):
         job.debug_command = user.process_debug_command(job.debug_command, job.jobid)
 
     if job.debug_command:
-        if 'gdb ' in job.debug_command:
-            logger.info('gdb execution will be done by a script')
+        _containerisation = False  # set this with some logic instead - not used for now
+        if _containerisation:
             try:
                 containerise_general_command(job, job.infosys.queuedata.container_options,
                                              label='general',
@@ -753,18 +753,19 @@ def get_general_command_stdout(job):
                 logger.warning('general containerisation threw a pilot exception: %s' % e)
             except Exception as e:
                 logger.warning('general containerisation threw an exception: %s' % e)
-
-            # in case a core file was produced, locate it
-            path = locate_core_file(job.debug_command)
-            if path:
-                # copy it to the working directory (so it will be saved in the log)
-                try:
-                    copy(path, job.workdir)
-                except Exception:
-                    pass
         else:
             ec, stdout, stderr = execute(job.debug_command)
-            logger.debug("%s:\n\n%s\n\n" % (job.debug_command, stdout))
+            logger.debug("%s (stdout):\n\n%s\n\n" % (job.debug_command, stdout))
+            logger.debug("%s (stderr):\n\n%s\n\n" % (job.debug_command, stderr))
+
+        # in case a core file was produced, locate it
+        path = locate_core_file(job.debug_command) if 'gdb ' in job.debug_command else ''
+        if path:
+            # copy it to the working directory (so it will be saved in the log)
+            try:
+                copy(path, job.workdir)
+            except Exception:
+                pass
 
     return stdout
 
