@@ -10,6 +10,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 
 from __future__ import print_function  # Python 2 (2to3 complains about this)
+from __future__ import absolute_import
 
 import argparse
 import logging
@@ -68,7 +69,7 @@ def main():
         infosys.init(args.queue)
         # check if queue is ACTIVE
         if infosys.queuedata.state != 'ACTIVE':
-            logger.critical('specified queue is NOT ACTIVE: %s -- aborting' % infosys.queuedata.name)
+            logger.critical('specified queue is NOT ACTIVE: %s -- aborting', infosys.queuedata.name)
             return errors.PANDAQUEUENOTACTIVE
     except PilotException as error:
         logger.fatal(error)
@@ -81,14 +82,14 @@ def main():
     environ['PILOT_SITENAME'] = infosys.queuedata.resource  #args.site  # TODO: replace with singleton
 
     # set requested workflow
-    logger.info('pilot arguments: %s' % str(args))
+    logger.info('pilot arguments: %s', str(args))
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], 0)  # Python 3, -1 -> 0
 
     # execute workflow
     try:
         exit_code = workflow.run(args)
     except Exception as e:
-        logger.fatal('main pilot function caught exception: %s' % e)
+        logger.fatal('main pilot function caught exception: %s', e)
         exit_code = None
 
     return exit_code
@@ -450,9 +451,9 @@ def wrap_up(initdir, mainworkdir, args):
         try:
             rmtree(mainworkdir)
         except Exception as e:
-            logging.warning("failed to remove %s: %s" % (mainworkdir, e))
+            logging.warning("failed to remove %s: %s", mainworkdir, e)
         else:
-            logging.info("removed %s" % mainworkdir)
+            logging.info("removed %s", mainworkdir)
 
     # in Harvester mode, create a kill_worker file that will instruct Harvester that the pilot has finished
     if args.harvester:
@@ -464,15 +465,15 @@ def wrap_up(initdir, mainworkdir, args):
     except Exception:
         exit_code = trace
     else:
-        logging.info('traces error code: %d' % exit_code)
+        logging.info('traces error code: %d', exit_code)
         if trace.pilot['nr_jobs'] <= 1:
             if exit_code != 0:
-                logging.info('an exit code was already set: %d (will be converted to a standard shell code)' % exit_code)
+                logging.info('an exit code was already set: %d (will be converted to a standard shell code)', exit_code)
         elif trace.pilot['nr_jobs'] > 0:
             if trace.pilot['nr_jobs'] == 1:
-                logging.getLogger(__name__).info('pilot has finished (%d job was processed)' % trace.pilot['nr_jobs'])
+                logging.getLogger(__name__).info('pilot has finished (%d job was processed)', trace.pilot['nr_jobs'])
             else:
-                logging.getLogger(__name__).info('pilot has finished (%d jobs were processed)' % trace.pilot['nr_jobs'])
+                logging.getLogger(__name__).info('pilot has finished (%d jobs were processed)', trace.pilot['nr_jobs'])
             exit_code = SUCCESS
         elif trace.pilot['state'] == FAILURE:
             logging.critical('pilot workflow failure -- aborting')

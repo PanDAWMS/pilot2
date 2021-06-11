@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
-# - Paul Nilsson, paul.nilsson@cern.ch, 2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2020-2021
 
 import os
 
@@ -25,9 +25,9 @@ class Executor(generic.Executor):
 
         pfn = os.path.join(job.workdir, lfn)
         command = "tar -xf %s -C %s" % (pfn, job.workdir)
-        logger.info("Untar file: %s" % command)
+        logger.info("untar file: %s", command)
         exit_code, stdout, stderr = execute(command)
-        logger.info("exit_code: %s, stdout: %s, stderr: %s\n" % (exit_code, stdout, stderr))
+        logger.info("exit_code: %s, stdout: %s, stderr: %s\n", exit_code, stdout, stderr)
 
     def utility_before_payload(self, job):
         """

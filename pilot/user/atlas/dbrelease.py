@@ -58,7 +58,7 @@ def get_dbrelease_dir():
     :return: path to DBRelease (string).
     """
 
-    path = os.path.expandvars('$VO_ATLAS_SW_DIR/database/DBRelease') if 'VO_ATLAS_SW_DIR' in os.environ else os.path.expandvars('$OSG_APP/database/DBRelease')
+    path = os.path.join(os.environ.get('VO_ATLAS_SW_DIR', 'OSG_APP'), 'database/DBRelease')
     if path == "" or path.startswith('OSG_APP'):
         logger.warning("note: the DBRelease database directory is not available (will not attempt to skip DBRelease stage-in)")
     else:

@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021
 # - Wen Guan, wen.guan@cern.ch, 2018
 
 from __future__ import print_function  # Python 2
@@ -72,9 +72,6 @@ def control(queues, traces, args):
     :return:
     """
 
-    # t = threading.current_thread()
-    # logger.debug('job.control is run by thread: %s' % t.name)
-
     targets = {'validate': validate, 'retrieve': retrieve, 'create_data_payload': create_data_payload,
                'queue_monitor': queue_monitor, 'job_monitor': job_monitor}
     threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
@@ -92,7 +89,7 @@ def control(queues, traces, args):
                 pass
             else:
                 exc_type, exc_obj, exc_trace = exc
-                logger.warning("thread \'%s\' received an exception from bucket: %s" % (thread.name, exc_obj))
+                logger.warning("thread \'%s\' received an exception from bucket: %s", thread.name, exc_obj)
 
                 # deal with the exception
                 # ..
@@ -142,8 +139,8 @@ def _validate_job(job):
     try:
         kwargs = {'job': job}
         job.usecontainer = container.do_use_container(**kwargs)
-    except Exception as e:
-        logger.warning('exception caught: %s' % e)
+    except Exception as error:
+        logger.warning('exception caught: %s', error)
 
     return True if user.verify_job(job) else False
 
@@ -564,8 +561,12 @@ def handle_backchannel_command(res, job, args, test_tobekilled=False):
             logger.warning('received unknown server command via backchannel: %s' % cmd)
 
     # for testing debug mode
-    #job.debug = True
-    # job.debug_command = 'tail payload.stdout'
+
+
+
+    job.debug = True
+    job.debug_command = 'du -dk'
+    # job.debug_command = 'tail -30 payload.stdout'
     # job.debug_command = 'ls -ltr workDir'  # not really tested
     # job.debug_command = 'ls -ltr %s' % job.workdir
     # job.debug_command = 'ps -ef'
@@ -688,7 +689,7 @@ def process_debug_mode(job):
     """
 
     # for gdb commands, use the proper gdb version (the system one may be too old)
-    if 'gdb ' in job.debug_command:
+    if job.debug_command.startswith('gdb '):
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
         user.preprocess_debug_command(job)
@@ -696,7 +697,7 @@ def process_debug_mode(job):
     stdout = get_debug_stdout(job)
     if stdout:
         # in case gdb was successfully used, the payload can now be killed
-        if 'gdb ' in job.debug_command and job.pid:
+        if job.debug_command.startswith('gdb ') and job.pid:
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL,
                                                                              msg='payload was killed after gdb produced requested core file')
             logger.debug('will proceed to kill payload processes')
@@ -715,15 +716,16 @@ def get_debug_stdout(job):
 
     if job.debug_command == 'debug':
         return get_payload_log_tail(job.workdir)
-    elif 'tail' in job.debug_command:
+    elif 'tail ' in job.debug_command:
         return get_requested_log_tail(job.debug_command, job.workdir)
     elif 'ls ' in job.debug_command:
         return get_ls(job.debug_command, job.workdir)
     elif 'ps ' in job.debug_command or 'gdb ' in job.debug_command:
         return get_general_command_stdout(job)
     else:
-        logger.warning('command not handled yet: %s' % job.debug_command)
-        return ''
+        # general command, execute and return output
+        exit_code, stdout, stderr = execute(job.debug_command)
+        return stdout
 
 
 def get_general_command_stdout(job):

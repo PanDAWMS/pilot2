@@ -92,7 +92,7 @@ class Executor(object):
         cmd_dictionary = user.get_utility_commands(order=UTILITY_BEFORE_PAYLOAD, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
-            logger.info('utility command (\'%s\') to be executed before the payload: %s' % (cmd_dictionary.get('label', 'utility'), cmd))
+            logger.info('utility command (\'%s\') to be executed before the payload: %s', cmd_dictionary.get('label', 'utility'), cmd)
 
         return cmd
 
@@ -114,7 +114,7 @@ class Executor(object):
         cmd_dictionary = user.get_utility_commands(order=UTILITY_WITH_PAYLOAD, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
-            logger.info('utility command (\'%s\') to be executed with the payload: %s' % (cmd_dictionary.get('label', 'utility'), cmd))
+            logger.info('utility command (\'%s\') to be executed with the payload: %s', cmd_dictionary.get('label', 'utility'), cmd)
 
         return cmd
 
@@ -138,7 +138,7 @@ class Executor(object):
         cmd_dictionary = user.get_utility_commands(order=order, job=self.__job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
-            logger.info('utility command (\'%s\') to be executed after the payload: %s' % (cmd_dictionary.get('label', 'utility'), cmd))
+            logger.info('utility command (\'%s\') to be executed after the payload: %s', cmd_dictionary.get('label', 'utility'), cmd)
 
         return cmd
 
@@ -156,7 +156,7 @@ class Executor(object):
         cmd_dictionary = user.get_utility_commands(order=UTILITY_AFTER_PAYLOAD_STARTED, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
-            logger.info('utility command to be executed after the payload: %s' % cmd)
+            logger.info('utility command to be executed after the payload: %s', cmd)
 
             # how should this command be executed?
             utilitycommand = user.get_utility_command_setup(cmd_dictionary.get('command'), job)
@@ -166,8 +166,8 @@ class Executor(object):
             try:
                 proc1 = execute(utilitycommand, workdir=job.workdir, returnproc=True, usecontainer=False,
                                 stdout=PIPE, stderr=PIPE, cwd=job.workdir, job=job)
-            except Exception as e:
-                logger.error('could not execute: %s' % e)
+            except Exception as error:
+                logger.error('could not execute: %s', error)
             else:
                 # store process handle in job object, and keep track on how many times the command has been launched
                 # also store the full command in case it needs to be restarted later (by the job_monitor() thread)
@@ -191,7 +191,7 @@ class Executor(object):
         cmd_dictionary = user.get_utility_commands(order=UTILITY_AFTER_PAYLOAD_STARTED, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
-            logger.info('utility command to be executed after the payload: %s' % cmd)
+            logger.info('utility command to be executed after the payload: %s', cmd)
 
         return cmd
 
@@ -203,8 +203,8 @@ class Executor(object):
 #            try:
 #                proc = execute(utilitycommand, workdir=job.workdir, returnproc=True, usecontainer=False,
 #                               stdout=PIPE, stderr=PIPE, cwd=job.workdir, job=job)
-#            except Exception as e:
-#                logger.error('could not execute: %s' % e)
+#            except Exception as error:
+#                logger.error('could not execute: %s', error)
 #            else:
 #                # store process handle in job object, and keep track on how many times the command has been launched
 #                # also store the full command in case it needs to be restarted later (by the job_monitor() thread)
@@ -233,7 +233,7 @@ class Executor(object):
         cmd_dictionary = user.get_utility_commands(order=order, job=job)
         if cmd_dictionary:
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
-            logger.info('utility command (\'%s\') to be executed after the payload has finished: %s' % (cmd_dictionary.get('label', 'utility'), cmd))
+            logger.info('utility command (\'%s\') to be executed after the payload has finished: %s', cmd_dictionary.get('label', 'utility'), cmd)
 
         return cmd, cmd_dictionary.get('label')
 
@@ -249,7 +249,7 @@ class Executor(object):
 
         exit_code, stdout, stderr = execute(cmd, workdir=job.workdir, cwd=job.workdir, usecontainer=False)
         if exit_code:
-            logger.warning('command returned non-zero exit code: %s (exit code = %d) - see utility logs for details' % (cmd, exit_code))
+            logger.warning('command returned non-zero exit code: %s (exit code = %d) - see utility logs for details', cmd, exit_code)
             if label == 'preprocess':
                 err = errors.PREPROCESSFAILURE
             elif label == 'postprocess':
@@ -289,18 +289,18 @@ class Executor(object):
                 self.__postprocess_stderr_name = name_stderr
             name = os.path.join(workdir, step + '_stdout.txt')
             write_file(name, stdout, unique=True)
-        except PilotException as e:
-            logger.warning('failed to write utility stdout to file: %s, %s' % (e, stdout))
+        except PilotException as error:
+            logger.warning('failed to write utility stdout to file: %s, %s', error, stdout)
         else:
-            logger.debug('wrote %s' % name)
+            logger.debug('wrote %s', name)
 
         try:
             name = os.path.join(workdir, step + '_stderr.txt')
             write_file(name, stderr, unique=True)
-        except PilotException as e:
-            logger.warning('failed to write utility stderr to file: %s, %s' % (e, stderr))
+        except PilotException as error:
+            logger.warning('failed to write utility stderr to file: %s, %s', error, stderr)
         else:
-            logger.debug('wrote %s' % name)
+            logger.debug('wrote %s', name)
 
     def pre_payload(self, job):
         """
@@ -331,13 +331,13 @@ class Executor(object):
         """
 
         if label:
-            logger.info('\n\n%s:\n\n%s\n' % (label, cmd))
+            logger.info('\n\n%s:\n\n%s\n', label, cmd)
         if label == 'coprocess':
             try:
                 out = open(os.path.join(self.__job.workdir, self.__coprocess_stdout_name), 'wb')
                 err = open(os.path.join(self.__job.workdir, self.__coprocess_stderr_name), 'wb')
-            except Exception as e:
-                logger.warning('failed to open coprocess stdout/err: %s' % e)
+            except Exception as error:
+                logger.warning('failed to open coprocess stdout/err: %s', error)
                 out = None
                 err = None
         else:
@@ -346,14 +346,14 @@ class Executor(object):
         try:
             proc = execute(cmd, workdir=self.__job.workdir, returnproc=True, stdout=out, stderr=err,
                            usecontainer=False, cwd=self.__job.workdir, job=self.__job)
-        except Exception as e:
-            logger.error('could not execute: %s' % str(e))
+        except Exception as error:
+            logger.error('could not execute: %s', error)
             return None
         if type(proc) == tuple and not proc[0]:
             logger.error('failed to execute command')
             return None
 
-        logger.info('started %s -- pid=%s executable=%s' % (label, proc.pid, cmd))
+        logger.info('started %s -- pid=%s executable=%s', label, proc.pid, cmd)
 
         return proc
 
@@ -374,25 +374,23 @@ class Executor(object):
         # add time for PILOT_PRE_PAYLOAD
         self.pre_payload(job)
 
-        logger.info("\n\npayload execution command:\n\n%s\n" % cmd)
+        logger.info("\n\npayload execution command:\n\n%s\n", cmd)
         try:
             proc = execute(cmd, workdir=job.workdir, returnproc=True,
                            usecontainer=True, stdout=out, stderr=err, cwd=job.workdir, job=job)
-        except Exception as e:
-            logger.error('could not execute: %s' % str(e))
+        except Exception as error:
+            logger.error('could not execute: %s', error)
             return None
         if type(proc) == tuple and not proc[0]:
             logger.error('failed to execute payload')
             return None
 
-        logger.info('started -- pid=%s executable=%s' % (proc.pid, cmd))
+        logger.info('started -- pid=%s executable=%s', proc.pid, cmd)
         job.pid = proc.pid
         job.pgrp = os.getpgid(job.pid)
         set_pilot_state(job=job, state="running")
 
         #_cmd = self.utility_with_payload(job)
-        #if _cmd:
-        #    logger.info('could have executed: %s' % _cmd)
 
         self.utility_after_payload_started(job)
 
@@ -457,13 +455,13 @@ class Executor(object):
             for i in range(60):  # Python 2/3
                 if args.graceful_stop.is_set():
                     breaker = True
-                    logger.info('breaking -- sending SIGTERM pid=%s' % proc.pid)
+                    logger.info('breaking -- sending SIGTERM pid=%s', proc.pid)
                     os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
                     # proc.terminate()
                     break
                 time.sleep(1)
             if breaker:
-                logger.info('breaking -- sleep 3s before sending SIGKILL pid=%s' % proc.pid)
+                logger.info('breaking -- sleep 3s before sending SIGKILL pid=%s', proc.pid)
                 time.sleep(3)
                 proc.kill()
                 break
@@ -471,7 +469,7 @@ class Executor(object):
             exit_code = proc.poll()
 
             if iteration % 10 == 0:
-                logger.info('running: iteration=%d pid=%s exit_code=%s' % (iteration, proc.pid, exit_code))
+                logger.info('running: iteration=%d pid=%s exit_code=%s', iteration, proc.pid, exit_code)
             if exit_code is not None:
                 break
             else:
@@ -504,7 +502,7 @@ class Executor(object):
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code())
             self.__traces.pilot['error_code'] = job.piloterrorcodes[0]
             logger.fatal(
-                'could not define payload command (traces error set to: %d)' % self.__traces.pilot['error_code'])
+                'could not define payload command (traces error set to: %d)', self.__traces.pilot['error_code'])
 
         return cmd
 
@@ -527,19 +525,19 @@ class Executor(object):
 
         if cmd_before_payload:
             cmd_before_payload = job.setup + cmd_before_payload
-            logger.info("\n\npreprocess execution command:\n\n%s\n" % cmd_before_payload)
+            logger.info("\n\npreprocess execution command:\n\n%s\n", cmd_before_payload)
             exit_code = self.execute_utility_command(cmd_before_payload, job, 'preprocess')
             if exit_code == 160:
                 logger.fatal('no more HP points - time to abort processing loop')
             elif exit_code:
                 # set error code
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PREPROCESSFAILURE)
-                logger.fatal('cannot continue since preprocess failed: exit_code=%d' % exit_code)
+                logger.fatal('cannot continue since preprocess failed: exit_code=%d', exit_code)
             else:
                 # in case the preprocess produced a command, chmod it
                 path = os.path.join(job.workdir, job.containeroptions.get('containerExec', 'does_not_exist'))
                 if os.path.exists(path):
-                    logger.debug('chmod 0o755: %s' % path)
+                    logger.debug('chmod 0o755: %s', path)
                     os.chmod(path, 0o755)
 
         return exit_code
@@ -566,7 +564,7 @@ class Executor(object):
         # abort when nothing more to run, or when the preprocess returns a special exit code
         iteration = 0
         while True:
-            logger.info('payload iteration loop #%d' % (iteration + 1))
+            logger.info('payload iteration loop #%d', iteration + 1)
             os.environ['PILOT_EXEC_ITERATION_COUNT'] = '%s' % iteration
             show_memory_usage()
 
@@ -592,8 +590,8 @@ class Executor(object):
             if os.environ.get('HARVESTER_HOROVOD', '') == '':
 
                 exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
-                logger.debug('[before payload start] stdout=%s' % _stdout)
-                logger.debug('[before payload start] stderr=%s' % _stderr)
+                logger.debug('[before payload start] stdout=%s', _stdout)
+                logger.debug('[before payload start] stderr=%s', _stderr)
 
                 proc = self.run_payload(self.__job, cmd, self.__out, self.__err)
             else:
@@ -622,7 +620,7 @@ class Executor(object):
                 # allow for a secondary command to be started after the payload (e.g. a coprocess)
                 utility_cmd = self.get_utility_command(order=UTILITY_AFTER_PAYLOAD_STARTED2)
                 if utility_cmd:
-                    logger.debug('starting utility command: %s' % utility_cmd)
+                    logger.debug('starting utility command: %s', utility_cmd)
                     label = 'coprocess' if 'coprocess' in utility_cmd else None
                     proc_co = self.run_command(utility_cmd, label=label)
 
@@ -639,15 +637,15 @@ class Executor(object):
                 else:
                     state = 'finished' if exit_code == 0 else 'failed'
                 set_pilot_state(job=self.__job, state=state)
-                logger.info('\n\nfinished pid=%s exit_code=%s state=%s\n' % (proc.pid, exit_code, self.__job.state))
+                logger.info('\n\nfinished pid=%s exit_code=%s state=%s\n', proc.pid, exit_code, self.__job.state)
 
                 exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
-                logger.debug('[after payload finish] stdout=%s' % _stdout)
-                logger.debug('[after payload finish] stderr=%s' % _stderr)
+                logger.debug('[after payload finish] stdout=%s', _stdout)
+                logger.debug('[after payload finish] stderr=%s', _stderr)
 
                 # stop the utility command (e.g. a coprocess if necessary
                 if proc_co:
-                    logger.debug('stopping utility command: %s' % utility_cmd)
+                    logger.debug('stopping utility command: %s', utility_cmd)
                     kill_processes(proc_co.pid)
 
                 if exit_code is None:
@@ -692,24 +690,24 @@ class Executor(object):
         else:
             if cmd_after_payload and self.__job.postprocess and state != 'failed':
                 cmd_after_payload = self.__job.setup + cmd_after_payload
-                logger.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
+                logger.info("\n\npostprocess execution command:\n\n%s\n", cmd_after_payload)
                 exit_code = self.execute_utility_command(cmd_after_payload, self.__job, label)
             elif cmd_after_payload:
-                logger.info("\n\npostprocess execution command:\n\n%s\n" % cmd_after_payload)
+                logger.info("\n\npostprocess execution command:\n\n%s\n", cmd_after_payload)
 
                 # xcache debug
                 if 'xcache' in cmd_after_payload:
                     _exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
-                    logger.debug('[before xcache kill] stdout=%s' % _stdout)
-                    logger.debug('[before xcache kill] stderr=%s' % _stderr)
+                    logger.debug('[before xcache kill] stdout=%s', _stdout)
+                    logger.debug('[before xcache kill] stderr=%s', _stderr)
 
                 exit_code = self.execute_utility_command(cmd_after_payload, self.__job, label)
 
                 # xcache debug
                 if 'xcache' in cmd_after_payload:
                     _exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
-                    logger.debug('[after xcache kill] stdout=%s' % _stdout)
-                    logger.debug('[after xcache kill] stderr=%s' % _stderr)
+                    logger.debug('[after xcache kill] stdout=%s', _stdout)
+                    logger.debug('[after xcache kill] stderr=%s', _stderr)
 
         return exit_code
 
@@ -727,11 +725,11 @@ class Executor(object):
             if utproc:
                 user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
                 sig = user.get_utility_command_kill_signal(utcmd)
-                logger.info("stopping process \'%s\' with signal %d" % (utcmd, sig))
+                logger.info("stopping process \'%s\' with signal %d", utcmd, sig)
                 try:
                     os.killpg(os.getpgid(utproc.pid), sig)
-                except Exception as e:
-                    logger.warning('exception caught: %s (ignoring)' % e)
+                except Exception as error:
+                    logger.warning('exception caught: %s (ignoring)', error)
 
                 user.post_utility_command_action(utcmd, self.__job)
 
@@ -748,4 +746,4 @@ class Executor(object):
             if os.path.exists(name):
                 os.rename(name, name + '%d' % iteration)
             else:
-                logger.warning('cannot rename %s since it does not exist' % name)
+                logger.warning('cannot rename %s since it does not exist', name)

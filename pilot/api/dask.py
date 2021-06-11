@@ -64,7 +64,7 @@ class Dask(object):
 
         """
 
-        logger.info('uninstalling service %s' % self.servicename)
+        logger.info('uninstalling service %s', self.servicename)
         if block:
             logger.warning('blocking mode not yet implemented')
 
@@ -72,7 +72,7 @@ class Dask(object):
         exit_code, stdout, stderr = execute(cmd, mute=True)
         if not exit_code:
             self.status = 'uninstalled'
-            logger.info('uninstall of service %s has been requested' % self.servicename)
+            logger.info('uninstall of service %s has been requested', self.servicename)
 
     def install(self, block=True):
         """
@@ -90,9 +90,9 @@ class Dask(object):
             # is the single-dask cluster already running?
             name = '%s-scheduler' % self.servicename
             if self.is_running(name=name):
-                logger.info('service %s is already running - nothing to install' % name)
+                logger.info('service %s is already running - nothing to install', name)
             else:
-                logger.info('service %s is not yet running - proceed with installation' % name)
+                logger.info('service %s is not yet running - proceed with installation', name)
 
                 # perform helm updates before actual instqllation
                 cmd = ''
@@ -101,13 +101,13 @@ class Dask(object):
                 cmd = 'helm install %s %s dask/dask' % (override_option, self.servicename)
                 exit_code, stdout, stderr = execute(cmd, mute=True)
                 if not exit_code:
-                    logger.info('installation of service %s is in progress' % self.servicename)
+                    logger.info('installation of service %s is in progress', self.servicename)
 
                     if block:
                         while True:
                             name = '%s-scheduler' % self.servicename
                             if self.is_running(name=name):
-                                logger.info('service %s is running' % name)
+                                logger.info('service %s is running', name)
                                 self.status = 'running'
                                 break
                             else:
@@ -148,7 +148,7 @@ class Dask(object):
 
         exit_code, stdout, stderr = execute(cmd, mute=True)
         if exit_code:
-            logger.warning('failed to execute \'%s\': %s' % (cmd, stdout))
+            logger.warning('failed to execute \'%s\': %s', cmd, stdout)
             self.status = 'failed'
         else:
             # parse output
@@ -184,7 +184,7 @@ class Dask(object):
                 logger.warning(stdout)
                 break
             else:
-                logger.debug('%s verified' % cmd)
+                logger.debug('%s verified', cmd)
         if not found:
             return False
 
@@ -204,7 +204,7 @@ class Dask(object):
 
         filename = os.path.join(self._workdir, self.overrides)
         if os.path.exists(filename):
-            logger.info('file \'%s\' already exists - will not override' % filename)
+            logger.info('file \'%s\' already exists - will not override', filename)
             return
 
         script = ""
@@ -216,7 +216,7 @@ class Dask(object):
         if script:
             status = write_file(filename, script)
             if status:
-                logger.debug('generated script: %s' % filename)
+                logger.debug('generated script: %s', filename)
         else:
             self.overrides = None
 
@@ -240,7 +240,7 @@ class Dask(object):
                         dictionary[_l[0]][first_line[i]] = _l[1:][i]
 
             except Exception:
-                logger.warning("unexpected format of utility output: %s" % line)
+                logger.warning("unexpected format of utility output: %s", line)
 
         return dictionary
 
@@ -252,7 +252,7 @@ class Dask(object):
         if not release_name:
             release_name = self.servicename
         self.cluster = manager(release_name=release_name)
-        logger.info('connected to %s' % manager.__name__)
+        logger.info('connected to %s', manager.__name__)
 
     def scale(self, number):
         """
@@ -260,7 +260,7 @@ class Dask(object):
         """
 
         if number > 2:
-            logger.warning('too large scale: %d (please use <= 2 for now)' % number)
+            logger.warning('too large scale: %d (please use <= 2 for now)', number)
             return
         if not self.cluster:
             self.connect_cluster()
@@ -269,7 +269,7 @@ class Dask(object):
             self.status = 'failed'
             return
 
-        logger.info('setting scale to: %d' % number)
+        logger.info('setting scale to: %d', number)
         self.cluster.scale(number)
 
     def shutdown(self):

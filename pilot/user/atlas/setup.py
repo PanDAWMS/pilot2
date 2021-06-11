@@ -413,8 +413,8 @@ def get_payload_environment_variables(cmd, job_id, task_id, attempt_nr, processi
 def get_writetoinput_filenames(writetofile):
     """
     Extract the writeToFile file name(s).
-    writeToFile='tmpin_mc16_13TeV.345935.PhPy8EG_A14_ttbarMET100_200_hdamp258p75_nonallhad.merge.AOD.e6620_e5984_s3126_r10724_r10726_tid15760866_00:AOD.15760866._000002.pool.root.1'
-    -> return 'tmpin_mc16_13TeV.345935.PhPy8EG_A14_ttbarMET100_200_hdamp258p75_nonallhad.merge.AOD.e6620_e5984_s3126_r10724_r10726_tid15760866_00'
+    writeToFile='tmpin_mc16_13TeV.blah:AOD.15760866._000002.pool.root.1'
+    -> return 'tmpin_mc16_13TeV.blah'
 
     :param writetofile: string containing file name information.
     :return: list of file names

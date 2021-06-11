@@ -53,11 +53,11 @@ class Executor(generic.Executor):
             logger.fatal('could not define payload command')
             return None
 
-        logger.info("payload execution command: %s" % executable)
+        logger.info("payload execution command: %s", executable)
 
         try:
             payload = {'executable': executable, 'workdir': job.workdir, 'output_file': out, 'error_file': err, 'job': job}
-            logger.debug("payload: %s" % payload)
+            logger.debug("payload: %s", payload)
 
             logger.info("Starting EventService WorkExecutor")
             executor_type = self.get_executor_type()
@@ -66,14 +66,14 @@ class Executor(generic.Executor):
             executor.start()
             logger.info("EventService WorkExecutor started")
 
-            logger.info("ESProcess started with pid: %s" % executor.get_pid())
+            logger.info("ESProcess started with pid: %s", executor.get_pid())
             job.pid = executor.get_pid()
             if job.pid:
                 job.pgrp = os.getpgid(job.pid)
 
             self.utility_after_payload_started(job)
         except Exception as e:
-            logger.error('could not execute: %s' % str(e))
+            logger.error('could not execute: %s', str(e))
             return None
 
         return executor
