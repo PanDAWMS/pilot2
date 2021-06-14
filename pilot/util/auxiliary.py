@@ -5,9 +5,10 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021
 
 import os
+import re
 import sys
 
 from collections import Set, Mapping, deque, OrderedDict
@@ -539,3 +540,55 @@ def has_instruction_sets(instruction_sets):
                 ret += '|%s' % i.upper() if ret else i.upper()
 
     return ret
+
+
+def locate_core_file(cmd=None, pid=None):
+    """
+    Locate the core file produced by gdb.
+
+    :param cmd: optional command containing pid corresponding to core file (string).
+    :param pid: optional pid to use with core file (core.pid) (int).
+    :return: path to core file (string).
+    """
+
+    path = None
+    if not pid and cmd:
+        pid = get_pid_from_command(cmd)
+    if pid:
+        filename = 'core.%d' % pid
+        path = os.path.join(os.environ.get('PILOT_HOME', '.'), filename)
+        if os.path.exists(path):
+            logger.debug('found core file at: %s', path)
+
+        else:
+            logger.debug('did not find %s in %s', filename, path)
+    else:
+        logger.warning('cannot locate core file since pid could not be extracted from command')
+
+    return path
+
+
+def get_pid_from_command(cmd, pattern=r'gdb --pid (\d+)'):
+    """
+    Identify an explicit process id in the given command.
+
+    Example:
+        cmd = 'gdb --pid 19114 -ex \'generate-core-file\''
+        -> pid = 19114
+
+    :param cmd: command containing a pid (string).
+    :param pattern: regex pattern (raw string).
+    :return: pid (int).
+    """
+
+    pid = None
+    match = re.search(pattern, cmd)
+    if match:
+        try:
+            pid = int(match.group(1))
+        except Exception:
+            pid = None
+    else:
+        print('no match for pattern \'%s\' in command=\'%s\'' % (pattern, cmd))
+
+    return pid

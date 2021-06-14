@@ -371,7 +371,7 @@ def perform_initial_payload_error_analysis(job, exit_code):
                 logger.warning('error code(s) already set: %s' % str(job.piloterrorcodes))
             else:
                 # check if core dumps exist, if so remove them and return True
-                if remove_core_dumps(job.workdir):
+                if remove_core_dumps(job.workdir) and not job.debug:
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.COREDUMP)
                 else:
                     logger.warning('initial error analysis did not resolve the issue (and core dumps were not found)')

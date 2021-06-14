@@ -1119,3 +1119,20 @@ def locate_file(pattern):
             path = fname
 
     return path
+
+
+def find_last_line(filename):
+    """
+    Find the last line in a (not too large) file.
+
+    :param filename: file name, full path (string).
+    :return: last line (string).
+    """
+
+    last_line = ""
+    with open(filename) as f:
+        for line in f:
+            pass
+        last_line = line
+
+    return last_line

@@ -8,10 +8,10 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018-2020
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.util.auxiliary import whoami, set_pilot_state, cut_output
+from pilot.util.auxiliary import whoami, set_pilot_state, cut_output, locate_core_file
 from pilot.util.config import config
 from pilot.util.container import execute
-from pilot.util.filehandling import remove_files, find_latest_modified_file, verify_file_list
+from pilot.util.filehandling import remove_files, find_latest_modified_file, verify_file_list, copy
 from pilot.util.parameters import convert_to_int
 from pilot.util.processes import kill_processes
 from pilot.util.timing import time_stamp
@@ -64,6 +64,10 @@ def looping_job(job, mt):
             logger.info('looping limit: %d s' % looping_limit)
             if ct - time_last_touched > looping_limit:
                 try:
+                    # first produce core dump and copy it
+                    create_core_dump(pid=job.pid, workdir=job.workdir)
+                    # set debug mode to prevent core file from being removed before log creation
+                    job.debug = True
                     kill_looping_job(job)
                 except Exception as e:
                     logger.warning('exception caught: %s' % e)
@@ -72,6 +76,30 @@ def looping_job(job, mt):
 
     return exit_code, diagnostics
 
+
+def create_core_dump(pid=None, workdir=None):
+    """
+    Create core dump and copy it to work directory
+    """
+
+    if not pid or not workdir:
+        logger.warning('cannot create core file since pid or workdir is unknown')
+        return
+
+    cmd = 'gdb --pid %d -ex \'generate-core-file\'' % pid
+    exit_code, stdout, stderr = execute(cmd)
+    if not exit_code:
+        path = locate_core_file(pid=pid)
+        if path:
+            try:
+                copy(path, workdir)
+            except Exception as error:
+                logger.warning('failed to copy core file: %s', error)
+            else:
+                logger.debug('copied core dump to workdir')
+
+    else:
+        logger.warning('failed to execute command: %s, stdout+err=%s', cmd, stdout + stderr)
 
 def get_time_for_last_touch(job, mt, looping_limit):
     """

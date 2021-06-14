@@ -5,16 +5,18 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2021
 
 from pilot.api import analytics
 from pilot.util.jobmetrics import get_job_metrics_entry
+from pilot.util.filehandling import find_last_line
 
 from .cpu import get_core_count
 from .common import get_db_info, get_resimevents
 from .utilities import get_memory_monitor_output_filename
 
 import os
+import re
 import logging
 logger = logging.getLogger(__name__)
 
@@ -31,7 +33,7 @@ def get_job_metrics_string(job):
 
     # report core count (will also set corecount in job object)
     corecount = get_core_count(job)
-    logger.debug('job definition core count: %d' % corecount)
+    logger.debug('job definition core count: %d', corecount)
 
     #if corecount is not None and corecount != "NULL" and corecount != 'null':
     #    job_metrics += get_job_metrics_entry("coreCount", corecount)
@@ -69,14 +71,32 @@ def get_job_metrics_string(job):
         if max_space > zero:
             job_metrics += get_job_metrics_entry("workDirSize", max_space)
         else:
-            logger.info("will not add max space = %d B to job metrics" % max_space)
+            logger.info("will not add max space = %d B to job metrics", max_space)
 
     # get analytics data
-    path = os.path.join(job.workdir, get_memory_monitor_output_filename())
+    job_metrics = add_analytics_data(job_metrics, job.workdir, job.state)
+
+    # extract event number from file and add to job metrics if it exists
+    job_metrics = add_event_number(job_metrics, job.workdir)
+
+    return job_metrics
+
+
+def add_analytics_data(job_metrics, workdir, state):
+    """
+    Add the memory leak+chi2 analytics data to the job metrics.
+
+    :param job_metrics: job metrics (string).
+    :param workdir: work directory (string).
+    :param state: job state (string).
+    :return: updated job metrics (string).
+    """
+
+    path = os.path.join(workdir, get_memory_monitor_output_filename())
     if os.path.exists(path):
         client = analytics.Analytics()
         # do not include tails on final update
-        tails = False if (job.state == "finished" or job.state == "failed" or job.state == "holding") else True
+        tails = False if (state == "finished" or state == "failed" or state == "holding") else True
         data = client.get_fitted_data(path, tails=tails)
         slope = data.get("slope", "")
         chi2 = data.get("chi2", "")
@@ -84,6 +104,28 @@ def get_job_metrics_string(job):
             job_metrics += get_job_metrics_entry("leak", slope)
         if chi2 != "":
             job_metrics += get_job_metrics_entry("chi2", chi2)
+
+    return job_metrics
+
+
+def add_event_number(job_metrics, workdir):
+    """
+    Extract event number from file and add to job metrics if it exists
+
+    :param job_metrics: job metrics (string).
+    :param workdir: work directory (string).
+    :return: updated job metrics (string).
+    """
+
+    path = os.path.join(workdir, 'eventLoopHeartBeat.txt')
+    if os.path.exists(path):
+        last_line = find_last_line(path)
+        if last_line:
+            event_number = get_number_in_string(last_line)
+            if event_number:
+                job_metrics += get_job_metrics_entry("eventnumber", event_number)
+    else:
+        logger.debug('file %s does not exist (skip for now)', path)
 
     return job_metrics
 
@@ -109,17 +151,41 @@ def get_job_metrics(job):
     job_metrics = job_metrics.lstrip().rstrip()
 
     if job_metrics != "":
-        logger.debug('job metrics=\"%s\"' % (job_metrics))
+        logger.debug('job metrics=\"%s\"', job_metrics)
     else:
         logger.debug("no job metrics (all values are zero)")
 
     # is job_metrics within allowed size?
     if len(job_metrics) > 500:
-        logger.warning("job_metrics out of size (%d)" % (len(job_metrics)))
+        logger.warning("job_metrics out of size (%d)",len(job_metrics))
 
         # try to reduce the field size and remove the last entry which might be cut
         job_metrics = job_metrics[:500]
         job_metrics = " ".join(job_metrics.split(" ")[:-1])
-        logger.warning("job_metrics has been reduced to: %s" % (job_metrics))
+        logger.warning("job_metrics has been reduced to: %s", job_metrics)
 
     return job_metrics
+
+
+def get_number_in_string(line, pattern=r'\ done\ processing\ event\ \#(\d+)\,'):
+    """
+    Extract a number from the given string.
+
+    E.g. file eventLoopHeartBeat.txt contains
+        done processing event #20166959, run #276689 22807 events read so far  <<<===
+    This function will return 20166959 as in int.
+
+    :param line: line from a file (string).
+    :param pattern: reg ex pattern (raw string).
+    :return: extracted number (int).
+    """
+
+    event_number = None
+    match = re.search(pattern, line)
+    if match:
+        try:
+            event_number = int(match.group(1))
+        except Exception:
+            pass
+
+    return event_number

@@ -33,7 +33,7 @@ from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, \
     set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine, \
-    is_python3, show_memory_usage, has_instruction_sets
+    is_python3, show_memory_usage, has_instruction_sets, locate_core_file
 from pilot.util.config import config
 from pilot.util.common import should_abort, was_pilot_killed
 from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
@@ -50,7 +50,7 @@ from pilot.util.math import mean
 from pilot.util.middleware import containerise_general_command
 from pilot.util.monitoring import job_monitor_tasks, check_local_space
 from pilot.util.monitoringtime import MonitoringTime
-from pilot.util.processes import cleanup, threads_aborted, kill_process, get_pid_from_command, kill_processes
+from pilot.util.processes import cleanup, threads_aborted, kill_process, kill_processes
 from pilot.util.proxy import get_distinguished_name
 from pilot.util.queuehandling import scan_for_jobs, put_in_queue, queue_report, purge_queue
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since, time_stamp
@@ -158,14 +158,14 @@ def verify_error_code(job):
     """
 
     if job.piloterrorcode == 0 and len(job.piloterrorcodes) > 0:
-        logger.warning('piloterrorcode set to first piloterrorcodes list entry: %s' % str(job.piloterrorcodes))
+        logger.warning('piloterrorcode set to first piloterrorcodes list entry: %s', str(job.piloterrorcodes))
         job.piloterrorcode = job.piloterrorcodes[0]
 
     if job.piloterrorcode != 0 and job.is_analysis():
         if errors.is_recoverable(code=job.piloterrorcode):
             job.piloterrorcode = -abs(job.piloterrorcode)
             job.state = 'failed'
-            logger.info('failed user job is recoverable (error code=%s)' % job.piloterrorcode)
+            logger.info('failed user job is recoverable (error code=%s)', job.piloterrorcode)
         else:
             logger.info('failed user job is not recoverable')
     else:
@@ -184,8 +184,6 @@ def get_proper_state(job, state):
     :return: valid server state (string).
     """
 
-    logger.debug('state=%s' % state)
-    logger.debug('serverstate=%s' % job.serverstate)
     if job.serverstate == "finished" or job.serverstate == "failed":
         pass
     elif job.serverstate == "" and state != "finished" and state != "failed":
@@ -194,7 +192,6 @@ def get_proper_state(job, state):
         job.serverstate = state
     else:
         job.serverstate = 'running'
-    logger.debug('serverstate=%s' % job.serverstate)
 
     return job.serverstate
 
@@ -219,7 +216,7 @@ def publish_harvester_reports(state, args, data, job, final):
 
     # publish work report
     if not publish_work_report(data, path):
-        logger.debug('failed to write to workerAttributesFile %s' % path)
+        logger.debug('failed to write to workerAttributesFile %s', path)
         return False
 
     # check if we are in final state then write out information for output files
@@ -227,9 +224,9 @@ def publish_harvester_reports(state, args, data, job, final):
         # Use the job information to write Harvester event_status.dump file
         event_status_file = get_event_status_file(args)
         if publish_stageout_files(job, event_status_file):
-            logger.debug('wrote log and output files to file %s' % event_status_file)
+            logger.debug('wrote log and output files to file %s', event_status_file)
         else:
-            logger.warning('could not write log and output files to file %s' % event_status_file)
+            logger.warning('could not write log and output files to file %s', event_status_file)
             return False
 
         # publish job report
@@ -258,8 +255,8 @@ def write_heartbeat_to_file(data):
 
     path = os.path.join(os.environ.get('PILOT_HOME'), config.Pilot.heartbeat_message)
     if write_json(path, data):
-        logger.debug('heartbeat dictionary: %s' % data)
-        logger.debug('wrote heartbeat to file %s' % path)
+        logger.debug('heartbeat dictionary: %s', data)
+        logger.debug('wrote heartbeat to file %s', path)
         return True
     else:
         return False
@@ -289,7 +286,7 @@ def send_state(job, args, state, xml=None, metadata=None, test_tobekilled=False)
     if state == 'finished' or state == 'failed' or state == 'holding':
         final = True
         os.environ['SERVER_UPDATE'] = SERVER_UPDATE_UPDATING
-        logger.info('job %s has %s - %s final server update' % (job.jobid, state, tag))
+        logger.info('job %s has %s - %s final server update', job.jobid, state, tag)
 
         # make sure that job.state is 'failed' if there's a set error code
         if job.piloterrorcode or job.piloterrorcodes:
@@ -301,7 +298,7 @@ def send_state(job, args, state, xml=None, metadata=None, test_tobekilled=False)
             verify_error_code(job)
     else:
         final = False
-        logger.info('job %s has state \'%s\' - %s heartbeat' % (job.jobid, state, tag))
+        logger.info('job %s has state \'%s\' - %s heartbeat', job.jobid, state, tag)
 
     # build the data structure needed for getJob, updateJob
     data = get_data_structure(job, state, args, xml=xml, metadata=metadata)
@@ -323,7 +320,7 @@ def send_state(job, args, state, xml=None, metadata=None, test_tobekilled=False)
             attempt = 0
             done = False
             while attempt < max_attempts and not done:
-                logger.info('job update attempt %d/%d' % (attempt + 1, max_attempts))
+                logger.info('job update attempt %d/%d', attempt + 1, max_attempts)
 
                 # get the URL for the PanDA server from pilot options or from config
                 pandaserver = get_panda_server(args.url, args.port)
@@ -334,8 +331,8 @@ def send_state(job, args, state, xml=None, metadata=None, test_tobekilled=False)
                 attempt += 1
 
             time_after = int(time.time())
-            logger.info('server updateJob request completed in %ds for job %s' % (time_after - time_before, job.jobid))
-            logger.info("server responded with: res = %s" % str(res))
+            logger.info('server updateJob request completed in %ds for job %s', time_after - time_before, job.jobid)
+            logger.info("server responded with: res = %s", str(res))
 
             show_memory_usage()
 
@@ -351,9 +348,9 @@ def send_state(job, args, state, xml=None, metadata=None, test_tobekilled=False)
             logger.info('skipping job update for fake test job')
             return True
 
-    except Exception as e:
-        logger.warning('exception caught while sending https request: %s' % e)
-        logger.warning('possibly offending data: %s' % data)
+    except Exception as error:
+        logger.warning('exception caught while sending https request: %s', error)
+        logger.warning('possibly offending data: %s', data)
         pass
 
     if final:
@@ -400,7 +397,7 @@ def get_job_status_from_server(job_id, url, port):
             # open connection
             ret = https.request('{pandaserver}/server/panda/getStatus'.format(pandaserver=pandaserver), data=data)
             response = ret[1]
-            logger.info("response: %s" % str(response))
+            logger.info("response: %s", str(response))
             if response:
                 try:
                     # decode the response
@@ -410,21 +407,21 @@ def get_job_status_from_server(job_id, url, port):
                     status = response['status']  # e.g. 'holding'
                     attempt_nr = int(response['attemptNr'])  # e.g. '0'
                     status_code = int(response['StatusCode'])  # e.g. '0'
-                except Exception as e:
+                except Exception as error:
                     logger.warning(
-                        "exception: dispatcher did not return allowed values: %s, %s" % (str(ret), e))
+                        "exception: dispatcher did not return allowed values: %s, %s", str(ret), error)
                     status = "unknown"
                     attempt_nr = -1
                     status_code = 20
                 else:
-                    logger.debug('server job status=%s, attempt_nr=%d, status_code=%d' % (status, attempt_nr, status_code))
+                    logger.debug('server job status=%s, attempt_nr=%d, status_code=%d', status, attempt_nr, status_code)
             else:
-                logger.warning("dispatcher did not return allowed values: %s" % str(ret))
+                logger.warning("dispatcher did not return allowed values: %s", str(ret))
                 status = "unknown"
                 attempt_nr = -1
                 status_code = 20
-        except Exception as e:
-            logger.warning("could not interpret job status from dispatcher: %s" % e)
+        except Exception as error:
+            logger.warning("could not interpret job status from dispatcher: %s", error)
             status = 'unknown'
             attempt_nr = -1
             status_code = -1
@@ -471,7 +468,7 @@ def get_panda_server(url, port):
     if default in pandaserver:
         rnd = random.choice([socket.getfqdn(vv) for vv in set([v[-1][0] for v in socket.getaddrinfo(default, 25443, socket.AF_INET)])])
         pandaserver = pandaserver.replace(default, rnd)
-        logger.debug('updated %s to %s' % (default, pandaserver))
+        logger.debug('updated %s to %s', default, pandaserver)
 
     return pandaserver
 
@@ -494,15 +491,15 @@ def get_debug_command(cmd):
     try:
         tmp = cmd.split(' ')
         com = tmp[0]
-    except Exception as e:
-        logger.warning('failed to identify debug command: %s' % e)
+    except Exception as error:
+        logger.warning('failed to identify debug command: %s', error)
     else:
         if com not in allowed_commands:
-            logger.warning('command=%s is not in the list of allowed commands: %s' % (com, str(allowed_commands)))
+            logger.warning('command=%s is not in the list of allowed commands: %s', com, str(allowed_commands))
         elif ';' in cmd or '&#59' in cmd:
-            logger.warning('debug command cannot contain \';\': \'%s\'' % cmd)
+            logger.warning('debug command cannot contain \';\': \'%s\'', cmd)
         elif com in forbidden_commands:
-            logger.warning('command=%s is not allowed' % com)
+            logger.warning('command=%s is not allowed', com)
         else:
             debug_mode = True
             debug_command = cmd
@@ -531,11 +528,10 @@ def handle_backchannel_command(res, job, args, test_tobekilled=False):
         if ' ' in cmd and 'tobekilled' not in cmd:
             try:
                 job.debug, job.debug_command = get_debug_command(cmd)
-            except Exception as e:
-                logger.debug('exception caught in get_debug_command(): %s' % e)
+            except Exception as error:
+                logger.debug('exception caught in get_debug_command(): %s', error)
         elif 'tobekilled' in cmd:
-            logger.info('pilot received a panda server signal to kill job %s at %s' %
-                        (job.jobid, time_stamp()))
+            logger.info('pilot received a panda server signal to kill job %s at %s', job.jobid, time_stamp())
             set_pilot_state(job=job, state="failed")
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PANDAKILL)
             if job.pid:
@@ -545,8 +541,7 @@ def handle_backchannel_command(res, job, args, test_tobekilled=False):
                 logger.debug('no pid to kill')
             args.abort_job.set()
         elif 'softkill' in cmd:
-            logger.info('pilot received a panda server signal to softkill job %s at %s' %
-                        (job.jobid, time_stamp()))
+            logger.info('pilot received a panda server signal to softkill job %s at %s', job.jobid, time_stamp())
             # event service kill instruction
             job.debug_command = 'softkill'
         elif 'debug' in cmd:
@@ -558,20 +553,17 @@ def handle_backchannel_command(res, job, args, test_tobekilled=False):
             job.debug = False
             job.debug_command = 'debugoff'
         else:
-            logger.warning('received unknown server command via backchannel: %s' % cmd)
+            logger.warning('received unknown server command via backchannel: %s', cmd)
 
     # for testing debug mode
-
-
-
-    job.debug = True
-    job.debug_command = 'du -dk'
+    # job.debug = True
+    # job.debug_command = 'du -sk'
     # job.debug_command = 'tail -30 payload.stdout'
     # job.debug_command = 'ls -ltr workDir'  # not really tested
     # job.debug_command = 'ls -ltr %s' % job.workdir
     # job.debug_command = 'ps -ef'
     # job.debug_command = 'ps axo pid,ppid,pgid,args'
-    #job.debug_command = 'gdb --pid % -ex \'generate-core-file\''
+    # job.debug_command = 'gdb --pid % -ex \'generate-core-file\''
 
 
 def add_data_structure_ids(data, version_tag):
@@ -647,13 +639,13 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
         #data['coreCount'] = mean(job.corecounts) if job.corecounts else job.corecount
     if job.corecounts:
         _mean = mean(job.corecounts)
-        logger.info('mean actualcorecount: %f' % _mean)
+        logger.info('mean actualcorecount: %f', _mean)
         data['meanCoreCount'] = _mean
 
     # get the number of events, should report in heartbeat in case of preempted.
     if job.nevents != 0:
         data['nEvents'] = job.nevents
-        logger.info("total number of processed events: %d (read)" % job.nevents)
+        logger.info("total number of processed events: %d (read)", job.nevents)
     else:
         logger.info("payload/TRF did not report the number of read events")
 
@@ -725,6 +717,7 @@ def get_debug_stdout(job):
     else:
         # general command, execute and return output
         exit_code, stdout, stderr = execute(job.debug_command)
+        logger.info('debug_command: %s:\n\n%s\n', job.debug_command, stdout)
         return stdout
 
 
@@ -751,17 +744,17 @@ def get_general_command_stdout(job):
                 containerise_general_command(job, job.infosys.queuedata.container_options,
                                              label='general',
                                              container_type='container')
-            except PilotException as e:
-                logger.warning('general containerisation threw a pilot exception: %s' % e)
-            except Exception as e:
-                logger.warning('general containerisation threw an exception: %s' % e)
+            except PilotException as error:
+                logger.warning('general containerisation threw a pilot exception: %s', error)
+            except Exception as error:
+                logger.warning('general containerisation threw an exception: %s', error)
         else:
             ec, stdout, stderr = execute(job.debug_command)
-            logger.debug("%s (stdout):\n\n%s\n\n" % (job.debug_command, stdout))
-            logger.debug("%s (stderr):\n\n%s\n\n" % (job.debug_command, stderr))
+            logger.debug("%s (stdout):\n\n%s\n\n", job.debug_command, stdout)
+            logger.debug("%s (stderr):\n\n%s\n\n", job.debug_command, stderr)
 
         # in case a core file was produced, locate it
-        path = locate_core_file(job.debug_command) if 'gdb ' in job.debug_command else ''
+        path = locate_core_file(cmd=job.debug_command) if 'gdb ' in job.debug_command else ''
         if path:
             # copy it to the working directory (so it will be saved in the log)
             try:
@@ -770,27 +763,6 @@ def get_general_command_stdout(job):
                 pass
 
     return stdout
-
-
-def locate_core_file(debug_command):
-    """
-
-    """
-
-    path = None
-    pid = get_pid_from_command(debug_command)
-    if pid:
-        filename = 'core.%d' % pid
-        path = os.path.join(os.environ.get('PILOT_HOME', '.'), filename)
-        if os.path.exists(path):
-            logger.debug('found core file at: %s' % path)
-
-        else:
-            logger.debug('did not find %s in %s' % (filename, path))
-    else:
-        logger.warning('cannot locate core file since pid could not be extracted from debug command')
-
-    return path
 
 
 def get_ls(debug_command, workdir):

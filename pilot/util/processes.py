@@ -757,29 +757,3 @@ def is_child(pid, pandaid_pid, dictionary):
         else:
             # try another pid
             return is_child(ppid, pandaid_pid, dictionary)
-
-
-def get_pid_from_command(cmd, pattern=r'gdb --pid (\d+)'):
-    """
-    Identify an explicit process id in the given command.
-
-    Example:
-        cmd = 'gdb --pid 19114 -ex \'generate-core-file\''
-        -> pid = 19114
-
-    :param cmd: command containing a pid (string).
-    :param pattern: regex pattern (raw string).
-    :return: pid (int).
-    """
-
-    pid = None
-    match = re.search(pattern, cmd)
-    if match:
-        try:
-            pid = int(match.group(1))
-        except Exception:
-            pid = None
-    else:
-        print('no match for pattern \'%s\' in command=\'%s\'' % (pattern, cmd))
-
-    return pid
