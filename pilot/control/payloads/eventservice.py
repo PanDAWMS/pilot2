@@ -72,8 +72,8 @@ class Executor(generic.Executor):
                 job.pgrp = os.getpgid(job.pid)
 
             self.utility_after_payload_started(job)
-        except Exception as e:
-            logger.error('could not execute: %s', str(e))
+        except Exception as error:
+            logger.error('could not execute: %s', str(error))
             return None
 
         return executor

@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021
 
 # NOTE: this module should deal with non-job related monitoring, such as thread monitoring. Job monitoring is
 #       a task for the job_monitor thread in the Job component.
@@ -56,7 +56,7 @@ def control(queues, traces, args):
 
     try:
         # overall loop counter (ignoring the fact that more than one job may be running)
-        n = 0
+        niter = 0
 
         while not args.graceful_stop.is_set():
             # every seconds, run the monitoring checks
@@ -84,8 +84,8 @@ def control(queues, traces, args):
                 args.graceful_stop.set()
                 break
             else:
-                if n % 60 == 0:
-                    logger.info('%d s have passed since pilot start' % time_since_start)
+                if niter % 60 == 0:
+                    logger.info('%d s have passed since pilot start', time_since_start)
             time.sleep(1)
 
             # time to check the CPU?
@@ -93,12 +93,12 @@ def control(queues, traces, args):
                 processes = get_process_info('python pilot2/pilot.py', pid=getpid())
                 if processes:
                     logger.info('-' * 100)
-                    logger.info('PID=%d has CPU usage=%s%% MEM usage=%s%% CMD=%s' % (getpid(), processes[0], processes[1], processes[2]))
-                    n = processes[3]
-                    if n > 1:
-                        logger.info('there are %d such processes running' % n)
+                    logger.info('PID=%d has CPU usage=%s%% MEM usage=%s%% CMD=%s', getpid(), processes[0], processes[1], processes[2])
+                    nproc = processes[3]
+                    if nproc > 1:
+                        logger.info('there are %d such processes running', nproc)
                     else:
-                        logger.info('there is %d such process running' % n)
+                        logger.info('there is %d such process running', nproc)
                     logger.info('-' * 100)
                 tcpu = time.time()
 
@@ -111,20 +111,19 @@ def control(queues, traces, args):
                 for thread in threading.enumerate():
                     # logger.info('thread name: %s' % thread.name)
                     if not thread.is_alive():
-                        logger.fatal('thread \'%s\' is not alive' % thread.name)
+                        logger.fatal('thread \'%s\' is not alive', thread.name)
                         # args.graceful_stop.set()
 
-            n += 1
+            niter += 1
 
-    except Exception as e:
-        print(("monitor: exception caught: %s" % e))
-        raise PilotException(e)
+    except Exception as error:
+        print(("monitor: exception caught: %s" % error))
+        raise PilotException(error)
 
     logger.info('[monitor] control thread has ended')
 
 #def log_lifetime(sig, frame, traces):
-#    logger.info('lifetime: %i used, %i maximum' % (int(time.time() - traces.pilot['lifetime_start']),
-#                                                   traces.pilot['lifetime_max']))
+#    logger.info('lifetime: %i used, %i maximum', int(time.time() - traces.pilot['lifetime_start']), traces.pilot['lifetime_max'])
 
 
 def get_process_info(cmd, user=None, args='aufx', pid=None):
@@ -194,7 +193,7 @@ def run_checks(queues, args):
 
         t_max = 2 * 60
         logger.warning('pilot monitor received instruction that abort_job has been requested')
-        logger.warning('will wait for a maximum of %d seconds for threads to finish' % t_max)
+        logger.warning('will wait for a maximum of %d seconds for threads to finish', t_max)
         t0 = time.time()
         while time.time() - t0 < t_max:
             if args.job_aborted.is_set():
@@ -210,7 +209,7 @@ def run_checks(queues, args):
             args.graceful_stop.set()
 
         if not args.job_aborted.is_set():
-            logger.warning('will wait for a maximum of %d seconds for graceful_stop to take effect' % t_max)
+            logger.warning('will wait for a maximum of %d seconds for graceful_stop to take effect', t_max)
             t_max = 10
             t0 = time.time()
             while time.time() - t0 < t_max:
@@ -241,20 +240,20 @@ def get_max_running_time(lifetime, queuedata):
     # use the schedconfig value if set, otherwise use the pilot option lifetime value
     if not queuedata:
         logger.warning('queuedata could not be extracted from queues, will use default for max running time '
-                       '(%d s)' % max_running_time)
+                       '(%d s)', max_running_time)
     else:
         if queuedata.maxtime:
             try:
                 max_running_time = int(queuedata.maxtime)
-            except Exception as e:
-                logger.warning('exception caught: %s' % e)
+            except Exception as error:
+                logger.warning('exception caught: %s', error)
                 logger.warning('failed to convert maxtime from queuedata, will use default value for max running time '
-                               '(%d s)' % max_running_time)
+                               '(%d s)', max_running_time)
             else:
                 if max_running_time == 0:
                     max_running_time = lifetime  # fallback to default value
-                    logger.info('will use default value for max running time: %d s' % max_running_time)
+                    logger.info('will use default value for max running time: %d s', max_running_time)
                 else:
-                    logger.info('will use queuedata.maxtime value for max running time: %d s' % max_running_time)
+                    logger.info('will use queuedata.maxtime value for max running time: %d s', max_running_time)
 
     return max_running_time
