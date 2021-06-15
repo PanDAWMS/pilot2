@@ -101,6 +101,7 @@ def create_core_dump(pid=None, workdir=None):
     else:
         logger.warning('failed to execute command: %s, stdout+err=%s', cmd, stdout + stderr)
 
+
 def get_time_for_last_touch(job, mt, looping_limit):
     """
     Return the time when the files in the workdir were last touched.

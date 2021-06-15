@@ -1426,7 +1426,7 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, max_ge
 
     # timefloor not relevant for the first job
     if jobnumber > 0:
-        logger.info('since timefloor=%d s and only %d s has passed since launch, pilot can run another job',timefloor, currenttime - starttime)
+        logger.info('since timefloor=%d s and only %d s has passed since launch, pilot can run another job', timefloor, currenttime - starttime)
 
     if harvester and jobnumber > 0:
         # unless it's the first job (which is preplaced in the init dir), instruct Harvester to place another job

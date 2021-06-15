@@ -157,7 +157,7 @@ def get_job_metrics(job):
 
     # is job_metrics within allowed size?
     if len(job_metrics) > 500:
-        logger.warning("job_metrics out of size (%d)",len(job_metrics))
+        logger.warning("job_metrics out of size (%d)", len(job_metrics))
 
         # try to reduce the field size and remove the last entry which might be cut
         job_metrics = job_metrics[:500]
