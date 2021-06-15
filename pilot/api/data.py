@@ -272,8 +272,8 @@ class StagingClient(object):
 
         try:
             replicas = c.list_replicas(**query)
-        except Exception as e:
-            raise PilotException("Failed to get replicas from Rucio: %s" % e, code=ErrorCodes.RUCIOLISTREPLICASFAILED)
+        except Exception as error:
+            raise PilotException("Failed to get replicas from Rucio: %s" % error, code=ErrorCodes.RUCIOLISTREPLICASFAILED)
 
         show_memory_usage()
 
@@ -775,7 +775,7 @@ class StageInClient(StagingClient):
                     primary_schemas = (self.direct_remoteinput_allowed_schemas if fspec.direct_access_wan and
                                        fspec.is_directaccess(ensure_replica=False) else None)
                     xschemas = self.remoteinput_allowed_schemas
-                    allowed_schemas = [e for e in allowed_schemas if e in xschemas] if allowed_schemas else xschemas
+                    allowed_schemas = [schema for schema in allowed_schemas if schema in xschemas] if allowed_schemas else xschemas
                     replica = resolve_replica(fspec, primary_schemas, allowed_schemas, domain='wan')
 
                 if not replica and fspec.allow_wan:

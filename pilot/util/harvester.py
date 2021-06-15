@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2021
 
 import os
 import os.path
@@ -68,7 +68,7 @@ def remove_job_request_file():
     path = get_job_request_file_name()
     if os.path.exists(path):
         if remove(path) == 0:
-            logger.info('removed %s' % path)
+            logger.info('removed %s', path)
     else:
         logger.debug('there is no job request file')
 

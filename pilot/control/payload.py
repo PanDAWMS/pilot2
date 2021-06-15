@@ -8,7 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
 
 import os
@@ -64,7 +64,7 @@ def control(queues, traces, args):
                 pass
             else:
                 exc_type, exc_obj, exc_trace = exc
-                logger.warning("thread \'%s\' received an exception from bucket: %s" % (thread.name, exc_obj))
+                logger.warning("thread \'%s\' received an exception from bucket: %s", thread.name, exc_obj)
 
                 # deal with the exception
                 # ..
@@ -146,8 +146,8 @@ def _validate_payload(job):
     user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
     try:
         status = user.validate(job)
-    except Exception as e:
-        logger.fatal('failed to execute user validate() function: %s' % e)
+    except Exception as error:
+        logger.fatal('failed to execute user validate() function: %s', error)
         status = False
 
     return status
@@ -213,13 +213,13 @@ def execute_payloads(queues, traces, args):  # noqa: C901
             #queues.monitored_payloads.put(job)
             put_in_queue(job, queues.monitored_payloads)
 
-            logger.info('job %s added to monitored payloads queue' % job.jobid)
+            logger.info('job %s added to monitored payloads queue', job.jobid)
 
             try:
                 out = open(os.path.join(job.workdir, config.Payload.payloadstdout), 'wb')
                 err = open(os.path.join(job.workdir, config.Payload.payloadstderr), 'wb')
-            except Exception as e:
-                logger.warning('failed to open payload stdout/err: %s' % e)
+            except Exception as error:
+                logger.warning('failed to open payload stdout/err: %s', error)
                 out = None
                 err = None
             send_state(job, args, 'starting')
@@ -230,7 +230,7 @@ def execute_payloads(queues, traces, args):  # noqa: C901
                 break
 
             payload_executor = get_payload_executor(args, job, out, err, traces)
-            logger.info("Got payload executor: %s" % payload_executor)
+            logger.info("Got payload executor: %s", payload_executor)
 
             show_memory_usage()
 
@@ -252,13 +252,13 @@ def execute_payloads(queues, traces, args):  # noqa: C901
                                   0)  # Python 2/3
                 try:
                     user.update_output_for_hpo(job)
-                except Exception as e:
-                    logger.warning('exception caught by update_output_for_hpo(): %s' % e)
+                except Exception as error:
+                    logger.warning('exception caught by update_output_for_hpo(): %s', error)
                 else:
                     for dat in job.outdata:
                         if not dat.guid:
                             dat.guid = get_guid()
-                            logger.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
+                            logger.warning('guid not set: generated guid=%s for lfn=%s', dat.guid, dat.lfn)
 
             #if traces.pilot['nr_jobs'] == 1:
             #    logger.debug('faking job failure in first multi-job')
@@ -275,8 +275,8 @@ def execute_payloads(queues, traces, args):  # noqa: C901
             user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
             try:
                 exit_code_interpret = user.interpret(job)
-            except Exception as e:
-                logger.warning('exception caught: %s' % e)
+            except Exception as error:
+                logger.warning('exception caught: %s', error)
                 #exit_code_interpret = -1
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.INTERNALPILOTPROBLEM)
 
@@ -298,8 +298,8 @@ def execute_payloads(queues, traces, args):  # noqa: C901
 
         except queue.Empty:
             continue
-        except Exception as e:
-            logger.fatal('execute payloads caught an exception (cannot recover): %s, %s' % (e, traceback.format_exc()))
+        except Exception as error:
+            logger.fatal('execute payloads caught an exception (cannot recover): %s, %s', error, traceback.format_exc())
             if job:
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADEXECUTIONEXCEPTION)
                 #queues.failed_payloads.put(job)
@@ -346,7 +346,7 @@ def perform_initial_payload_error_analysis(job, exit_code):
     if exit_code != 0:
         msg = ""
         ec = 0
-        logger.warning('main payload execution returned non-zero exit code: %d' % exit_code)
+        logger.warning('main payload execution returned non-zero exit code: %d', exit_code)
         stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
         if stderr != "":
             msg = errors.extract_stderr_error(stderr)
@@ -357,7 +357,7 @@ def perform_initial_payload_error_analysis(job, exit_code):
             else:
                 fatal = True
             if msg != "":
-                logger.warning("extracted message from stderr:\n%s" % msg)
+                logger.warning("extracted message from stderr:\n%s", msg)
                 ec = set_error_code_from_stderr(msg, fatal)
 
         if not ec:
@@ -368,7 +368,7 @@ def perform_initial_payload_error_analysis(job, exit_code):
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec, msg=msg)
         else:
             if job.piloterrorcodes:
-                logger.warning('error code(s) already set: %s' % str(job.piloterrorcodes))
+                logger.warning('error code(s) already set: %s', str(job.piloterrorcodes))
             else:
                 # check if core dumps exist, if so remove them and return True
                 if remove_core_dumps(job.workdir) and not job.debug:

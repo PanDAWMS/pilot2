@@ -98,7 +98,7 @@ def display_architecture_info():
         dump("/etc/issue")
         dump("$MACHTYPE", cmd="echo")
     else:
-        logger.info("\n%s" % stdout)
+        logger.info("\n%s", stdout)
 
 
 def get_batchsystem_jobid():
@@ -309,7 +309,7 @@ def get_size(obj_0):
                 pass
                 # <class 'collections.OrderedDict'>: unbound method iteritems() must be called
                 # with OrderedDict instance as first argument (got nothing instead)
-                #logger.debug('exception caught for obj=%s: %s' % (str(obj), e))
+                #logger.debug('exception caught for obj=%s: %s', (str(obj), e))
 
         # Check for custom object instances - may subclass above too
         if hasattr(obj, '__dict__'):
@@ -376,7 +376,7 @@ def check_for_final_server_update(update_server):
         if server_update == SERVER_UPDATE_FINAL or server_update == SERVER_UPDATE_TROUBLE:
             logger.info('server update done, finishing')
             break
-        logger.info('server update not finished (#%d/#%d)' % (i + 1, max_i))
+        logger.info('server update not finished (#%d/#%d)', i + 1, max_i)
         sleep(30)
         i += 1
 
@@ -444,7 +444,7 @@ def show_memory_usage():
         _value = extract_memory_usage_value(_stdout)
     except Exception:
         _value = "(unknown)"
-    logger.debug('current pilot memory usage:\n\n%s\n\nusage: %s kB\n' % (_stdout, _value))
+    logger.debug('current pilot memory usage:\n\n%s\n\nusage: %s kB\n', _stdout, _value)
 
 
 def get_memory_usage(pid):

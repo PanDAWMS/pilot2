@@ -363,10 +363,10 @@ def create_main_work_dir(args):
         try:
             # create the main PanDA Pilot work directory
             mkdirs(mainworkdir)
-        except Exception as e:
+        except PilotException as error:
             # print to stderr since logging has not been established yet
-            print('failed to create workdir at %s -- aborting: %s' % (mainworkdir, e), file=sys.stderr)
-            exit_code = shell_exit_code(e._errorCode)
+            print('failed to create workdir at %s -- aborting: %s' % (mainworkdir, error), file=sys.stderr)
+            exit_code = shell_exit_code(error._errorCode)
     else:
         mainworkdir = getcwd()
 

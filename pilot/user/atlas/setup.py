@@ -196,7 +196,7 @@ def set_inds(dataset):
             inds = ds
             break
     if inds != "":
-        logger.info("setting INDS environmental variable to: %s" % (inds))
+        logger.info("setting INDS environmental variable to: %s", inds)
         os.environ['INDS'] = inds
     else:
         logger.warning("INDS unknown")
@@ -219,24 +219,24 @@ def get_analysis_trf(transform, workdir):
     harvester_workdir = os.environ.get('HARVESTER_WORKDIR')
     if harvester_workdir is not None:
         search_pattern = "%s/jobO.*.tar.gz" % harvester_workdir
-        logger.debug("search_pattern - %s" % search_pattern)
+        logger.debug("search_pattern - %s", search_pattern)
         jobopt_files = glob.glob(search_pattern)
         for jobopt_file in jobopt_files:
-            logger.debug("jobopt_file = %s workdir = %s" % (jobopt_file, workdir))
+            logger.debug("jobopt_file = %s workdir = %s", jobopt_file, workdir)
             try:
                 copy(jobopt_file, workdir)
-            except Exception as e:
-                logger.error("could not copy file %s to %s : %s" % (jobopt_file, workdir, e))
+            except Exception as error:
+                logger.error("could not copy file %s to %s : %s", jobopt_file, workdir, error)
 
     if '/' in transform:
         transform_name = transform.split('/')[-1]
     else:
-        logger.warning('did not detect any / in %s (using full transform name)' % transform)
+        logger.warning('did not detect any / in %s (using full transform name)', transform)
         transform_name = transform
 
     # is the command already available? (e.g. if already downloaded by a preprocess/main process step)
     if os.path.exists(os.path.join(workdir, transform_name)):
-        logger.info('script %s is already available - no need to download again' % transform_name)
+        logger.info('script %s is already available - no need to download again', transform_name)
         return ec, diagnostics, transform_name
 
     original_base_url = ""
@@ -255,7 +255,7 @@ def get_analysis_trf(transform, workdir):
     status = False
     for base_url in get_valid_base_urls(order=original_base_url):
         trf = re.sub(original_base_url, base_url, transform)
-        logger.debug("attempting to download script: %s" % trf)
+        logger.debug("attempting to download script: %s", trf)
         status, diagnostics = download_transform(trf, transform_name, workdir)
         if status:
             break
@@ -265,11 +265,11 @@ def get_analysis_trf(transform, workdir):
 
     logger.info("successfully downloaded script")
     path = os.path.join(workdir, transform_name)
-    logger.debug("changing permission of %s to 0o755" % path)
+    logger.debug("changing permission of %s to 0o755", path)
     try:
         os.chmod(path, 0o755)  # Python 2/3
-    except Exception as e:
-        diagnostics = "failed to chmod %s: %s" % (transform_name, e)
+    except Exception as error:
+        diagnostics = "failed to chmod %s: %s" % (transform_name, error)
         return errors.CHMODTRF, diagnostics, ""
 
     return ec, diagnostics, transform_name
@@ -307,7 +307,7 @@ def download_transform(url, transform_name, workdir):
 
     # try to download the trf a maximum of 3 times
     while trial <= max_trials:
-        logger.info("executing command [trial %d/%d]: %s" % (trial, max_trials, cmd))
+        logger.info("executing command [trial %d/%d]: %s", trial, max_trials, cmd)
 
         exit_code, stdout, stderr = execute(cmd, mute=True)
         if not stdout:
@@ -317,14 +317,14 @@ def download_transform(url, transform_name, workdir):
             diagnostics = "curl command failed: %d, %s, %s" % (exit_code, stdout, stderr)
             logger.warning(diagnostics)
             if trial == max_trials:
-                logger.fatal('could not download transform: %s' % stdout)
+                logger.fatal('could not download transform: %s', stdout)
                 status = False
                 break
             else:
                 logger.info("will try again after 60 s")
                 sleep(60)
         else:
-            logger.info("curl command returned: %s" % stdout)
+            logger.info("curl command returned: %s", stdout)
             status = True
             break
         trial += 1
@@ -456,12 +456,11 @@ def replace_lfns_with_turls(cmd, workdir, filename, infiles, writetofile=""):
                 # if turl.startswith('root://') and turl not in cmd:
                 if turl not in cmd:
                     cmd = cmd.replace(inputfile, turl)
-                    logger.info("replaced '%s' with '%s' in the run command" % (inputfile, turl))
+                    logger.info("replaced '%s' with '%s' in the run command", inputfile, turl)
 
         # replace the LFNs with TURLs in the writetofile input file list (if it exists)
         if writetofile and turl_dictionary:
             filenames = get_writetoinput_filenames(writetofile)
-            logger.info("filenames=%s" % filenames)
             for fname in filenames:
                 new_lines = []
                 path = os.path.join(workdir, fname)
@@ -479,10 +478,9 @@ def replace_lfns_with_turls(cmd, workdir, filename, infiles, writetofile=""):
                     lines = '\n'.join(new_lines)
                     if lines:
                         write_file(path, lines)
-                        logger.info("lines=%s" % lines)
                 else:
-                    logger.warning("file does not exist: %s" % path)
+                    logger.warning("file does not exist: %s", path)
     else:
-        logger.warning("could not find file: %s (cannot locate TURLs for direct access)" % filename)
+        logger.warning("could not find file: %s (cannot locate TURLs for direct access)", filename)
 
     return cmd
