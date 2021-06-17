@@ -1974,7 +1974,7 @@ def has_job_completed(queues, args):
         make_job_report(job)
         cmd = 'ls -lF %s' % os.environ.get('PILOT_HOME')
         logger.debug('%s:\n', cmd)
-        ec, stdout, stderr = execute(cmd)
+        _, stdout, _ = execute(cmd)
         logger.debug(stdout)
 
         queue_report(queues)
@@ -2375,7 +2375,7 @@ def interceptor(queues, traces, args):
             # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
             jobs = queues.monitored_payloads.queue
             if jobs:
-                for i in range(len(jobs)):
+                for _ in range(len(jobs)):
                     logger.info('interceptor loop %d: looking for communication file', n)
             time.sleep(30)
 
