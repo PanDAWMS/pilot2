@@ -221,7 +221,7 @@ def check_hz():
     """
 
     try:
-        hz = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
+        _ = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
     except Exception:
         import traceback
         logger.fatal('failed to read SC_CLK_TCK - will not be able to perform CPU consumption calculation')

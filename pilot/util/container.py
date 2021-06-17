@@ -80,12 +80,11 @@ def execute(executable, **kwargs):
         exe = ['/bin/bash', '-c', executable]
 
     # try: intercept exception such as OSError -> report e.g. error.RESOURCEUNAVAILABLE: "Resource temporarily unavailable"
-    process = subprocess.Popen(exe,
-                               bufsize=-1,
-                               stdout=stdout,
-                               stderr=stderr,
-                               cwd=cwd,
-                               preexec_fn=setpgrp)  #setsid)
+    if is_python3():
+        process = subprocess.Popen(exe, bufsize=-1, stdout=stdout, stderr=stderr, cwd=cwd, preexec_fn=setpgrp, encoding='utf-8')  # Python 3
+    else:
+        process = subprocess.Popen(exe, bufsize=-1, stdout=stdout, stderr=stderr, cwd=cwd, preexec_fn=setpgrp)  # Python 2
+
     if returnproc:
         return process
     else:
