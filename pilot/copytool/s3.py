@@ -81,7 +81,7 @@ def copy_in(files, **kwargs):
 
         bucket = 'bucket'  # UPDATE ME
         path = os.path.join(dst, fspec.lfn)
-        logger.info('downloading object %s from bucket=%s to local file %s' % (fspec.lfn, bucket, path))
+        logger.info('downloading object %s from bucket=%s to local file %s', fspec.lfn, bucket, path)
         status, diagnostics = download_file(path, bucket, object_name=fspec.lfn)
 
         if not status:  ## an error occurred
@@ -113,12 +113,12 @@ def download_file(path, bucket, object_name=None):
     try:
         s3 = boto3.client('s3')
         s3.download_file(bucket, object_name, path)
-    except ClientError as e:
-        diagnostics = 'S3 ClientError: %s' % e
+    except ClientError as error:
+        diagnostics = 'S3 ClientError: %s' % error
         logger.critical(diagnostics)
         return False, diagnostics
-    except Exception as e:
-        diagnostics = 'exception caught in s3_client: %s' % e
+    except Exception as error:
+        diagnostics = 'exception caught in s3_client: %s' % error
         logger.critical(diagnostics)
         return False, diagnostics
 
@@ -140,7 +140,7 @@ def copy_out(files, **kwargs):
         path = os.path.join(workdir, fspec.lfn)
         if os.path.exists(path):
             bucket = 'bucket'  # UPDATE ME
-            logger.info('uploading %s to bucket=%s using object name=%s' % (path, bucket, fspec.lfn))
+            logger.info('uploading %s to bucket=%s using object name=%s', path, bucket, fspec.lfn)
             status, diagnostics = upload_file(path, bucket, object_name=fspec.lfn)
 
             if not status:  ## an error occurred
@@ -181,12 +181,12 @@ def upload_file(file_name, bucket, object_name=None):
         s3_client = boto3.client('s3')
         #response = s3_client.upload_file(file_name, bucket, object_name)
         s3_client.upload_file(file_name, bucket, object_name)
-    except ClientError as e:
-        diagnostics = 'S3 ClientError: %s' % e
+    except ClientError as error:
+        diagnostics = 'S3 ClientError: %s' % error
         logger.critical(diagnostics)
         return False, diagnostics
-    except Exception as e:
-        diagnostics = 'exception caught in s3_client: %s' % e
+    except Exception as error:
+        diagnostics = 'exception caught in s3_client: %s' % error
         logger.critical(diagnostics)
         return False, diagnostics
 

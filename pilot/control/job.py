@@ -33,7 +33,7 @@ from pilot.info import infosys, JobData, InfoService, JobInfoProvider
 from pilot.util import https
 from pilot.util.auxiliary import get_batchsystem_jobid, get_job_scheduler_id, get_pilot_id, \
     set_pilot_state, get_pilot_state, check_for_final_server_update, pilot_version_banner, is_virtual_machine, \
-    is_python3, show_memory_usage, has_instruction_sets, locate_core_file
+    is_python3, show_memory_usage, has_instruction_sets, locate_core_file, get_display_info
 from pilot.util.config import config
 from pilot.util.common import should_abort, was_pilot_killed
 from pilot.util.constants import PILOT_MULTIJOB_START_TIME, PILOT_PRE_GETJOB, PILOT_POST_GETJOB, PILOT_KILL_SIGNAL, LOG_TRANSFER_NOT_DONE, \
@@ -661,11 +661,14 @@ def get_data_structure(job, state, args, xml=None, metadata=None):
     data['cpuConsumptionUnit'] = job.cpuconsumptionunit + "+" + get_cpu_model()
 
     instruction_sets = has_instruction_sets(['AVX2'])
+    product, vendor = get_display_info()
     if instruction_sets:
         if 'cpuConsumptionUnit' in data:
             data['cpuConsumptionUnit'] += '+' + instruction_sets
         else:
             data['cpuConsumptionUnit'] = instruction_sets
+        if product and vendor:
+            logger.debug('cpuConsumptionUnit: could have added: product=%s, vendor=%s', product, vendor)
 
     # add memory information if available
     add_memory_info(data, job.workdir, name=job.memorymonitor)

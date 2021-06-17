@@ -592,3 +592,47 @@ def get_pid_from_command(cmd, pattern=r'gdb --pid (\d+)'):
         print('no match for pattern \'%s\' in command=\'%s\'' % (pattern, cmd))
 
     return pid
+
+
+def list_hardware():
+    """
+    Execute lshw to list local hardware.
+
+    :return: lshw output (string).
+    """
+
+    exit_code, stdout, stderr = execute('lshw -numeric -C display', mute=True)
+    if 'Command not found' in stdout or 'Command not found' in stderr:
+        stdout = ''
+    return stdout
+
+
+def get_display_info():
+    """
+    Extract the product and vendor from the lshw command.
+    E.g.
+           product: GD 5446 [1013:B8]
+           vendor: Cirrus Logic [1013]
+    -> GD 5446, Cirrus Logic
+
+    :return: product (string), vendor (string).
+    """
+
+    vendor = ''
+    product = ''
+    stdout = list_hardware()
+    if stdout:
+        vendor_pattern = re.compile(r'vendor\:\ (.+)\ .')
+        product_pattern = re.compile(r'product\:\ (.+)\ .')
+
+        for line in stdout.split('\n'):
+            if 'vendor' in line:
+                result = re.findall(vendor_pattern, line)
+                if result:
+                    vendor = result[0]
+            elif 'product' in line:
+                result = re.findall(product_pattern, line)
+                if result:
+                    product = result[0]
+
+    return product, vendor

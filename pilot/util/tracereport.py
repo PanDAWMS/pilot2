@@ -102,6 +102,13 @@ class TraceReport(dict):
             exit_code, stdout, stderr = execute(cmd)
             self['uuid'] = stdout.replace('-', '')
 
+    def get_value(self, key):
+        """
+
+        """
+
+        return self.get(key, None)
+
     def verify_trace(self):
         """
         Verify the trace consistency.

@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021
 # - Tobias Wegner, tobias.wegner@cern.ch, 2018
 # - David Cameron, david.cameron@cern.ch, 2018-2019
 
@@ -48,12 +48,12 @@ def create_output_list(files, init_dir, ddmconf):
             # resolve token value from fspec.ddmendpoint
             token = ddmconf.get(fspec.ddmendpoint).token
             if not token:
-                logger.info('No space token info for %s' % fspec.ddmendpoint)
+                logger.info('No space token info for %s', fspec.ddmendpoint)
             else:
                 arcturl = re.sub(r'((:\d+)/)', r'\2;autodir=no;spacetoken=%s/' % token, arcturl)
             arcturl += ':checksumtype=%s:checksumvalue=%s' % (checksumtype, checksum)
 
-        logger.info('Adding to output.list: %s %s' % (fspec.lfn, arcturl))
+        logger.info('Adding to output.list: %s %s', fspec.lfn, arcturl)
         # Write output.list
         with open(os.path.join(init_dir, 'output.list'), 'a') as f:
             f.write('%s %s\n' % (fspec.lfn, arcturl))
@@ -124,7 +124,7 @@ def copy_out(files, copy_type="mv", **kwargs):
         raise StageOutFailure(stdout)
 
     # Create output list for ARC CE if necessary
-    logger.debug('init_dir for output.list=%s' % os.path.dirname(kwargs.get('workdir')))
+    logger.debug('init_dir for output.list=%s', os.path.dirname(kwargs.get('workdir')))
     output_dir = kwargs.get('output_dir', '')
     if not output_dir:
         create_output_list(files, os.path.dirname(kwargs.get('workdir')), kwargs.get('ddmconf', None))
@@ -168,11 +168,11 @@ def move_all_files(files, copy_type, workdir):
         # resolve canonical path
         source = os.path.realpath(source)
 
-        logger.info("transferring file %s from %s to %s" % (name, source, destination))
+        logger.info("transferring file %s from %s to %s", name, source, destination)
 
         exit_code, stdout, stderr = copy_method(source, destination)
         if exit_code != 0:
-            logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
+            logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s", exit_code, stdout, stderr)
             fspec.status = 'failed'
             if fspec.filetype == 'input':
                 fspec.status_code = ErrorCodes.STAGEINFAILED
