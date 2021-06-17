@@ -41,15 +41,15 @@ def control(queues, traces, args):
     :return:
     """
 
-    t0 = time.time()
-    traces.pilot['lifetime_start'] = t0  # ie referring to when pilot monitoring began
-    traces.pilot['lifetime_max'] = t0
+    t_0 = time.time()
+    traces.pilot['lifetime_start'] = t_0  # ie referring to when pilot monitoring began
+    traces.pilot['lifetime_max'] = t_0
 
     threadchecktime = int(config.Pilot.thread_check)
 
     # for CPU usage debugging
     cpuchecktime = int(config.Pilot.cpu_check)
-    tcpu = t0
+    tcpu = t_0
 
     queuedata = get_queuedata_from_job(queues)
     max_running_time = get_max_running_time(args.lifetime, queuedata)
@@ -74,8 +74,7 @@ def control(queues, traces, args):
             time_since_start = get_time_since_start(args)
             grace_time = 10 * 60
             if time_since_start - grace_time > max_running_time:
-                logger.fatal('max running time (%d s) minus grace time (%d s) has been exceeded - must abort pilot' %
-                             (max_running_time, grace_time))
+                logger.fatal('max running time (%d s) minus grace time (%d s) has been exceeded - must abort pilot', max_running_time, grace_time)
                 logger.info('setting REACHED_MAXTIME and graceful stop')
                 environ['REACHED_MAXTIME'] = 'REACHED_MAXTIME'  # TODO: use singleton instead
                 # do not set graceful stop if pilot has not finished sending the final job update
@@ -109,7 +108,7 @@ def control(queues, traces, args):
             if int(time.time() - traces.pilot['lifetime_start']) % threadchecktime == 0:
                 # get all threads
                 for thread in threading.enumerate():
-                    # logger.info('thread name: %s' % thread.name)
+                    # logger.info('thread name: %s', thread.name)
                     if not thread.is_alive():
                         logger.fatal('thread \'%s\' is not alive', thread.name)
                         # args.graceful_stop.set()
@@ -150,14 +149,14 @@ def get_process_info(cmd, user=None, args='aufx', pid=None):
     """
 
     processes = []
-    n = 0
+    num = 0
     if not user:
         user = getuid()
     pattern = re.compile(r"\S+|[-+]?\d*\.\d+|\d+")
     arguments = ['ps', '-u', user, args, '--no-headers']
 
     process = Popen(arguments, stdout=PIPE, stderr=PIPE)
-    stdout, notused = process.communicate()
+    stdout, _ = process.communicate()
     for line in stdout.splitlines():
         found = re.findall(pattern, line)
         if found is not None:
@@ -166,12 +165,12 @@ def get_process_info(cmd, user=None, args='aufx', pid=None):
             mem = found[3]
             command = ' '.join(found[10:])
             if cmd in command:
-                n += 1
+                num += 1
                 if processid == str(pid):
                     processes = [cpu, mem, command]
 
     if processes:
-        processes.append(n)
+        processes.append(num)
 
     return processes
 
@@ -194,8 +193,8 @@ def run_checks(queues, args):
         t_max = 2 * 60
         logger.warning('pilot monitor received instruction that abort_job has been requested')
         logger.warning('will wait for a maximum of %d seconds for threads to finish', t_max)
-        t0 = time.time()
-        while time.time() - t0 < t_max:
+        t_0 = time.time()
+        while time.time() - t_0 < t_max:
             if args.job_aborted.is_set():
                 logger.warning('job_aborted has been set - aborting pilot monitoring')
                 args.abort_job.clear()
@@ -211,8 +210,8 @@ def run_checks(queues, args):
         if not args.job_aborted.is_set():
             logger.warning('will wait for a maximum of %d seconds for graceful_stop to take effect', t_max)
             t_max = 10
-            t0 = time.time()
-            while time.time() - t0 < t_max:
+            t_0 = time.time()
+            while time.time() - t_0 < t_max:
                 if args.job_aborted.is_set():
                     logger.warning('job_aborted has been set - aborting pilot monitoring')
                     args.abort_job.clear()

@@ -100,15 +100,15 @@ class Executor(generic.Executor):
         :return:
         """
 
-        t1 = time.time()
+        t_1 = time.time()
         while proc.is_alive():
             if args.graceful_stop.is_set():
                 logger.debug("Graceful stop is set, stopping work executor")
                 proc.stop()
                 break
-            if time.time() > t1 + 300:  # 5 minutes
+            if time.time() > t_1 + 300:  # 5 minutes
                 logger.info("Process is still running")
-                t1 = time.time()
+                t_1 = time.time()
             time.sleep(2)
 
         while proc.is_alive():

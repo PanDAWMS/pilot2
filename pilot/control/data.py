@@ -271,7 +271,7 @@ def get_rse(data, lfn=""):
     return rse
 
 
-def stage_in_auto(site, files):
+def stage_in_auto(files):
     """
     Separate dummy implementation for automatic stage-in outside of pilot workflows.
     Should be merged with regular stage-in functionality later, but we need to have
@@ -289,47 +289,47 @@ def stage_in_auto(site, files):
                   '--no-subdir']
 
     # quickly remove non-existing destinations
-    for f in files:
-        if not os.path.exists(f['destination']):
-            f['status'] = 'failed'
-            f['errmsg'] = 'Destination directory does not exist: %s' % f['destination']
-            f['errno'] = 1
+    for _file in files:
+        if not os.path.exists(_file['destination']):
+            _file['status'] = 'failed'
+            _file['errmsg'] = 'Destination directory does not exist: %s' % _file['destination']
+            _file['errno'] = 1
         else:
-            f['status'] = 'running'
-            f['errmsg'] = 'File not yet successfully downloaded.'
-            f['errno'] = 2
+            _file['status'] = 'running'
+            _file['errmsg'] = 'File not yet successfully downloaded.'
+            _file['errno'] = 2
 
-    for f in files:
-        if f['errno'] == 1:
+    for _file in files:
+        if _file['errno'] == 1:
             continue
 
         tmp_executable = objectcopy.deepcopy(executable)
 
-        tmp_executable += ['--dir', f['destination']]
-        tmp_executable.append('%s:%s' % (f['scope'],
-                                         f['name']))
+        tmp_executable += ['--dir', _file['destination']]
+        tmp_executable.append('%s:%s' % (_file['scope'],
+                                         _file['name']))
         process = subprocess.Popen(tmp_executable,
                                    bufsize=-1,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
-        f['errno'] = 2
+        _file['errno'] = 2
         while True:
             time.sleep(0.5)
             exit_code = process.poll()
             if exit_code is not None:
-                stdout, stderr = process.communicate()
+                _, stderr = process.communicate()
                 if exit_code == 0:
-                    f['status'] = 'done'
-                    f['errno'] = 0
-                    f['errmsg'] = 'File successfully downloaded.'
+                    _file['status'] = 'done'
+                    _file['errno'] = 0
+                    _file['errmsg'] = 'File successfully downloaded.'
                 else:
-                    f['status'] = 'failed'
-                    f['errno'] = 3
+                    _file['status'] = 'failed'
+                    _file['errno'] = 3
                     try:
                         # the Details: string is set in rucio: lib/rucio/common/exception.py in __str__()
-                        f['errmsg'] = [detail for detail in stderr.split('\n') if detail.startswith('Details:')][0][9:-1]
-                    except Exception as e:
-                        f['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % str(e)
+                        _file['errmsg'] = [detail for detail in stderr.split('\n') if detail.startswith('Details:')][0][9:-1]
+                    except Exception as error:
+                        _file['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % error
                 break
             else:
                 continue
@@ -337,7 +337,7 @@ def stage_in_auto(site, files):
     return files
 
 
-def stage_out_auto(site, files):
+def stage_out_auto(files):
     """
     Separate dummy implementation for automatic stage-out outside of pilot workflows.
     Should be merged with regular stage-out functionality later, but we need to have
@@ -351,63 +351,60 @@ def stage_out_auto(site, files):
                   'rucio', '-v', 'upload']
 
     # quickly remove non-existing destinations
-    for f in files:
-        if not os.path.exists(f['file']):
-            f['status'] = 'failed'
-            f['errmsg'] = 'Source file does not exist: %s' % f['file']
-            f['errno'] = 1
+    for _file in files:
+        if not os.path.exists(_file['file']):
+            _file['status'] = 'failed'
+            _file['errmsg'] = 'Source file does not exist: %s' % _file['file']
+            _file['errno'] = 1
         else:
-            f['status'] = 'running'
-            f['errmsg'] = 'File not yet successfully uploaded.'
-            f['errno'] = 2
+            _file['status'] = 'running'
+            _file['errmsg'] = 'File not yet successfully uploaded.'
+            _file['errno'] = 2
 
-    for f in files:
-        if f['errno'] == 1:
+    for _file in files:
+        if _file['errno'] == 1:
             continue
 
         tmp_executable = objectcopy.deepcopy(executable)
 
-        tmp_executable += ['--rse', f['rse']]
+        tmp_executable += ['--rse', _file['rse']]
 
-        if 'no_register' in list(f.keys()) and f['no_register']:  # Python 2/3
+        if 'no_register' in list(_file.keys()) and _file['no_register']:  # Python 2/3
             tmp_executable += ['--no-register']
 
-        if 'summary' in list(f.keys()) and f['summary']:  # Python 2/3
+        if 'summary' in list(_file.keys()) and _file['summary']:  # Python 2/3
             tmp_executable += ['--summary']
 
-        if 'lifetime' in list(f.keys()):  # Python 2/3
-            tmp_executable += ['--lifetime', str(f['lifetime'])]
+        if 'lifetime' in list(_file.keys()):  # Python 2/3
+            tmp_executable += ['--lifetime', str(_file['lifetime'])]
 
-        if 'guid' in list(f.keys()):  # Python 2/3
-            tmp_executable += ['--guid', f['guid']]
+        if 'guid' in list(_file.keys()):  # Python 2/3
+            tmp_executable += ['--guid', _file['guid']]
 
-        if 'attach' in list(f.keys()):  # Python 2/3
-            tmp_executable += ['--scope', f['scope'], '%s:%s' % (f['attach']['scope'], f['attach']['name']), f['file']]
+        if 'attach' in list(_file.keys()):  # Python 2/3
+            tmp_executable += ['--scope', _file['scope'], '%s:%s' % (_file['attach']['scope'], _file['attach']['name']), _file['file']]
         else:
-            tmp_executable += ['--scope', f['scope'], f['file']]
+            tmp_executable += ['--scope', _file['scope'], _file['file']]
 
-        process = subprocess.Popen(tmp_executable,
-                                   bufsize=-1,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
-        f['errno'] = 2
+        process = subprocess.Popen(tmp_executable, bufsize=-1, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        _file['errno'] = 2
         while True:
             time.sleep(0.5)
             exit_code = process.poll()
             if exit_code is not None:
-                stdout, stderr = process.communicate()
+                _, stderr = process.communicate()
                 if exit_code == 0:
-                    f['status'] = 'done'
-                    f['errno'] = 0
-                    f['errmsg'] = 'File successfully uploaded.'
+                    _file['status'] = 'done'
+                    _file['errno'] = 0
+                    _file['errmsg'] = 'File successfully uploaded.'
                 else:
-                    f['status'] = 'failed'
-                    f['errno'] = 3
+                    _file['status'] = 'failed'
+                    _file['errno'] = 3
                     try:
                         # the Details: string is set in rucio: lib/rucio/common/exception.py in __str__()
-                        f['errmsg'] = [detail for detail in stderr.split('\n') if detail.startswith('Details:')][0][9:-1]
-                    except Exception as e:
-                        f['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % str(e)
+                        _file['errmsg'] = [detail for detail in stderr.split('\n') if detail.startswith('Details:')][0][9:-1]
+                    except Exception as error:
+                        _file['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % error
                 break
             else:
                 continue
@@ -478,16 +475,16 @@ def copytool_in(queues, traces, args):
             cmd = user.get_utility_commands(job=job, order=UTILITY_BEFORE_STAGEIN)
             if cmd:
                 # xcache debug
-                exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                _, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
                 logger.debug('[before xcache start] stdout=%s', _stdout)
                 logger.debug('[before xcache start] stderr=%s', _stderr)
 
-                exit_code, stdout, stderr = execute(cmd.get('command'))
+                _, stdout, stderr = execute(cmd.get('command'))
                 logger.debug('stdout=%s', stdout)
                 logger.debug('stderr=%s', stderr)
 
                 # xcache debug
-                exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                _, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
                 logger.debug('[after xcache start] stdout=%s', _stdout)
                 logger.debug('[after xcache start] stderr=%s', _stderr)
 
@@ -711,7 +708,7 @@ def filter_files_for_log(directory):
     """
     filtered_files = []
     maxfilesize = 10
-    for root, dirnames, filenames in os.walk(directory):
+    for root, _, filenames in os.walk(directory):
         for filename in filenames:
             location = os.path.join(root, filename)
             if os.path.exists(location):  # do not include broken links
@@ -752,8 +749,8 @@ def create_log(workdir, logfile_name, tarball_name, cleanup, input_files=[], out
         user.remove_redundant_files(workdir, islooping=is_looping, debugmode=debugmode)
 
     # remove any present input/output files before tarring up workdir
-    for f in input_files + output_files:
-        path = os.path.join(workdir, f)
+    for fname in input_files + output_files:
+        path = os.path.join(workdir, fname)
         if os.path.exists(path):
             logger.info('removing file: %s', path)
             remove(path)
@@ -768,9 +765,9 @@ def create_log(workdir, logfile_name, tarball_name, cleanup, input_files=[], out
     logger.info('will create archive %s', fullpath)
     try:
         cmd = "pwd;tar cvfz %s %s --dereference --one-file-system; echo $?" % (fullpath, tarball_name)
-        exit_code, stdout, stderr = execute(cmd)
-    except Exception as e:
-        raise LogFileCreationFailure(e)
+        _, stdout, _ = execute(cmd)
+    except Exception as error:
+        raise LogFileCreationFailure(error)
     else:
         if pilot_home != current_dir:
             os.chdir(pilot_home)

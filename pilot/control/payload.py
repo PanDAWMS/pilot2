@@ -203,7 +203,7 @@ def execute_payloads(queues, traces, args):  # noqa: C901
             peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
             if len(peek) == 0:
                 put_in_queue(job, queues.validated_payloads)
-                for i in range(10):  # Python 3
+                for _ in range(10):  # Python 3
                     if args.graceful_stop.is_set():
                         break
                     time.sleep(1)
@@ -329,8 +329,7 @@ def set_cpu_consumption_time(job):
     job.cpuconsumptiontime = int(round(cpuconsumptiontime))
     job.cpuconsumptionunit = "s"
     job.cpuconversionfactor = 1.0
-    logger.info('CPU consumption time: %f %s (rounded to %d %s)' %
-                (cpuconsumptiontime, job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconsumptionunit))
+    logger.info('CPU consumption time: %f %s (rounded to %d %s)', cpuconsumptiontime, job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconsumptionunit)
 
 
 def perform_initial_payload_error_analysis(job, exit_code):
@@ -345,7 +344,7 @@ def perform_initial_payload_error_analysis(job, exit_code):
 
     if exit_code != 0:
         msg = ""
-        ec = 0
+        exit_code = 0
         logger.warning('main payload execution returned non-zero exit code: %d', exit_code)
         stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
         if stderr != "":
@@ -358,14 +357,14 @@ def perform_initial_payload_error_analysis(job, exit_code):
                 fatal = True
             if msg != "":
                 logger.warning("extracted message from stderr:\n%s", msg)
-                ec = set_error_code_from_stderr(msg, fatal)
+                exit_code = set_error_code_from_stderr(msg, fatal)
 
-        if not ec:
-            ec = errors.resolve_transform_error(exit_code, stderr)
-        if ec != 0:
+        if not exit_code:
+            exit_code = errors.resolve_transform_error(exit_code, stderr)
+        if exit_code != 0:
             if msg:
-                msg = errors.format_diagnostics(ec, msg)
-            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec, msg=msg)
+                msg = errors.format_diagnostics(exit_code, msg)
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code, msg=msg)
         else:
             if job.piloterrorcodes:
                 logger.warning('error code(s) already set: %s', str(job.piloterrorcodes))
@@ -390,23 +389,23 @@ def set_error_code_from_stderr(msg, fatal):
     """
 
     if "Failed invoking the NEWUSER namespace runtime" in msg:
-        ec = errors.SINGULARITYNEWUSERNAMESPACE
+        exit_code = errors.SINGULARITYNEWUSERNAMESPACE
     elif "Failed to create user namespace" in msg:
-        ec = errors.SINGULARITYFAILEDUSERNAMESPACE
+        exit_code = errors.SINGULARITYFAILEDUSERNAMESPACE
     elif "command not found" in msg:
-        ec = errors.TRANSFORMNOTFOUND
+        exit_code = errors.TRANSFORMNOTFOUND
     elif "SL5 is unsupported" in msg:
-        ec = errors.UNSUPPORTEDSL5OS
+        exit_code = errors.UNSUPPORTEDSL5OS
     elif "resource temporarily unavailable" in msg:
-        ec = errors.SINGULARITYRESOURCEUNAVAILABLE
+        exit_code = errors.SINGULARITYRESOURCEUNAVAILABLE
     elif "unrecognized arguments" in msg:
-        ec = errors.UNRECOGNIZEDTRFARGUMENTS
+        exit_code = errors.UNRECOGNIZEDTRFARGUMENTS
     elif fatal:
-        ec = errors.UNRECOGNIZEDTRFSTDERR
+        exit_code = errors.UNRECOGNIZEDTRFSTDERR
     else:
-        ec = 0
+        exit_code = 0
 
-    return ec
+    return exit_code
 
 
 def validate_post(queues, traces, args):

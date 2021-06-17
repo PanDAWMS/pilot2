@@ -17,6 +17,7 @@ import time
 import hashlib
 import random
 import socket
+import logging
 
 try:
     import Queue as queue  # noqa: N813
@@ -56,9 +57,7 @@ from pilot.util.queuehandling import scan_for_jobs, put_in_queue, queue_report, 
 from pilot.util.timing import add_to_pilot_timing, timing_report, get_postgetjob_time, get_time_since, time_stamp
 from pilot.util.workernode import get_disk_space, collect_workernode_info, get_node_name, get_cpu_model
 
-import logging
 logger = logging.getLogger(__name__)
-
 errors = ErrorCodes()
 
 
@@ -351,7 +350,6 @@ def send_state(job, args, state, xml=None, metadata=None, test_tobekilled=False)
     except Exception as error:
         logger.warning('exception caught while sending https request: %s', error)
         logger.warning('possibly offending data: %s', data)
-        pass
 
     if final:
         os.environ['SERVER_UPDATE'] = SERVER_UPDATE_TROUBLE
@@ -723,7 +721,7 @@ def get_debug_stdout(job):
         return get_general_command_stdout(job)
     else:
         # general command, execute and return output
-        exit_code, stdout, stderr = execute(job.debug_command)
+        _, stdout, _ = execute(job.debug_command)
         logger.info('debug_command: %s:\n\n%s\n', job.debug_command, stdout)
         return stdout
 
@@ -756,7 +754,7 @@ def get_general_command_stdout(job):
             except Exception as error:
                 logger.warning('general containerisation threw an exception: %s', error)
         else:
-            ec, stdout, stderr = execute(job.debug_command)
+            _, stdout, stderr = execute(job.debug_command)
             logger.debug("%s (stdout):\n\n%s\n\n", job.debug_command, stdout)
             logger.debug("%s (stderr):\n\n%s\n\n", job.debug_command, stderr)
 
@@ -790,7 +788,7 @@ def get_ls(debug_command, workdir):
     finalpath = os.path.join(workdir, path)
     debug_command = debug_command.replace(path, finalpath)
 
-    ec, stdout, stderr = execute(debug_command)
+    _, stdout, _ = execute(debug_command)
     logger.debug("%s:\n\n%s\n\n", debug_command, stdout)
 
     return stdout
@@ -933,7 +931,6 @@ def add_memory_info(data, workdir, name=""):
         data.update(utility_node)
     except Exception as error:
         logger.info('memory information not available: %s', error)
-        pass
 
 
 def remove_pilot_logs_from_list(list_of_files):
@@ -1142,8 +1139,8 @@ def delayed_space_check(queues, traces, args, job):
     proceed_with_local_space_check = True if (args.harvester_submitmode.lower() == 'push' and args.update_server) else False
     if proceed_with_local_space_check:
         logger.debug('pilot will now perform delayed space check')
-        ec, diagnostics = check_local_space()
-        if ec != 0:
+        exit_code, diagnostics = check_local_space()
+        if exit_code != 0:
             traces.pilot['error_code'] = errors.NOLOCALSPACE
             # set the corresponding error code
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOLOCALSPACE, msg=diagnostics)
@@ -1398,8 +1395,8 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, max_ge
     # pilot can report the error with a server update)
     proceed_with_local_space_check = False if (submitmode.lower() == 'push' and update_server) else True
     if proceed_with_local_space_check:
-        ec, diagnostics = check_local_space()
-        if ec != 0:
+        exit_code, diagnostics = check_local_space()
+        if exit_code != 0:
             traces.pilot['error_code'] = errors.NOLOCALSPACE
             return False
     else:
@@ -1515,8 +1512,8 @@ def get_job_definition_from_file(path, harvester):
             datalist = parse_qsl(response, keep_blank_values=True)
 
             # convert to dictionary
-            for d in datalist:
-                res[d[0]] = d[1]
+            for data in datalist:
+                res[data[0]] = data[1]
 
     if os.path.exists(path):
         remove(path)
@@ -1716,11 +1713,11 @@ def get_fake_job(input=True):
                'destinationDblock': job_name,
                'dispatchDBlockToken': 'NULL',
                'jobPars': '-a sources.20115461.derivation.tgz -r ./ -j "Reco_tf.py '
-                           '--inputAODFile AOD.07709524._000050.pool.root.1 --outputDAODFile test.pool.root '
-                           '--reductionConf HIGG3D1" -i "[\'AOD.07709524._000050.pool.root.1\']" -m "[]" -n "[]" --trf'
-                           ' --useLocalIO --accessmode=copy -o '
-                           '"{\'IROOT\': [(\'DAOD_HIGG3D1.test.pool.root\', \'%s.root\')]}" '
-                           '--sourceURL https://aipanda012.cern.ch:25443' % (job_name),
+                          '--inputAODFile AOD.07709524._000050.pool.root.1 --outputDAODFile test.pool.root '
+                          '--reductionConf HIGG3D1" -i "[\'AOD.07709524._000050.pool.root.1\']" -m "[]" -n "[]" --trf'
+                          ' --useLocalIO --accessmode=copy -o '
+                          '"{\'IROOT\': [(\'DAOD_HIGG3D1.test.pool.root\', \'%s.root\')]}" '
+                          '--sourceURL https://aipanda012.cern.ch:25443' % (job_name),
                'attemptNr': '0',
                'swRelease': 'Atlas-20.7.6',
                'nucleus': 'NULL',
@@ -1845,7 +1842,7 @@ def retrieve(queues, traces, args):  # noqa: C901
             delay = get_job_retrieval_delay(args.harvester)
             if not args.harvester:
                 logger.warning('did not get a job -- sleep %d s and repeat', delay)
-            for i in range(delay):
+            for _ in range(delay):
                 if args.graceful_stop.is_set():
                     break
                 time.sleep(1)

@@ -349,7 +349,7 @@ class Executor(object):
         except Exception as error:
             logger.error('could not execute: %s', error)
             return None
-        if type(proc) == tuple and not proc[0]:
+        if isinstance(proc, tuple) and not proc[0]:
             logger.error('failed to execute command')
             return None
 
@@ -381,7 +381,7 @@ class Executor(object):
         except Exception as error:
             logger.error('could not execute: %s', error)
             return None
-        if type(proc) == tuple and not proc[0]:
+        if isinstance(proc, tuple) and not proc[0]:
             logger.error('failed to execute payload')
             return None
 
@@ -405,13 +405,17 @@ class Executor(object):
         :return: updated secondary command (string).
         """
 
-        def cut_str_from(_cmd, s):
-            # cut the string from the position of the given _cmd
-            return _cmd[:_cmd.find(s)]
+        def cut_str_from(_cmd, _str):
+            """
+            Cut the string from the position of the given _cmd
+            """
+            return _cmd[:_cmd.find(_str)]
 
         def cut_str_from_last_semicolon(_cmd):
-            # cut the string from the last semicolon
-            # NOTE: this will not work if jobParams also contain ;
+            """
+            Cut the string from the last semicolon
+            NOTE: this will not work if jobParams also contain ;
+            """
             # remove any trailing spaces and ;-signs
             _cmd = _cmd.strip()
             _cmd = _cmd[:-1] if _cmd.endswith(';') else _cmd
@@ -452,7 +456,7 @@ class Executor(object):
             time.sleep(0.1)
 
             iteration += 1
-            for i in range(60):  # Python 2/3
+            for _ in range(60):  # Python 2/3
                 if args.graceful_stop.is_set():
                     breaker = True
                     logger.info('breaking -- sending SIGTERM pid=%s', proc.pid)
@@ -519,9 +523,9 @@ class Executor(object):
         try:
             # note: this might update the jobparams
             cmd_before_payload = self.utility_before_payload(job)
-        except Exception as e:
-            logger.error(e)
-            raise e
+        except Exception as error:
+            logger.error(error)
+            raise error
 
         if cmd_before_payload:
             cmd_before_payload = job.setup + cmd_before_payload
@@ -685,8 +689,8 @@ class Executor(object):
         exit_code = 0
         try:
             cmd_after_payload, label = self.utility_after_payload_finished(self.__job, order)
-        except Exception as e:
-            logger.error(e)
+        except Exception as error:
+            logger.error(error)
         else:
             if cmd_after_payload and self.__job.postprocess and state != 'failed':
                 cmd_after_payload = self.__job.setup + cmd_after_payload
