@@ -70,7 +70,10 @@ def interpret(job):
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
 
     # interpret the exit info from the payload
-    interpret_payload_exit_info(job)
+    try:
+        interpret_payload_exit_info(job)
+    except Exception as error:
+        logger.warning('exception caught while interpreting payload exit info: %s', error)
 
     return exit_code
 

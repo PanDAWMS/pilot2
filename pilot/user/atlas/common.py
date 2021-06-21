@@ -1450,7 +1450,7 @@ class DictQuery(dict):
             dst_dict[dst_key] = me_[last_key]
 
 
-def parse_jobreport_data(job_report):
+def parse_jobreport_data(job_report):  # noqa: C901
     """
     Parse a job report and extract relevant fields.
 
@@ -1502,34 +1502,12 @@ def parse_jobreport_data(job_report):
     if 'resource' in job_report and 'executor' in job_report['resource']:
         j = job_report['resource']['executor']
 
-        # Original version
-        exc_report = []
         fin_report = defaultdict(int)
-
-        try:
-            _tmplist = filter(lambda d: 'memory' in d and ('Max' or 'Avg' in d['memory']), j.itervalues())  # Python 2
-        except Exception:
-            _tmplist = [d for d in iter(list(j.values())) if
-                        'memory' in d and ('Max' or 'Avg' in d['memory'])]  # Python 3
-
-        for item in _tmplist:
-            if 'Avg' in item['memory']:
-                exc_report.extend(list(item['memory']['Avg'].items()))  # Python 2/3
-            if 'Max' in item['memory']:
-                exc_report.extend(list(item['memory']['Max'].items()))  # Python 2/3
-
-        for item in exc_report:
-            fin_report[item[0]] += item[1]
-
-        # Proposed version
-        # fin_report_brinick = defaultdict(int)
-        # for value in j.values():
-        #     mem = value.get('memory')
-        #    for key in ('Avg', 'Max'):
-        #        for subk, subv in mem.get(key, {}).items():
-        #            fin_report_brinick[subk] += subv
-        # logger.debug("Original code yields fin_report: %s", fin_report)
-        # logger.debug("Proposed code yields fin_report: %s", fin_report_brinick)
+        for value in j.values():
+            mem = value.get('memory', {})
+            for key in ('Avg', 'Max'):
+                for subk, subv in mem.get(key, {}).items():
+                    fin_report[subk] += subv
 
         work_attributes.update(fin_report)
 
