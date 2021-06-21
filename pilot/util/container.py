@@ -91,10 +91,17 @@ def execute(executable, **kwargs):
         stdout, stderr = process.communicate()
         exit_code = process.poll()
 
+        # this should not be necessary since encoding is set above for Py3 (it is necessary if encoding above is removed)
         # for Python 3, convert from byte-like object to str
-        if is_python3():
-            stdout = stdout.decode('utf-8')
-            stderr = stderr.decode('utf-8')
+        #import sys
+        #if is_python3():
+        #    logger.debug('Using python version=%s' % str(sys.version_info))
+        #    try:
+        #        stdout = stdout.decode('utf-8')
+        #        stderr = stderr.decode('utf-8')
+        #    except Exception as error:
+        #        logger.warning('exception caught: %s (can be ignored)', error)
+
         # remove any added \n
         if stdout and stdout.endswith('\n'):
             stdout = stdout[:-1]
