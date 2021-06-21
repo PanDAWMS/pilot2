@@ -1755,9 +1755,11 @@ def cleanup_payload(workdir, outputfiles=None, removecores=True):
             for filename in files:
                 path = os.path.abspath(os.path.join(root, filename))
 
-                if ('core' in filename and removecores) or \
-                    'pool.root' in filename or \
-                    'tmp.' in filename:
+                core_file = ('core' in filename and removecores)
+                pool_root_file = 'pool.root' in filename
+                tmp_file = 'tmp.' in filename
+
+                if core_file or pool_root_file or tmp_file:
                     remove(path)
 
                 for outfile in outputfiles:
