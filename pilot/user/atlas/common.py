@@ -16,7 +16,6 @@ import os
 import re
 from random import randint
 from signal import SIGTERM, SIGUSR1
-from typing import Type
 # from tarfile import ExFileObject
 
 try:
@@ -1043,7 +1042,7 @@ def discover_new_outdata(job):
                     'workdir': job.workdir,
                     'dataset': outdata_file.dataset,
                     'ddmendpoint': outdata_file.ddmendpoint,
-                    'ddmendpoint_alt': None, 
+                    'ddmendpoint_alt': None,
                     'filesize': new_output[outfile]['filesize'],
                     'checksum': new_output[outfile]['checksum'],
                     'guid': ''
