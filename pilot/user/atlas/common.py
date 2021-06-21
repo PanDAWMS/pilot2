@@ -1251,7 +1251,7 @@ class DictQuery(dict):
             dst_dict[dst_key] = v[last_key]
 
 
-def parse_jobreport_data(job_report):
+def parse_jobreport_data(job_report):  # noqa: C901
     """
     Parse a job report and extract relevant fields.
 
@@ -1316,6 +1316,19 @@ def parse_jobreport_data(job_report):
                 exc_report.extend(list(v['memory']['Max'].items()))  # Python 2/3
         for x in exc_report:
             fin_report[x[0]] += x[1]
+
+        # Proposed version
+        fin_report_brinick = defaultdict(int)
+        for value in j.values():
+            mem = value.get('memory', {})
+            for key in ('Avg', 'Max'):
+                for subk, subv in mem.get(key, {}).items():
+                    fin_report_brinick[subk] += subv
+
+        # Compare output from the original and the proposed versions
+        logger.debug("Original code yields fin_report: %s", fin_report)
+        logger.debug("Proposed code yields fin_report: %s", fin_report_brinick)
+
         work_attributes.update(fin_report)
 
     workdir_size = get_workdir_size()
