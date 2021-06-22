@@ -369,7 +369,7 @@ def get_payload_command(job):
             if not os.path.exists(path):
                 logger.warning((
                     'base trace report does not exist (%s) - input file '
-                    'traces should already have been sent', path))
+                    'traces should already have been sent'), path)
             else:
                 process_remote_file_traces(path, job, not_opened_turls)
 
@@ -570,7 +570,7 @@ def add_athena_proc_number(cmd):
             else:
                 logger.info((
                     "will not add ATHENA_PROC_NUMBER to cmd "
-                    "since the value is %s", str(value1)))
+                    "since the value is %s"), str(value1))
         else:
             logger.warning((
                 "don't know how to set ATHENA_PROC_NUMBER "
@@ -1014,7 +1014,7 @@ def update_output_for_hpo(job):
         if new_outdata:
             logger.info((
                 'replacing job outdata with discovered output '
-                '(%d file(s))', len(new_outdata)))
+                '(%d file(s))'), len(new_outdata))
             job.outdata = new_outdata
 
 
@@ -1113,7 +1113,7 @@ def extract_output_file_guids(job):
         if output:
             logger.info((
                 'verified that job report contains metadata '
-                'for %d file(s)', len(output)))
+                'for %d file(s)'), len(output))
         else:
             #- will fail job since allowNoOutput is not set')
             logger.warning((
@@ -1137,11 +1137,11 @@ def extract_output_file_guids(job):
                 data[lfn].guid = fdat['file_guid']
                 logger.info((
                     'set guid=%s for lfn=%s '
-                    '(value taken from job report)', data[lfn].guid, lfn))
+                    '(value taken from job report)'), data[lfn].guid, lfn)
             else:  # found new entry
                 logger.warning((
                     'pilot no longer considers output files not mentioned '
-                    'in job definition (lfn=%s)', lfn))
+                    'in job definition (lfn=%s)'), lfn)
                 continue
 
                 #if job.outdata:
@@ -1212,9 +1212,9 @@ def verify_output_files(job):
                 if job.is_analysis():
                     logger.warning((
                         'lfn %s is not in allowNoOutput list - '
-                        'ignore for user job',
+                        'ignore for user job'),
                         lfn
-                    ))
+                    )
                 else:
                     failed = True
                     logger.warning(
@@ -1284,12 +1284,12 @@ def verify_extracted_output_files(output, lfns_jobdef, job):
             if job.is_analysis():
                 logger.warning((
                     'output file %s from job definition is not present '
-                    'in job report and is not listed in allowNoOutput', lfn))
+                    'in job report and is not listed in allowNoOutput'), lfn)
             else:
                 logger.warning((
                     'output file %s from job definition is not present '
                     'in job report and is not listed in allowNoOutput - '
-                    'job will fail', lfn))
+                    'job will fail'), lfn)
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.MISSINGOUTPUTFILE)
                 failed = True
                 break
@@ -1298,14 +1298,14 @@ def verify_extracted_output_files(output, lfns_jobdef, job):
             logger.warning((
                 'output file %s from job definition is not present '
                 'in job report but is listed in allowNoOutput - '
-                'remove from stage-out', lfn))
+                'remove from stage-out'), lfn)
             remove_from_stageout(lfn, job)
         else:
             nentries = output_jobrep[lfn]
             if nentries == "UNDEFINED":
                 logger.warning((
                     'encountered file with nentries=UNDEFINED - '
-                    'will ignore %s', lfn))
+                    'will ignore %s'), lfn)
 
             elif nentries is None:
 
@@ -1313,12 +1313,12 @@ def verify_extracted_output_files(output, lfns_jobdef, job):
                     logger.warning((
                         'output file %s is listed in job report, '
                         'but has no events and is not listed in '
-                        'allowNoOutput - will ignore', lfn))
+                        'allowNoOutput - will ignore'), lfn)
                 else:
                     logger.warning((
                         'output file %s is listed in job report, '
                         'nentries is None and is listed in allowNoOutput - '
-                        'remove from stage-out', lfn))
+                        'remove from stage-out'), lfn)
                     remove_from_stageout(lfn, job)
 
             elif nentries == 0:
@@ -1327,12 +1327,12 @@ def verify_extracted_output_files(output, lfns_jobdef, job):
                     logger.warning((
                         'output file %s is listed in job report, '
                         'has zero events and is not listed in '
-                        'allowNoOutput - will ignore', lfn))
+                        'allowNoOutput - will ignore'), lfn)
                 else:
                     logger.warning((
                         'output file %s is listed in job report, '
                         'has zero events and is listed in allowNoOutput - '
-                        'remove from stage-out', lfn))
+                        'remove from stage-out'), lfn)
                     remove_from_stageout(lfn, job)
 
             elif type(nentries) is int and nentries:
@@ -1341,7 +1341,7 @@ def verify_extracted_output_files(output, lfns_jobdef, job):
             else:  # should not reach this step
                 logger.warning((
                     'case not handled for output file %s with %s event(s) '
-                    '(ignore)', lfn, str(nentries)))
+                    '(ignore)'), lfn, str(nentries))
 
     status = (not failed)
     return status, nevents
@@ -1385,19 +1385,19 @@ def remove_no_output_files(job):
                 logger.info((
                     "file %s is listed in allowNoOutput but exists "
                     "(will not be removed from list of files to be "
-                    "staged-out)", filename))
+                    "staged-out)"), filename)
                 _outfiles.append(filename)
             else:
                 logger.info((
                     "file %s is listed in allowNoOutput and does not exist "
-                    "(will be removed from list of files to be staged-out)", filename))
+                    "(will be removed from list of files to be staged-out)"), filename)
         else:
             if os.path.exists(path):
                 logger.info("file %s is not listed in allowNoOutput (will be staged-out)", filename)
             else:
                 logger.warning((
                     "file %s is not listed in allowNoOutput and "
-                    "does not exist (job will fail)", filename))
+                    "does not exist (job will fail)"), filename)
             _outfiles.append(filename)
 
     # now remove the unwanted fspecs
@@ -1784,7 +1784,7 @@ def get_redundants():
 
     logger.debug((
         'list of redundant files could not be read from external file: %s '
-        '(will use internal list)', filename))
+        '(will use internal list)'), filename)
 
     # else return the following
     dir_list = ["AtlasProduction*",
@@ -2475,7 +2475,7 @@ def verify_ncores(corecount):
     if athena_proc_number:
         logger.info((
             "encountered a set ATHENA_PROC_NUMBER (%d), "
-            "will not overwrite it", athena_proc_number))
+            "will not overwrite it"), athena_proc_number)
         logger.info('set ATHENA_CORE_NUMBER to same value as ATHENA_PROC_NUMBER')
         os.environ['ATHENA_CORE_NUMBER'] = str(athena_proc_number)
     else:
@@ -2483,7 +2483,7 @@ def verify_ncores(corecount):
         os.environ['ATHENA_CORE_NUMBER'] = str(corecount)
         logger.info((
             "set ATHENA_PROC_NUMBER_JOB and ATHENA_CORE_NUMBER to %s "
-            "(ATHENA_PROC_NUMBER will not be overwritten)", corecount))
+            "(ATHENA_PROC_NUMBER will not be overwritten)"), corecount)
 
 
 def verify_job(job):
@@ -2688,7 +2688,7 @@ def process_debug_command(debug_command, pandaid):
             except RuntimeError as rte:
                 logger.warning((
                     'too many recursions: %s '
-                    '(cannot identify athena process)', rte))
+                    '(cannot identify athena process)'), rte)
             else:
                 if child:
                     logger.info('pid=%d is a child process of the trf of this job', pid)
