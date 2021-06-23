@@ -4,15 +4,21 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2020-2021
 
 import argparse
 import os
 import logging
+import threading
+import queue
 import ROOT
+from collections import namedtuple
 
 from pilot.util.config import config
-from pilot.util.filehandling import establish_logging, write_json
+from pilot.util.filehandling import (
+    establish_logging,
+    write_json,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +37,12 @@ def get_args():
                             action='store_true',
                             default=False,
                             help='Enable debug mode for logging messages')
+    arg_parser.add_argument('-t',
+                            dest='nthreads',
+                            default=1,
+                            required=False,
+                            type=int,
+                            help='Number of concurrent file open threads')
     arg_parser.add_argument('-w',
                             dest='workdir',
                             required=False,
@@ -50,10 +62,26 @@ def get_args():
 
 
 def message(msg):
+    """
+    Print message to stdout or to log.
+    Note: not using lazy formatting.
+
+    :param msg: message (string).
+    :return:
+    """
+
     print(msg) if not logger else logger.info(msg)
 
 
 def get_file_lists(turls):
+    """
+    Return a dictionary with the turls.
+    Format: {'turls': <turl list>}
+
+    :param turls: comma separated turls (string)
+    :return: turls dictionary.
+    """
+
     _turls = []
 
     try:
@@ -64,7 +92,17 @@ def get_file_lists(turls):
     return {'turls': _turls}
 
 
-def try_open_file(turl):
+def try_open_file(turl, queues):
+    """
+    Attempt to open a remote file.
+    Successfully opened turls will be put in the queues.opened queue. Unsuccessful turls will be placed in
+    the queues.unopened queue.
+
+    :param turl: turl (string).
+    :param queues: queues collection.
+    :return:
+    """
+
     turl_opened = False
     try:
         in_file = ROOT.TFile.Open(turl)
@@ -75,7 +113,29 @@ def try_open_file(turl):
             in_file.Close()
             turl_opened = True
 
-    return turl_opened
+    queues.opened.put(turl) if turl_opened else queues.unopened.put(turl)
+
+
+def spawn_file_open_thread(queues, file_list):
+    """
+    Spawn a thread for the try_open_file().
+
+    :param queues: queue collection.
+    :param file_list: files to open (list).
+    :return: thread.
+    """
+
+    thread = None
+    try:
+        turl = file_list.pop(0)
+    except IndexError:
+        pass
+    else:
+        # create and start thread for the current turl
+        thread = threading.Thread(target=try_open_file, args=(turl, queues))
+        thread.start()
+
+    return thread
 
 
 if __name__ == '__main__':
@@ -106,10 +166,43 @@ if __name__ == '__main__':
     file_list_dictionary = get_file_lists(args.turls)
     turls = file_list_dictionary.get('turls')
     processed_turls_dictionary = {}
+
+    queues = namedtuple('queues', ['result', 'opened', 'unopened'])
+    queues.result = queue.Queue()
+    queues.opened = queue.Queue()
+    queues.unopened = queue.Queue()
+    threads = []
+
     if turls:
-        message('got TURLs: %s' % str(turls))
-        for turl in turls:
-            processed_turls_dictionary[turl] = try_open_file(turl)
+        # make N calls to begin with
+        for index in range(args.nthreads):
+            thread = spawn_file_open_thread(queues, turls)
+            if thread:
+                threads.append(thread)
+
+        while turls:
+
+            try:
+                _ = queues.result.get(block=True)
+            except Exception as error:
+                message("caught exception: %s" % error)
+
+            thread = spawn_file_open_thread(queues, turls)
+            if thread:
+                threads.append(thread)
+
+        # wait until all threads have finished
+        [thread.join() for thread in threads]
+
+        opened_turls = list(queues.opened.queue)
+        opened_turls.sort()
+        unopened_turls = list(queues.unopened.queue)
+        unopened_turls.sort()
+
+        for turl in opened_turls:
+            processed_turls_dictionary[turl] = True
+        for turl in unopened_turls:
+            processed_turls_dictionary[turl] = False
 
         # write dictionary to file with results
         _status = write_json(os.path.join(args.workdir, config.Pilot.remotefileverification_dictionary), processed_turls_dictionary)

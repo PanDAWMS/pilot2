@@ -22,9 +22,17 @@ except NameError:
     zero_depth_bases = (str, bytes, Number, range, bytearray)  # Python 3
     iteritems = 'items'
 
+from pilot.util.constants import (
+    SUCCESS,
+    FAILURE,
+    SERVER_UPDATE_FINAL,
+    SERVER_UPDATE_NOT_DONE,
+    SERVER_UPDATE_TROUBLE,
+    get_pilot_version,
+)
+
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.container import execute
-from pilot.util.constants import SUCCESS, FAILURE, SERVER_UPDATE_FINAL, SERVER_UPDATE_NOT_DONE, SERVER_UPDATE_TROUBLE, get_pilot_version
 from pilot.util.filehandling import dump
 
 import logging
@@ -636,3 +644,17 @@ def get_display_info():
                     product = result[0]
 
     return product, vendor
+
+
+def get_key_value(catchall, key='SOMEKEY'):
+    """
+    Return the value corresponding to key in catchall.
+    :param catchall: catchall free string.
+    :param key: key name (string).
+    :return: value (string).
+    """
+
+    # ignore any non-key-value pairs that might be present in the catchall string
+    _dic = dict(_str.split('=', 1) for _str in catchall.split() if '=' in _str)
+
+    return _dic.get(key)

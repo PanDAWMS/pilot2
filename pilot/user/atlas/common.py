@@ -45,7 +45,13 @@ from .utilities import (
     get_metadata_dict_from_txt,
 )
 
-from pilot.util.auxiliary import get_resource_name, show_memory_usage, is_python3
+from pilot.util.auxiliary import (
+    get_resource_name,
+    show_memory_usage,
+    is_python3,
+    get_key_value,
+)
+
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import TrfDownloadFailure, PilotException
 from pilot.util.config import config
@@ -152,12 +158,13 @@ def validate(job):
     return status
 
 
-def open_remote_files(indata, workdir):
+def open_remote_files(indata, workdir, nthreads):
     """
     Verify that direct i/o files can be opened.
 
     :param indata: list of FileSpec.
     :param workdir: working directory (string).
+    :param nthreads: number of concurrent file open threads (int).
     :return: exit code (int), diagnostics (string).
     """
 
@@ -202,7 +209,7 @@ def open_remote_files(indata, workdir):
             # correct the path when containers have been used
             final_script_path = os.path.join('.', script)
 
-            _cmd = get_file_open_command(final_script_path, turls)
+            _cmd = get_file_open_command(final_script_path, turls, nthreads)
             cmd = create_root_container_command(workdir, _cmd)
 
             show_memory_usage()
@@ -248,14 +255,16 @@ def open_remote_files(indata, workdir):
     return exitcode, diagnostics, not_opened
 
 
-def get_file_open_command(script_path, turls):
+def get_file_open_command(script_path, turls, nthreads):
     """
 
     :param script_path: path to script (string).
+    :param turls: comma-separated turls (string).
+    :param nthreads: number of concurrent file open threads (int).
     :return: comma-separated list of turls (string).
     """
 
-    return "%s --turls=%s -w %s" % (script_path, turls, os.path.dirname(script_path))
+    return "%s --turls=%s -w %s -t %s" % (script_path, turls, os.path.dirname(script_path), str(nthreads))
 
 
 def extract_turls(indata):
@@ -317,6 +326,19 @@ def process_remote_file_traces(path, job, not_opened_turls):
                         logger.warning('failed to create trace report for turl=%s', fspec.turl)
 
 
+def get_nthreads(catchall):
+    """
+    Extract number of concurrent file open threads from catchall.
+    Return nthreads=1 if nopenfiles=.. is not present in catchall.
+
+    :param catchall: queuedata catchall (string).
+    :return: number of threads (int).
+    """
+
+    _nthreads = get_key_value(catchall, key='nopenfiles')
+    return _nthreads if _nthreads else 1
+
+
 def get_payload_command(job):
     """
     Return the full command for executing the payload, including the
@@ -360,7 +382,7 @@ def get_payload_command(job):
         diagnostics = ""
         not_opened_turls = ""
         try:
-            exitcode, diagnostics, not_opened_turls = open_remote_files(job.indata, job.workdir)
+            exitcode, diagnostics, not_opened_turls = open_remote_files(job.indata, job.workdir, get_nthreads(catchall))
         except PilotException as exc:
             logger.warning('caught exception: %s', exc)
         else:

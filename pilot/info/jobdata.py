@@ -30,7 +30,7 @@ from time import sleep
 
 from .basedata import BaseData
 from .filespec import FileSpec
-from pilot.util.auxiliary import get_object_size
+from pilot.util.auxiliary import get_object_size, get_key_value
 from pilot.util.constants import LOG_TRANSFER_NOT_DONE
 from pilot.util.filehandling import get_guid, get_valid_path_from_list
 from pilot.util.timing import get_elapsed_real_time
@@ -201,7 +201,7 @@ class JobData(BaseData):
             # prepend IMAGE_BASE to imagename if necessary (for testing purposes)
             image_base = os.environ.get('IMAGE_BASE', '')
             if not image_base and 'IMAGE_BASE' in infosys.queuedata.catchall:
-                image_base = self.get_key_value(infosys.queuedata.catchall, key='IMAGE_BASE')
+                image_base = get_key_value(infosys.queuedata.catchall, key='IMAGE_BASE')
             if image_base:
                 paths = [os.path.join(image_base, os.path.basename(self.imagename)),
                          os.path.join(image_base, self.imagename)]
@@ -210,19 +210,6 @@ class JobData(BaseData):
                     self.imagename = local_path
             #if image_base and not os.path.isabs(self.imagename) and not self.imagename.startswith('docker'):
             #    self.imagename = os.path.join(image_base, self.imagename)
-
-    def get_key_value(self, catchall, key='SOMEKEY'):
-        """
-        Return the value corresponding to key in catchall.
-        :param catchall: catchall free string.
-        :param key: key name (string).
-        :return: value (string).
-        """
-
-        # ignore any non-key-value pairs that might be present in the catchall string
-        s = dict(s.split('=', 1) for s in catchall.split() if '=' in s)
-
-        return s.get(key)
 
     def prepare_infiles(self, data):
         """
