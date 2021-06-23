@@ -249,6 +249,7 @@ class Executor(object):
 
         exit_code, stdout, stderr = execute(cmd, workdir=job.workdir, cwd=job.workdir, usecontainer=False)
         if exit_code:
+            ignored_exit_codes = [160, 161, 162]
             logger.warning('command returned non-zero exit code: %s (exit code = %d) - see utility logs for details', cmd, exit_code)
             if label == 'preprocess':
                 err = errors.PREPROCESSFAILURE
@@ -256,8 +257,10 @@ class Executor(object):
                 err = errors.POSTPROCESSFAILURE
             else:
                 err = 0  # ie ignore
-            if err and exit_code != 160:  # ignore no-more-data-points exit code
+            if err and exit_code not in ignored_exit_codes:  # ignore no-more-data-points exit codes
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(err)
+            if exit_code in ignored_exit_codes:
+                job.transexitcode = exit_code
 
         # write output to log files
         self.write_utility_output(job.workdir, label, stdout, stderr)
@@ -532,7 +535,11 @@ class Executor(object):
             logger.info("\n\npreprocess execution command:\n\n%s\n", cmd_before_payload)
             exit_code = self.execute_utility_command(cmd_before_payload, job, 'preprocess')
             if exit_code == 160:
-                logger.fatal('no more HP points - time to abort processing loop')
+                logger.warning('no more HP points - time to abort processing loop')
+            elif exit_code == 161:
+                logger.warning('no more HP points but at least one point was processed - time to abort processing loop')
+            elif exit_code == 162:
+                logger.warning('loop count reached the limit - time to abort processing loop')
             elif exit_code:
                 # set error code
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PREPROCESSFAILURE)
@@ -568,6 +575,7 @@ class Executor(object):
         # abort when nothing more to run, or when the preprocess returns a special exit code
         iteration = 0
         while True:
+
             logger.info('payload iteration loop #%d', iteration + 1)
             os.environ['PILOT_EXEC_ITERATION_COUNT'] = '%s' % iteration
             show_memory_usage()
@@ -577,7 +585,7 @@ class Executor(object):
             exit_code = self.run_preprocess(self.__job)
             jobparams_post = self.__job.jobparams
             if exit_code:
-                if exit_code == 160:
+                if exit_code >= 160 and exit_code <= 162:
                     exit_code = 0
                     # wipe the output file list since there won't be any new files
                     # any output files from previous iterations, should have been transferred already

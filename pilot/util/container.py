@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2021
 
 import subprocess
 from os import environ, getcwd, setpgrp  #, getpgid  #setsid
@@ -72,7 +72,7 @@ def execute(executable, **kwargs):
                 secret_key = sub_cmd.split('S3_SECRET_KEY=')[1]
                 secret_key = 'S3_SECRET_KEY=' + secret_key
                 executable_readable = executable_readable.replace(secret_key, 'S3_SECRET_KEY=********')
-        logger.info('executing command: %s' % executable_readable)
+        logger.info('executing command: %s', executable_readable)
 
     if mode == 'python':
         exe = ['/usr/bin/python'] + executable.split()
@@ -95,7 +95,7 @@ def execute(executable, **kwargs):
         # for Python 3, convert from byte-like object to str
         #import sys
         #if is_python3():
-        #    logger.debug('Using python version=%s' % str(sys.version_info))
+        #    logger.debug('Using python version=%s', str(sys.version_info))
         #    try:
         #        stdout = stdout.decode('utf-8')
         #        stderr = stderr.decode('utf-8')
@@ -134,8 +134,8 @@ def containerise_executable(executable, **kwargs):
             diagnostics = ""
             try:
                 executable = container.wrapper(executable, **kwargs)
-            except Exception as e:
-                diagnostics = 'failed to execute wrapper function: %s' % e
+            except Exception as exc:
+                diagnostics = 'failed to execute wrapper function: %s' % exc
                 logger.fatal(diagnostics)
             else:
                 if executable == "":

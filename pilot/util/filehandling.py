@@ -952,13 +952,19 @@ def dump(path, cmd="cat"):
         logger.info("path %s does not exist", path)
 
 
-def establish_logging(debug=True, nopilotlog=False, filename=config.Pilot.pilotlog):
+def establish_logging(debug=True, nopilotlog=False, filename=config.Pilot.pilotlog, loglevel=0):
     """
     Setup and establish logging.
 
+    Option loglevel can be used to decide which (predetermined) logging format to use.
+    Example:
+      loglevel=0: '%(asctime)s | %(levelname)-8s | %(name)-32s | %(funcName)-25s | %(message)s'
+      loglevel=1: 'ts=%(asctime)s level=%(levelname)-8s event=%(name)-32s.%(funcName)-25s msg="%(message)s"'
+
     :param debug: debug mode (Boolean),
     :param nopilotlog: True when pilot log is not known (Boolean).
-    :param filename: name of log file.
+    :param filename: name of log file (string).
+    :param loglevel: selector for logging level (int).
     :return:
     """
 
@@ -968,7 +974,7 @@ def establish_logging(debug=True, nopilotlog=False, filename=config.Pilot.pilotl
 
     console = logging.StreamHandler(sys.stdout)
     if debug:
-        format_str = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
+        format_str = '%(asctime)s | %(levelname)-8s | %(name)-32s | %(funcName)-25s | %(message)s'
         level = logging.DEBUG
     else:
         format_str = '%(asctime)s | %(levelname)-8s | %(message)s'
