@@ -192,7 +192,7 @@ if __name__ == '__main__':
                 threads.append(thread)
 
         # wait until all threads have finished
-        [thread.join() for thread in threads]
+        [_thread.join() for _thread in threads]
 
         opened_turls = list(queues.opened.queue)
         opened_turls.sort()
