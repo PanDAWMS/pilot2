@@ -69,7 +69,7 @@ class StagingClient(object):
         super(StagingClient, self).__init__()
 
         if not logger:
-            logger = logging.getLogger('%s.%s', __name__, 'null')
+            logger = logging.getLogger(__name__ + '.null')
             logger.disabled = True
 
         self.logger = logger
@@ -93,6 +93,9 @@ class StagingClient(object):
         if not self.acopytools.get('default'):
             self.acopytools['default'] = self.get_default_copytools(default_copytools)
 
+        # get an initialized trace report (has to be updated for get/put if not defined before)
+        self.trace_report = trace_report if trace_report else TraceReport(pq=os.environ.get('PILOT_SITENAME', ''))
+
         if not self.acopytools:
             msg = 'failed to initilize StagingClient: no acopytools options found, acopytools=%s' % self.acopytools
             logger.error(msg)
@@ -100,9 +103,6 @@ class StagingClient(object):
             self.trace_report.send()
             raise PilotException("failed to resolve acopytools settings")
         logger.info('configured copytools per activity: acopytools=%s', self.acopytools)
-
-        # get an initialized trace report (has to be updated for get/put if not defined before)
-        self.trace_report = trace_report if trace_report else TraceReport(pq=os.environ.get('PILOT_SITENAME', ''))
 
     def set_acopytools(self):
         """
