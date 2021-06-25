@@ -42,8 +42,8 @@ def execute(executable, **kwargs):
     mute = kwargs.get('mute', False)
     mode = kwargs.get('mode', 'bash')
     cwd = kwargs.get('cwd', getcwd())
-    stdout = kwargs.get('stdout', subprocess.PIPE)
-    stderr = kwargs.get('stderr', subprocess.PIPE)
+    stdout_name = kwargs.get('stdout', subprocess.PIPE)
+    stderr_name = kwargs.get('stderr', subprocess.PIPE)
     usecontainer = kwargs.get('usecontainer', False)
     returnproc = kwargs.get('returnproc', False)
     job = kwargs.get('job')
@@ -80,33 +80,33 @@ def execute(executable, **kwargs):
         exe = ['/bin/bash', '-c', executable]
 
     # try: intercept exception such as OSError -> report e.g. error.RESOURCEUNAVAILABLE: "Resource temporarily unavailable"
-    if is_python3():
-        process = subprocess.Popen(exe, bufsize=-1, stdout=stdout, stderr=stderr, cwd=cwd, preexec_fn=setpgrp, encoding='utf-8')  # Python 3
+    if is_python3():  # Python 3
+        process = subprocess.Popen(exe,
+                                   bufsize=-1,
+                                   stdout=stdout_name,
+                                   stderr=stderr_name,
+                                   cwd=cwd,
+                                   preexec_fn=setpgrp,
+                                   encoding='utf-8',
+                                   errors='replace')
     else:
-        process = subprocess.Popen(exe, bufsize=-1, stdout=stdout, stderr=stderr, cwd=cwd, preexec_fn=setpgrp)  # Python 2
-
+        process = subprocess.Popen(exe,
+                                   bufsize=-1,
+                                   stdout=stdout_name,
+                                   stderr=stderr_name,
+                                   cwd=cwd,
+                                   preexec_fn=setpgrp)
     if returnproc:
         return process
     else:
         stdout, stderr = process.communicate()
         exit_code = process.poll()
 
-        # this should not be necessary since encoding is set above for Py3 (it is necessary if encoding above is removed)
-        # for Python 3, convert from byte-like object to str
-        #import sys
-        #if is_python3():
-        #    logger.debug('Using python version=%s', str(sys.version_info))
-        #    try:
-        #        stdout = stdout.decode('utf-8')
-        #        stderr = stderr.decode('utf-8')
-        #    except Exception as error:
-        #        logger.warning('exception caught: %s (can be ignored)', error)
-
         # remove any added \n
         if stdout and stdout.endswith('\n'):
             stdout = stdout[:-1]
 
-        return exit_code, stdout, stderr
+    return exit_code, stdout, stderr
 
 
 def containerise_executable(executable, **kwargs):
