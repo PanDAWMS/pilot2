@@ -30,13 +30,16 @@ jobs:
               run: |
                   cd ./doc
                   make github 
-                  cd ..
+
+            - name: Add nojekyll file to repo root dir
+              run: |
+                  touch .nojekyll
 
             - name: Push docs to repo
               run: |
                   git config user.name "brinick"
                   git config user.email "brinick@users.noreply.github.com"
-                  git add docs
-                  git commit -m "Adding documentation"
+                  git add docs .nojekyll
+                  git commit -m "Adding Pilot documentation"
                   git push 
 
