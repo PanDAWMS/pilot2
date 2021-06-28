@@ -114,6 +114,7 @@ def try_open_file(turl, queues):
             turl_opened = True
 
     queues.opened.put(turl) if turl_opened else queues.unopened.put(turl)
+    queues.result.put(turl)
 
 
 def spawn_file_open_thread(queues, file_list):
