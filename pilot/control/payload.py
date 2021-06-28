@@ -342,11 +342,15 @@ def perform_initial_payload_error_analysis(job, exit_code):
     :return:
     """
 
+    # look for singularity errors (the exit code can be zero in this case)
+    stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
+    if stderr:
+        exit_code = errors.resolve_transform_error(exit_code, stderr)
+
     if exit_code != 0:
         msg = ""
         exit_code = 0
         logger.warning('main payload execution returned non-zero exit code: %d', exit_code)
-        stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
         if stderr != "":
             msg = errors.extract_stderr_error(stderr)
             if msg == "":
@@ -359,8 +363,6 @@ def perform_initial_payload_error_analysis(job, exit_code):
                 logger.warning("extracted message from stderr:\n%s", msg)
                 exit_code = set_error_code_from_stderr(msg, fatal)
 
-        if not exit_code:
-            exit_code = errors.resolve_transform_error(exit_code, stderr)
         if exit_code != 0:
             if msg:
                 msg = errors.format_diagnostics(exit_code, msg)
@@ -388,22 +390,22 @@ def set_error_code_from_stderr(msg, fatal):
     :return: error code (int).
     """
 
-    if "Failed invoking the NEWUSER namespace runtime" in msg:
-        exit_code = errors.SINGULARITYNEWUSERNAMESPACE
-    elif "Failed to create user namespace" in msg:
-        exit_code = errors.SINGULARITYFAILEDUSERNAMESPACE
-    elif "command not found" in msg:
-        exit_code = errors.TRANSFORMNOTFOUND
-    elif "SL5 is unsupported" in msg:
-        exit_code = errors.UNSUPPORTEDSL5OS
-    elif "resource temporarily unavailable" in msg:
-        exit_code = errors.SINGULARITYRESOURCEUNAVAILABLE
-    elif "unrecognized arguments" in msg:
-        exit_code = errors.UNRECOGNIZEDTRFARGUMENTS
-    elif fatal:
+    exit_code = 0
+    error_map = {errors.SINGULARITYNEWUSERNAMESPACE: "Failed invoking the NEWUSER namespace runtime",
+                 errors.SINGULARITYFAILEDUSERNAMESPACE: "Failed to create user namespace",
+                 errors.SINGULARITYRESOURCEUNAVAILABLE: "resource temporarily unavailable",
+                 errors.SINGULARITYNOTINSTALLED: "Singularity is not installed",
+                 errors.TRANSFORMNOTFOUND: "command not found",
+                 errors.UNSUPPORTEDSL5OS: "SL5 is unsupported",
+                 errors.UNRECOGNIZEDTRFARGUMENTS: "unrecognized arguments",}
+
+    for key, value in error_map.items():
+        if value in msg:
+            exit_code = key
+            break
+
+    if fatal and not exit_code:
         exit_code = errors.UNRECOGNIZEDTRFSTDERR
-    else:
-        exit_code = 0
 
     return exit_code
 

@@ -522,10 +522,10 @@ class StagingClient(object):
                     caught_errors[-1].get_error_code() == ErrorCodes.MISSINGOUTPUTFILE:
                 raise caught_errors[-1]
 
-        remain_files = [f for f in files if f.status not in ['remote_io', 'transferred', 'no_transfer']]
+        remain_files = [fspec for fspec in files if fspec.status not in ['remote_io', 'transferred', 'no_transfer']]
 
         if remain_files:  # failed or incomplete transfer
-            # Propagate message from first error back up
+            # propagate message from first error back up
             errmsg = str(caught_errors[0]) if caught_errors else ''
             if caught_errors and "Cannot authenticate" in str(caught_errors):
                 code = ErrorCodes.STAGEINAUTHENTICATIONFAILURE
@@ -1065,13 +1065,13 @@ class StageOutClient(StagingClient):
 
             if not fspec.ddmendpoint:  # ensure that output destination is properly set
                 if 'mv' not in self.infosys.queuedata.copytools:
-                    msg = 'No output RSE defined for file=%s' % fspec.lfn
+                    msg = 'no output RSE defined for file=%s' % fspec.lfn
                     self.logger.error(msg)
                     raise PilotException(msg, code=ErrorCodes.NOSTORAGE, state='NO_OUTPUTSTORAGE_DEFINED')
 
             pfn = fspec.surl or getattr(fspec, 'pfn', None) or os.path.join(kwargs.get('workdir', ''), fspec.lfn)
             if not os.path.isfile(pfn) or not os.access(pfn, os.R_OK):
-                msg = "Error: output pfn file does not exist: %s" % pfn
+                msg = "output pfn file does not exist: %s" % pfn
                 self.logger.error(msg)
                 self.trace_report.update(clientState='MISSINGOUTPUTFILE', stateReason=msg)
                 self.trace_report.send()

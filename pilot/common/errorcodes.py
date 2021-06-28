@@ -403,8 +403,12 @@ class ErrorCodes:
         elif exit_code == -1:
             ec = self.UNKNOWNTRFFAILURE
         else:
-            # do not assign a pilot error code for unidentified transform error, return 0
-            ec = 0
+            # singularity errors can appear even with no exit code set
+            if "Singularity is not installed" in stderr:
+                ec = self.SINGULARITYNOTINSTALLED
+            else:
+                # do not assign a pilot error code for unidentified transform error, return 0
+                ec = 0
 
         return ec
 
