@@ -105,6 +105,7 @@ def try_open_file(turl, queues):
 
     turl_opened = False
     try:
+        message('opening %s' % turl)
         in_file = ROOT.TFile.Open(turl)
     except Exception as error:
         message('caught exception: %s' % error)
@@ -112,7 +113,7 @@ def try_open_file(turl, queues):
         if in_file and in_file.IsOpen():
             in_file.Close()
             turl_opened = True
-
+            message('closed %s' % turl)
     queues.opened.put(turl) if turl_opened else queues.unopened.put(turl)
     queues.result.put(turl)
 
@@ -173,6 +174,8 @@ if __name__ == '__main__':
     queues.opened = queue.Queue()
     queues.unopened = queue.Queue()
     threads = []
+
+    message('will attempt to open %d file(s) using %d thread(s)' % (len(turls), args.nthreads))
 
     if turls:
         # make N calls to begin with
