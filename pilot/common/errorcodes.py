@@ -397,19 +397,15 @@ class ErrorCodes:
             ec = self.SINGULARITYIMAGEMOUNTFAILURE
         elif exit_code == 255 and "Operation not permitted" in stderr:
             ec = self.SINGULARITYGENERALFAILURE
-        elif exit_code == 64 and "Singularity is not installed" in stderr:
+        elif "Singularity is not installed" in stderr:  # exit code should be 64 but not always?
             ec = self.SINGULARITYNOTINSTALLED
         elif exit_code == 64 and "cannot create directory" in stderr:
             ec = self.MKDIR
         elif exit_code == -1:
             ec = self.UNKNOWNTRFFAILURE
-        else:
-            # singularity errors can appear even with no exit code set
-            if "Singularity is not installed" in stderr:
-                ec = self.SINGULARITYNOTINSTALLED
-            #else:
-                # do not assign a pilot error code for unidentified transform error, return 0
-                # ec = 0
+        #else:
+            # do not assign a pilot error code for unidentified transform error, return 0
+            # ec = 0
 
         if not ec:
             ec = exit_code
