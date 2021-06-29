@@ -397,7 +397,7 @@ def set_error_code_from_stderr(msg, fatal):
                  errors.SINGULARITYNOTINSTALLED: "Singularity is not installed",
                  errors.TRANSFORMNOTFOUND: "command not found",
                  errors.UNSUPPORTEDSL5OS: "SL5 is unsupported",
-                 errors.UNRECOGNIZEDTRFARGUMENTS: "unrecognized arguments",}
+                 errors.UNRECOGNIZEDTRFARGUMENTS: "unrecognized arguments"}
 
     for key, value in error_map.items():
         if value in msg:
