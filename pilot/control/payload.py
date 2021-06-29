@@ -22,7 +22,7 @@ except Exception:
 
 from pilot.control.payloads import generic, eventservice, eventservicemerge
 from pilot.control.job import send_state
-from pilot.util.auxiliary import set_pilot_state, show_memory_usage
+from pilot.util.auxiliary import set_pilot_state
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
 from pilot.util.filehandling import read_file, remove_core_dumps, get_guid
@@ -230,9 +230,7 @@ def execute_payloads(queues, traces, args):  # noqa: C901
                 break
 
             payload_executor = get_payload_executor(args, job, out, err, traces)
-            logger.info("Got payload executor: %s", payload_executor)
-
-            show_memory_usage()
+            logger.info("will use payload executor: %s", payload_executor)
 
             # run the payload and measure the execution time
             job.t0 = os.times()
@@ -349,7 +347,6 @@ def perform_initial_payload_error_analysis(job, exit_code):
 
     if exit_code != 0:
         msg = ""
-        exit_code = 0
         logger.warning('main payload execution returned non-zero exit code: %d', exit_code)
         if stderr != "":
             msg = errors.extract_stderr_error(stderr)
@@ -359,10 +356,15 @@ def perform_initial_payload_error_analysis(job, exit_code):
                 fatal = False
             else:
                 fatal = True
-            if msg != "":
-                logger.warning("extracted message from stderr:\n%s", msg)
-                exit_code = set_error_code_from_stderr(msg, fatal)
+            #if msg != "":  # redundant since resolve_transform_error is used above
+            #    logger.warning("extracted message from stderr:\n%s", msg)
+            #    exit_code = set_error_code_from_stderr(msg, fatal)
 
+        if msg:
+            msg = errors.format_diagnostics(exit_code, msg)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code, msg=msg)
+
+        '''
         if exit_code != 0:
             if msg:
                 msg = errors.format_diagnostics(exit_code, msg)
@@ -376,8 +378,13 @@ def perform_initial_payload_error_analysis(job, exit_code):
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.COREDUMP)
                 else:
                     logger.warning('initial error analysis did not resolve the issue (and core dumps were not found)')
+        '''
     else:
-        logger.info('main payload execution returned zero exit code, but will check it more carefully')
+        logger.info('main payload execution returned zero exit code')
+
+    # check if core dumps exist, if so remove them and return True
+    if remove_core_dumps(job.workdir) and not job.debug:
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.COREDUMP)
 
 
 def set_error_code_from_stderr(msg, fatal):

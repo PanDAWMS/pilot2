@@ -492,15 +492,12 @@ class Executor(object):
         :return: command (string).
         """
 
-        show_memory_usage()
-
         cmd = ""
         # for testing looping job: cmd = user.get_payload_command(job) + ';sleep 240'
         try:
             pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
             user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user],
                               0)  # Python 2/3
-            show_memory_usage()
             cmd = user.get_payload_command(job)  #+ 'sleep 1000'  # to test looping jobs
         except PilotException as error:
             self.post_setup(job)
@@ -564,8 +561,6 @@ class Executor(object):
         # get the payload command from the user specific code
         self.pre_setup(self.__job)
 
-        show_memory_usage()
-
         cmd = self.get_payload_command(self.__job)
         # extract the setup in case the preprocess command needs it
         self.__job.setup = self.extract_setup(cmd)
@@ -601,9 +596,9 @@ class Executor(object):
             # note: no need to run any main payload in HPO Horovod jobs on Kubernetes
             if os.environ.get('HARVESTER_HOROVOD', '') == '':
 
-                exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
-                logger.debug('[before payload start] stdout=%s', _stdout)
-                logger.debug('[before payload start] stderr=%s', _stderr)
+                #exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                #logger.debug('[before payload start] stdout=%s', _stdout)
+                #logger.debug('[before payload start] stderr=%s', _stderr)
 
                 proc = self.run_payload(self.__job, cmd, self.__out, self.__err)
             else:
@@ -651,9 +646,9 @@ class Executor(object):
                 set_pilot_state(job=self.__job, state=state)
                 logger.info('\n\nfinished pid=%s exit_code=%s state=%s\n', proc.pid, exit_code, self.__job.state)
 
-                exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
-                logger.debug('[after payload finish] stdout=%s', _stdout)
-                logger.debug('[after payload finish] stderr=%s', _stderr)
+                #exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                #logger.debug('[after payload finish] stdout=%s', _stdout)
+                #logger.debug('[after payload finish] stderr=%s', _stderr)
 
                 # stop the utility command (e.g. a coprocess if necessary
                 if proc_co:
@@ -708,18 +703,18 @@ class Executor(object):
                 logger.info("\n\npostprocess execution command:\n\n%s\n", cmd_after_payload)
 
                 # xcache debug
-                if 'xcache' in cmd_after_payload:
-                    _exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
-                    logger.debug('[before xcache kill] stdout=%s', _stdout)
-                    logger.debug('[before xcache kill] stderr=%s', _stderr)
+                #if 'xcache' in cmd_after_payload:
+                #    _exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                #    logger.debug('[before xcache kill] stdout=%s', _stdout)
+                #    logger.debug('[before xcache kill] stderr=%s', _stderr)
 
                 exit_code = self.execute_utility_command(cmd_after_payload, self.__job, label)
 
                 # xcache debug
-                if 'xcache' in cmd_after_payload:
-                    _exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
-                    logger.debug('[after xcache kill] stdout=%s', _stdout)
-                    logger.debug('[after xcache kill] stderr=%s', _stderr)
+                #if 'xcache' in cmd_after_payload:
+                #    _exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                #    logger.debug('[after xcache kill] stdout=%s', _stdout)
+                #    logger.debug('[after xcache kill] stderr=%s', _stderr)
 
         return exit_code
 

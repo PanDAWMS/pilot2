@@ -388,6 +388,7 @@ class ErrorCodes:
         :return: pilot error code (int)
         """
 
+        ec = 0
         if exit_code == 251 and "Not mounting requested bind point" in stderr:
             ec = self.SINGULARITYBINDPOINTFAILURE
         elif exit_code == 255 and "No more available loop devices" in stderr:
@@ -406,10 +407,12 @@ class ErrorCodes:
             # singularity errors can appear even with no exit code set
             if "Singularity is not installed" in stderr:
                 ec = self.SINGULARITYNOTINSTALLED
-            else:
+            #else:
                 # do not assign a pilot error code for unidentified transform error, return 0
-                ec = 0
+                # ec = 0
 
+        if not ec:
+            ec = exit_code
         return ec
 
     def extract_stderr_error(self, stderr):
