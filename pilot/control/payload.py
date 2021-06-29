@@ -353,9 +353,9 @@ def perform_initial_payload_error_analysis(job, exit_code):
             if msg == "":
                 # look for warning messages instead (might not be fatal so do not set UNRECOGNIZEDTRFSTDERR)
                 msg = errors.extract_stderr_warning(stderr)
-                fatal = False
-            else:
-                fatal = True
+            #    fatal = False
+            #else:
+            #    fatal = True
             #if msg != "":  # redundant since resolve_transform_error is used above
             #    logger.warning("extracted message from stderr:\n%s", msg)
             #    exit_code = set_error_code_from_stderr(msg, fatal)
