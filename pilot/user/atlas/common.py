@@ -574,12 +574,12 @@ def add_athena_proc_number(cmd):
     # get the values if they exist
     try:
         value1 = int(os.environ['ATHENA_PROC_NUMBER_JOB'])
-    except (TypeError, ValueError) as exc:
+    except (TypeError, KeyError, ValueError) as exc:
         logger.warning('failed to convert ATHENA_PROC_NUMBER_JOB to int: %s', exc)
         value1 = None
     try:
         value2 = int(os.environ['ATHENA_CORE_NUMBER'])
-    except (TypeError, ValueError) as exc:
+    except (TypeError, KeyError, ValueError) as exc:
         logger.warning('failed to convert ATHENA_CORE_NUMBER to int: %s', exc)
         value2 = None
 
@@ -645,7 +645,7 @@ def add_makeflags(job_core_count, cmd):
     # ATHENA_PROC_NUMBER is set in Node.py using the schedconfig value
     try:
         core_count = int(os.environ.get('ATHENA_PROC_NUMBER'))
-    except (TypeError, ValueError):
+    except (TypeError, KeyError, ValueError):
         core_count = -1
 
     if core_count == -1:
