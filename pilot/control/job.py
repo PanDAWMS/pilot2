@@ -1133,6 +1133,12 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, max_ge
     #timefloor = 600
     currenttime = time.time()
 
+    # push mode should allow only one single payload job
+    # set timefloor to zero
+    if submitmode.lower() == 'push':
+        logger.info('Since the submitmode=push, override timefloor with zero manually')
+        timefloor = 0
+
     # should the proxy be verified?
     if verify_proxy:
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()

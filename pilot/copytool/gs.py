@@ -9,6 +9,7 @@
 
 import os
 import logging
+from pilot.info import infosys
 
 try:
     from google.cloud import storage
@@ -53,6 +54,13 @@ def resolve_surl(fspec, protocol, ddmconf, **kwargs):
         :return: dictionary {'surl': surl}
     """
 
+    try:
+        pandaqueue = infosys.pandaqueue
+    except:
+        pandaqueue = ""
+    if pandaqueue is None:
+        pandaqueue = ""
+
     ddm = ddmconf.get(fspec.ddmendpoint)
     if not ddm:
         raise PilotException('failed to resolve ddmendpoint by name=%s' % fspec.ddmendpoint)
@@ -63,19 +71,7 @@ def resolve_surl(fspec, protocol, ddmconf, **kwargs):
     else:
         dataset = ""
 
-    remote_path = os.path.join(protocol.get('path', ''), dataset)
-
-    # pilot ID is passed by the envvar GTAG
-    # try:
-    #   rprotocols = ddm.rprotocols
-    #   logger.debug('ddm.rprotocols=%s' % rprotocols)
-    #   if "http_access" in rprotocols:
-    #      http_access = rprotocols["http_access"]
-    #      os.environ['GTAG'] = http_access + os.path.join(remote_path, config.Pilot.pilotlog)
-    #      logger.debug('http_access=%s' % http_access)
-    # except Exception as e:
-    #   logger.warning("Failed in get 'http_access' in ddm.rprotocols")
-
+    remote_path = os.path.join(protocol.get('path', ''), pandaqueue, dataset)
     surl = protocol.get('endpoint', '') + remote_path
     logger.info('For GCS bucket, set surl=%s' % surl)
 
@@ -149,18 +145,26 @@ def copy_out(files, **kwargs):
 
     workdir = kwargs.pop('workdir')
 
-    for fspec in files:
-        logger.info('Going to process fspec.turl=%s' % fspec.turl)
-
+    if len(files) > 0:
+        fspec = files[0]
         import re
         # bucket = re.sub(r'gs://(.*?)/.*', r'\1', fspec.turl)
         reobj = re.match(r'gs://([^/]*)/(.*)', fspec.turl)
         (bucket, remote_path) = reobj.groups()
 
-        # ["pilotlog.txt", "payload.stdout", "payload.stderr"]:
-        for logfile in os.listdir(workdir):
-            if logfile.endswith("gz"):
-                continue
+    for fspec in files:
+        logger.info('Going to process fspec.turl=%s' % fspec.turl)
+
+        logfiles = []
+        lfn = fspec.lfn.strip(' ')
+        dataset = fspec.dataset
+        if lfn == '/' or dataset.endswith('/'):
+            # ["pilotlog.txt", "payload.stdout", "payload.stderr"]:
+            logfiles = os.listdir(workdir)
+        else:
+            logfiles = [lfn]
+
+        for logfile in logfiles:
             path = os.path.join(workdir, logfile)
             if os.path.exists(path):
                 object_name = os.path.join(remote_path, logfile)
@@ -180,8 +184,8 @@ def copy_out(files, **kwargs):
                 fspec.status_code = errors.STAGEOUTFAILED
                 raise PilotException(diagnostics, code=fspec.status_code, state=fspec.status)
 
-            fspec.status = 'transferred'
-            fspec.status_code = 0
+        fspec.status = 'transferred'
+        fspec.status_code = 0
 
     return files
 

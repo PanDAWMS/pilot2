@@ -1103,8 +1103,8 @@ class StageOutClient(StagingClient):
                     raise PilotException(msg, code=ErrorCodes.NOSTORAGE, state='NO_OUTPUTSTORAGE_DEFINED')
 
             pfn = fspec.surl or getattr(fspec, 'pfn', None) or os.path.join(kwargs.get('workdir', ''), fspec.lfn)
-            if not os.path.isfile(pfn) or not os.access(pfn, os.R_OK):
-                msg = "Error: output pfn file does not exist: %s" % pfn
+            if not os.path.exists(pfn) or not os.access(pfn, os.R_OK):
+                msg = "Error: output pfn file/directory does not exist: %s" % pfn
                 self.logger.error(msg)
                 self.trace_report.update(clientState='MISSINGOUTPUTFILE', stateReason=msg)
                 self.trace_report.send()
@@ -1119,7 +1119,7 @@ class StageOutClient(StagingClient):
 
             fspec.surl = pfn
             fspec.activity = activity
-            if not fspec.checksum.get('adler32'):
+            if os.path.isfile(pfn) and not fspec.checksum.get('adler32'):
                 fspec.checksum['adler32'] = calculate_checksum(pfn)
 
         # prepare files (resolve protocol/transfer url)

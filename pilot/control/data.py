@@ -740,6 +740,10 @@ def create_log(workdir, logfile_name, tarball_name, cleanup, input_files=[], out
             logger.info('removing file: %s' % path)
             remove(path)
 
+    if logfile_name is None or len(logfile_name.strip('/ ')) == 0:
+        logger.info('Skipping tarball creation, since the logfile_name is empty')
+        return
+
     # rename the workdir for the tarball creation
     newworkdir = os.path.join(os.path.dirname(workdir), tarball_name)
     orgworkdir = workdir
