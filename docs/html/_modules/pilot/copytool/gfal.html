@@ -90,7 +90,8 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">check_for_gfal</span><span class="p">():</span>
         <span class="k">raise</span> <span class="n">StageInFailure</span><span class="p">(</span><span class="s2">&quot;No GFAL2 tools found&quot;</span><span class="p">)</span>
 
-    <span class="n">localsite</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;RUCIO_LOCAL_SITE_ID&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="c1"># note, env vars might be unknown inside middleware contrainers, if so get the value already in the trace report</span>
+    <span class="n">localsite</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;RUCIO_LOCAL_SITE_ID&#39;</span><span class="p">,</span> <span class="n">trace_report</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="s1">&#39;localSite&#39;</span><span class="p">))</span>
     <span class="k">for</span> <span class="n">fspec</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
         <span class="c1"># update the trace report</span>
         <span class="n">localsite</span> <span class="o">=</span> <span class="n">localsite</span> <span class="k">if</span> <span class="n">localsite</span> <span class="k">else</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span>
@@ -333,7 +334,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

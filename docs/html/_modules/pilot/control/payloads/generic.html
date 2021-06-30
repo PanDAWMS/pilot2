@@ -56,7 +56,7 @@
 <span class="kn">from</span> <span class="nn">pilot.util.container</span> <span class="kn">import</span> <span class="n">execute</span>
 <span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">UTILITY_BEFORE_PAYLOAD</span><span class="p">,</span> <span class="n">UTILITY_WITH_PAYLOAD</span><span class="p">,</span> <span class="n">UTILITY_AFTER_PAYLOAD_STARTED</span><span class="p">,</span> \
     <span class="n">UTILITY_AFTER_PAYLOAD_FINISHED</span><span class="p">,</span> <span class="n">PILOT_PRE_SETUP</span><span class="p">,</span> <span class="n">PILOT_POST_SETUP</span><span class="p">,</span> <span class="n">PILOT_PRE_PAYLOAD</span><span class="p">,</span> <span class="n">PILOT_POST_PAYLOAD</span><span class="p">,</span> \
-    <span class="n">UTILITY_AFTER_PAYLOAD_STARTED2</span>
+    <span class="n">UTILITY_AFTER_PAYLOAD_STARTED2</span><span class="p">,</span> <span class="n">UTILITY_AFTER_PAYLOAD_FINISHED2</span>
 <span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">write_file</span>
 <span class="kn">from</span> <span class="nn">pilot.util.processes</span> <span class="kn">import</span> <span class="n">kill_processes</span>
 <span class="kn">from</span> <span class="nn">pilot.util.timing</span> <span class="kn">import</span> <span class="n">add_to_pilot_timing</span>
@@ -125,7 +125,7 @@
         <span class="n">cmd_dictionary</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get_utility_commands</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">UTILITY_BEFORE_PAYLOAD</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">cmd_dictionary</span><span class="p">:</span>
             <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">),</span> <span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;args&#39;</span><span class="p">))</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;utility command to be executed before the payload: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;utility command (</span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">) to be executed before the payload: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;label&#39;</span><span class="p">,</span> <span class="s1">&#39;utility&#39;</span><span class="p">),</span> <span class="n">cmd</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">cmd</span></div>
 
@@ -147,7 +147,7 @@
         <span class="n">cmd_dictionary</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get_utility_commands</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">UTILITY_WITH_PAYLOAD</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">cmd_dictionary</span><span class="p">:</span>
             <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">),</span> <span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;args&#39;</span><span class="p">))</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;utility command to be executed with the payload: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;utility command (</span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">) to be executed with the payload: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;label&#39;</span><span class="p">,</span> <span class="s1">&#39;utility&#39;</span><span class="p">),</span> <span class="n">cmd</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">cmd</span></div>
 
@@ -171,7 +171,7 @@
         <span class="n">cmd_dictionary</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get_utility_commands</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">cmd_dictionary</span><span class="p">:</span>
             <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">),</span> <span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;args&#39;</span><span class="p">))</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;utility command to be executed after the payload: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;utility command (</span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">) to be executed after the payload: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;label&#39;</span><span class="p">,</span> <span class="s1">&#39;utility&#39;</span><span class="p">),</span> <span class="n">cmd</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">cmd</span></div>
 
@@ -189,7 +189,7 @@
         <span class="n">cmd_dictionary</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get_utility_commands</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">UTILITY_AFTER_PAYLOAD_STARTED</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">cmd_dictionary</span><span class="p">:</span>
             <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">),</span> <span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;args&#39;</span><span class="p">))</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;utility command to be executed after the payload: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;utility command to be executed after the payload: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
 
             <span class="c1"># how should this command be executed?</span>
             <span class="n">utilitycommand</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get_utility_command_setup</span><span class="p">(</span><span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">),</span> <span class="n">job</span><span class="p">)</span>
@@ -199,8 +199,8 @@
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">proc1</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">utilitycommand</span><span class="p">,</span> <span class="n">workdir</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">returnproc</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">usecontainer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                 <span class="n">stdout</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;could not execute: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;could not execute: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># store process handle in job object, and keep track on how many times the command has been launched</span>
                 <span class="c1"># also store the full command in case it needs to be restarted later (by the job_monitor() thread)</span>
@@ -224,7 +224,7 @@
         <span class="n">cmd_dictionary</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get_utility_commands</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">UTILITY_AFTER_PAYLOAD_STARTED</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">cmd_dictionary</span><span class="p">:</span>
             <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">),</span> <span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;args&#39;</span><span class="p">))</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;utility command to be executed after the payload: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;utility command to be executed after the payload: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">cmd</span></div>
 
@@ -236,22 +236,24 @@
 <span class="c1">#            try:</span>
 <span class="c1">#                proc = execute(utilitycommand, workdir=job.workdir, returnproc=True, usecontainer=False,</span>
 <span class="c1">#                               stdout=PIPE, stderr=PIPE, cwd=job.workdir, job=job)</span>
-<span class="c1">#            except Exception as e:</span>
-<span class="c1">#                logger.error(&#39;could not execute: %s&#39; % e)</span>
+<span class="c1">#            except Exception as error:</span>
+<span class="c1">#                logger.error(&#39;could not execute: %s&#39;, error)</span>
 <span class="c1">#            else:</span>
 <span class="c1">#                # store process handle in job object, and keep track on how many times the command has been launched</span>
 <span class="c1">#                # also store the full command in case it needs to be restarted later (by the job_monitor() thread)</span>
 <span class="c1">#                job.utilities[cmd_dictionary.get(&#39;command&#39;)] = [proc, 1, utilitycommand]</span>
 
-<div class="viewcode-block" id="Executor.utility_after_payload_finished"><a class="viewcode-back" href="../../../../components/control/payloads/generic.html#pilot.control.payloads.generic.Executor.utility_after_payload_finished">[docs]</a>    <span class="k">def</span> <span class="nf">utility_after_payload_finished</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job</span><span class="p">):</span>
+<div class="viewcode-block" id="Executor.utility_after_payload_finished"><a class="viewcode-back" href="../../../../components/control/payloads/generic.html#pilot.control.payloads.generic.Executor.utility_after_payload_finished">[docs]</a>    <span class="k">def</span> <span class="nf">utility_after_payload_finished</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Prepare commands/utilities to run after payload has finished.</span>
 
 <span class="sd">        This command will be executed later.</span>
 
-<span class="sd">        REFACTOR</span>
+<span class="sd">        The order constant can be UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_AFTER_PAYLOAD_FINISHED2</span>
 
 <span class="sd">        :param job: job object.</span>
+<span class="sd">        :param order: constant used for utility selection (constant).</span>
+<span class="sd">        :return: command (string), label (string).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
@@ -261,12 +263,12 @@
         <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.common&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
 
         <span class="c1"># should any additional commands be prepended to the payload execution string?</span>
-        <span class="n">cmd_dictionary</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get_utility_commands</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">UTILITY_AFTER_PAYLOAD_FINISHED</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">)</span>
+        <span class="n">cmd_dictionary</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get_utility_commands</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">cmd_dictionary</span><span class="p">:</span>
             <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;command&#39;</span><span class="p">),</span> <span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;args&#39;</span><span class="p">))</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;utility command to be executed after the payload has finished: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;utility command (</span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">) to be executed after the payload has finished: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;label&#39;</span><span class="p">,</span> <span class="s1">&#39;utility&#39;</span><span class="p">),</span> <span class="n">cmd</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">cmd</span></div>
+        <span class="k">return</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">cmd_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;label&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Executor.execute_utility_command"><a class="viewcode-back" href="../../../../components/control/payloads/generic.html#pilot.control.payloads.generic.Executor.execute_utility_command">[docs]</a>    <span class="k">def</span> <span class="nf">execute_utility_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -280,15 +282,18 @@
 
         <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">usecontainer</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">exit_code</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;command returned non-zero exit code: </span><span class="si">%s</span><span class="s1"> (exit code = </span><span class="si">%d</span><span class="s1">) - see utility logs for details&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">exit_code</span><span class="p">))</span>
+            <span class="n">ignored_exit_codes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">160</span><span class="p">,</span> <span class="mi">161</span><span class="p">,</span> <span class="mi">162</span><span class="p">]</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;command returned non-zero exit code: </span><span class="si">%s</span><span class="s1"> (exit code = </span><span class="si">%d</span><span class="s1">) - see utility logs for details&#39;</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">exit_code</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">label</span> <span class="o">==</span> <span class="s1">&#39;preprocess&#39;</span><span class="p">:</span>
                 <span class="n">err</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">PREPROCESSFAILURE</span>
             <span class="k">elif</span> <span class="n">label</span> <span class="o">==</span> <span class="s1">&#39;postprocess&#39;</span><span class="p">:</span>
                 <span class="n">err</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">POSTPROCESSFAILURE</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">err</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># ie ignore</span>
-            <span class="k">if</span> <span class="n">err</span> <span class="ow">and</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">160</span><span class="p">:</span>  <span class="c1"># ignore no-more-data-points exit code</span>
+            <span class="k">if</span> <span class="n">err</span> <span class="ow">and</span> <span class="n">exit_code</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ignored_exit_codes</span><span class="p">:</span>  <span class="c1"># ignore no-more-data-points exit codes</span>
                 <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">exit_code</span> <span class="ow">in</span> <span class="n">ignored_exit_codes</span><span class="p">:</span>
+                <span class="n">job</span><span class="o">.</span><span class="n">transexitcode</span> <span class="o">=</span> <span class="n">exit_code</span>
 
         <span class="c1"># write output to log files</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">write_utility_output</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
@@ -318,13 +323,20 @@
             <span class="k">elif</span> <span class="n">step</span> <span class="o">==</span> <span class="s1">&#39;postprocess&#39;</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">__postprocess_stdout_name</span> <span class="o">=</span> <span class="n">name_stdout</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">__postprocess_stderr_name</span> <span class="o">=</span> <span class="n">name_stderr</span>
-            <span class="n">write_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">step</span> <span class="o">+</span> <span class="s1">&#39;_stdout.txt&#39;</span><span class="p">),</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to write utility stdout to file: </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">stdout</span><span class="p">))</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">step</span> <span class="o">+</span> <span class="s1">&#39;_stdout.txt&#39;</span><span class="p">)</span>
+            <span class="n">write_file</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to write utility stdout to file: </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">stdout</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;wrote </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">write_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">step</span> <span class="o">+</span> <span class="s1">&#39;_stderr.txt&#39;</span><span class="p">),</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to write utility stderr to file: </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">stderr</span><span class="p">))</span></div>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">step</span> <span class="o">+</span> <span class="s1">&#39;_stderr.txt&#39;</span><span class="p">)</span>
+            <span class="n">write_file</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to write utility stderr to file: </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;wrote </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Executor.pre_payload"><a class="viewcode-back" href="../../../../components/control/payloads/generic.html#pilot.control.payloads.generic.Executor.pre_payload">[docs]</a>    <span class="k">def</span> <span class="nf">pre_payload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -355,13 +367,13 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="n">label</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n\n</span><span class="si">%s</span><span class="s1">:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">cmd</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n\n</span><span class="si">%s</span><span class="s1">:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">label</span> <span class="o">==</span> <span class="s1">&#39;coprocess&#39;</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__coprocess_stdout_name</span><span class="p">),</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span>
                 <span class="n">err</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__coprocess_stderr_name</span><span class="p">),</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to open coprocess stdout/err: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to open coprocess stdout/err: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
                 <span class="n">out</span> <span class="o">=</span> <span class="kc">None</span>
                 <span class="n">err</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
@@ -370,14 +382,14 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">proc</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">returnproc</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">out</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">err</span><span class="p">,</span>
                            <span class="n">usecontainer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;could not execute: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;could not execute: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">proc</span><span class="p">)</span> <span class="o">==</span> <span class="nb">tuple</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">proc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">proc</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">proc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;failed to execute command&#39;</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">None</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;started </span><span class="si">%s</span><span class="s1"> -- pid=</span><span class="si">%s</span><span class="s1"> executable=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">proc</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">cmd</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;started </span><span class="si">%s</span><span class="s1"> -- pid=</span><span class="si">%s</span><span class="s1"> executable=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">proc</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">proc</span></div>
 
@@ -398,25 +410,23 @@
         <span class="c1"># add time for PILOT_PRE_PAYLOAD</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_payload</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">payload execution command:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">cmd</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">payload execution command:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">proc</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">workdir</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">returnproc</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                            <span class="n">usecontainer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">out</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">err</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;could not execute: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;could not execute: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">proc</span><span class="p">)</span> <span class="o">==</span> <span class="nb">tuple</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">proc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">proc</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">proc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;failed to execute payload&#39;</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">None</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;started -- pid=</span><span class="si">%s</span><span class="s1"> executable=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">proc</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">cmd</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;started -- pid=</span><span class="si">%s</span><span class="s1"> executable=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">proc</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
         <span class="n">job</span><span class="o">.</span><span class="n">pid</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">pid</span>
         <span class="n">job</span><span class="o">.</span><span class="n">pgrp</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getpgid</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
         <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="s2">&quot;running&quot;</span><span class="p">)</span>
 
         <span class="c1">#_cmd = self.utility_with_payload(job)</span>
-        <span class="c1">#if _cmd:</span>
-        <span class="c1">#    logger.info(&#39;could have executed: %s&#39; % _cmd)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">utility_after_payload_started</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
 
@@ -431,13 +441,17 @@
 <span class="sd">        :return: updated secondary command (string).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">def</span> <span class="nf">cut_str_from</span><span class="p">(</span><span class="n">_cmd</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
-            <span class="c1"># cut the string from the position of the given _cmd</span>
-            <span class="k">return</span> <span class="n">_cmd</span><span class="p">[:</span><span class="n">_cmd</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span>
+        <span class="k">def</span> <span class="nf">cut_str_from</span><span class="p">(</span><span class="n">_cmd</span><span class="p">,</span> <span class="n">_str</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Cut the string from the position of the given _cmd</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="n">_cmd</span><span class="p">[:</span><span class="n">_cmd</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">_str</span><span class="p">)]</span>
 
         <span class="k">def</span> <span class="nf">cut_str_from_last_semicolon</span><span class="p">(</span><span class="n">_cmd</span><span class="p">):</span>
-            <span class="c1"># cut the string from the last semicolon</span>
-            <span class="c1"># NOTE: this will not work if jobParams also contain ;</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Cut the string from the last semicolon</span>
+<span class="sd">            NOTE: this will not work if jobParams also contain ;</span>
+<span class="sd">            &quot;&quot;&quot;</span>
             <span class="c1"># remove any trailing spaces and ;-signs</span>
             <span class="n">_cmd</span> <span class="o">=</span> <span class="n">_cmd</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
             <span class="n">_cmd</span> <span class="o">=</span> <span class="n">_cmd</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">_cmd</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">_cmd</span>
@@ -478,16 +492,16 @@
             <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
 
             <span class="n">iteration</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">60</span><span class="p">):</span>  <span class="c1"># Python 2/3</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">60</span><span class="p">):</span>  <span class="c1"># Python 2/3</span>
                 <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
                     <span class="n">breaker</span> <span class="o">=</span> <span class="kc">True</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;breaking -- sending SIGTERM pid=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">proc</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;breaking -- sending SIGTERM pid=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">proc</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
                     <span class="n">os</span><span class="o">.</span><span class="n">killpg</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpgid</span><span class="p">(</span><span class="n">proc</span><span class="o">.</span><span class="n">pid</span><span class="p">),</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">)</span>
                     <span class="c1"># proc.terminate()</span>
                     <span class="k">break</span>
                 <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">breaker</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;breaking -- sleep 3s before sending SIGKILL pid=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">proc</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;breaking -- sleep 3s before sending SIGKILL pid=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">proc</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
                 <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
                 <span class="n">proc</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
                 <span class="k">break</span>
@@ -495,7 +509,7 @@
             <span class="n">exit_code</span> <span class="o">=</span> <span class="n">proc</span><span class="o">.</span><span class="n">poll</span><span class="p">()</span>
 
             <span class="k">if</span> <span class="n">iteration</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;running: iteration=</span><span class="si">%d</span><span class="s1"> pid=</span><span class="si">%s</span><span class="s1"> exit_code=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">iteration</span><span class="p">,</span> <span class="n">proc</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">exit_code</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;running: iteration=</span><span class="si">%d</span><span class="s1"> pid=</span><span class="si">%s</span><span class="s1"> exit_code=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="n">proc</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">exit_code</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">exit_code</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">break</span>
             <span class="k">else</span><span class="p">:</span>
@@ -511,15 +525,12 @@
 <span class="sd">        :return: command (string).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">show_memory_usage</span><span class="p">()</span>
-
         <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
         <span class="c1"># for testing looping job: cmd = user.get_payload_command(job) + &#39;;sleep 240&#39;</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">pilot_user</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USER&#39;</span><span class="p">,</span> <span class="s1">&#39;generic&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
             <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.common&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span>
                               <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
-            <span class="n">show_memory_usage</span><span class="p">()</span>
             <span class="n">cmd</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get_payload_command</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>  <span class="c1">#+ &#39;sleep 1000&#39;  # to test looping jobs</span>
         <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">post_setup</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
@@ -528,7 +539,7 @@
             <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="n">get_error_code</span><span class="p">())</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">__traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;error_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span>
-                <span class="s1">&#39;could not define payload command (traces error set to: </span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">__traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;error_code&#39;</span><span class="p">])</span>
+                <span class="s1">&#39;could not define payload command (traces error set to: </span><span class="si">%d</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__traces</span><span class="o">.</span><span class="n">pilot</span><span class="p">[</span><span class="s1">&#39;error_code&#39;</span><span class="p">])</span>
 
         <span class="k">return</span> <span class="n">cmd</span></div>
 
@@ -545,25 +556,29 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="c1"># note: this might update the jobparams</span>
             <span class="n">cmd_before_payload</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">utility_before_payload</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
-            <span class="k">raise</span> <span class="n">e</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">error</span>
 
         <span class="k">if</span> <span class="n">cmd_before_payload</span><span class="p">:</span>
             <span class="n">cmd_before_payload</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">setup</span> <span class="o">+</span> <span class="n">cmd_before_payload</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">preprocess execution command:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">cmd_before_payload</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">preprocess execution command:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">cmd_before_payload</span><span class="p">)</span>
             <span class="n">exit_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute_utility_command</span><span class="p">(</span><span class="n">cmd_before_payload</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="s1">&#39;preprocess&#39;</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">160</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;no more HP points - time to abort processing loop&#39;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;no more HP points - time to abort processing loop&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">161</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;no more HP points but at least one point was processed - time to abort processing loop&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">162</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;loop count reached the limit - time to abort processing loop&#39;</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">exit_code</span><span class="p">:</span>
                 <span class="c1"># set error code</span>
                 <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">PREPROCESSFAILURE</span><span class="p">)</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;cannot continue since preprocess failed: exit_code=</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">exit_code</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;cannot continue since preprocess failed: exit_code=</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">exit_code</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># in case the preprocess produced a command, chmod it</span>
                 <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">containeroptions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;containerExec&#39;</span><span class="p">,</span> <span class="s1">&#39;does_not_exist&#39;</span><span class="p">))</span>
                 <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;chmod 0o755: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;chmod 0o755: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
                     <span class="n">os</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="mo">0o755</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">exit_code</span></div>
@@ -579,8 +594,6 @@
         <span class="c1"># get the payload command from the user specific code</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_setup</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">)</span>
 
-        <span class="n">show_memory_usage</span><span class="p">()</span>
-
         <span class="n">cmd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_payload_command</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">)</span>
         <span class="c1"># extract the setup in case the preprocess command needs it</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="o">.</span><span class="n">setup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_setup</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
@@ -590,7 +603,8 @@
         <span class="c1"># abort when nothing more to run, or when the preprocess returns a special exit code</span>
         <span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;payload iteration loop #</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">iteration</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;payload iteration loop #</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">iteration</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
             <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PILOT_EXEC_ITERATION_COUNT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">iteration</span>
             <span class="n">show_memory_usage</span><span class="p">()</span>
 
@@ -599,7 +613,7 @@
             <span class="n">exit_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_preprocess</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">)</span>
             <span class="n">jobparams_post</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="o">.</span><span class="n">jobparams</span>
             <span class="k">if</span> <span class="n">exit_code</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">160</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">exit_code</span> <span class="o">&gt;=</span> <span class="mi">160</span> <span class="ow">and</span> <span class="n">exit_code</span> <span class="o">&lt;=</span> <span class="mi">162</span><span class="p">:</span>
                     <span class="n">exit_code</span> <span class="o">=</span> <span class="mi">0</span>
                     <span class="c1"># wipe the output file list since there won&#39;t be any new files</span>
                     <span class="c1"># any output files from previous iterations, should have been transferred already</span>
@@ -614,6 +628,11 @@
             <span class="c1"># now run the main payload, when it finishes, run the postprocess (if necessary)</span>
             <span class="c1"># note: no need to run any main payload in HPO Horovod jobs on Kubernetes</span>
             <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HARVESTER_HOROVOD&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+
+                <span class="c1">#exit_code, _stdout, _stderr = execute(&#39;pgrep -x xrootd | awk \&#39;{print \&quot;ps -p \&quot;$1\&quot; -o args --no-headers --cols 300\&quot;}\&#39; | sh&#39;)</span>
+                <span class="c1">#logger.debug(&#39;[before payload start] stdout=%s&#39;, _stdout)</span>
+                <span class="c1">#logger.debug(&#39;[before payload start] stderr=%s&#39;, _stderr)</span>
+
                 <span class="n">proc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_payload</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__err</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">proc</span> <span class="o">=</span> <span class="kc">None</span>
@@ -623,7 +642,7 @@
                 <span class="c1"># run the post-process command even if there was no main payload</span>
                 <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HARVESTER_HOROVOD&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No need to execute any main payload&#39;</span><span class="p">)</span>
-                    <span class="n">exit_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_utility_after_payload_finished</span><span class="p">()</span>
+                    <span class="n">exit_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_utility_after_payload_finished</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">UTILITY_AFTER_PAYLOAD_FINISHED2</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">post_payload</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">break</span>
@@ -641,7 +660,7 @@
                 <span class="c1"># allow for a secondary command to be started after the payload (e.g. a coprocess)</span>
                 <span class="n">utility_cmd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_utility_command</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">UTILITY_AFTER_PAYLOAD_STARTED2</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">utility_cmd</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;starting utility command: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">utility_cmd</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;starting utility command: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">utility_cmd</span><span class="p">)</span>
                     <span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;coprocess&#39;</span> <span class="k">if</span> <span class="s1">&#39;coprocess&#39;</span> <span class="ow">in</span> <span class="n">utility_cmd</span> <span class="k">else</span> <span class="kc">None</span>
                     <span class="n">proc_co</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_command</span><span class="p">(</span><span class="n">utility_cmd</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
 
@@ -658,19 +677,23 @@
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;finished&#39;</span> <span class="k">if</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="s1">&#39;failed&#39;</span>
                 <span class="n">set_pilot_state</span><span class="p">(</span><span class="n">job</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">finished pid=</span><span class="si">%s</span><span class="s1"> exit_code=</span><span class="si">%s</span><span class="s1"> state=</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">proc</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">exit_code</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="o">.</span><span class="n">state</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">finished pid=</span><span class="si">%s</span><span class="s1"> exit_code=</span><span class="si">%s</span><span class="s1"> state=</span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">proc</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">exit_code</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
+
+                <span class="c1">#exit_code, _stdout, _stderr = execute(&#39;pgrep -x xrootd | awk \&#39;{print \&quot;ps -p \&quot;$1\&quot; -o args --no-headers --cols 300\&quot;}\&#39; | sh&#39;)</span>
+                <span class="c1">#logger.debug(&#39;[after payload finish] stdout=%s&#39;, _stdout)</span>
+                <span class="c1">#logger.debug(&#39;[after payload finish] stderr=%s&#39;, _stderr)</span>
 
                 <span class="c1"># stop the utility command (e.g. a coprocess if necessary</span>
                 <span class="k">if</span> <span class="n">proc_co</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;stopping utility command: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">utility_cmd</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;stopping utility command: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">utility_cmd</span><span class="p">)</span>
                     <span class="n">kill_processes</span><span class="p">(</span><span class="n">proc_co</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
 
                 <span class="k">if</span> <span class="n">exit_code</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;detected unset exit_code from wait_graceful - reset to -1&#39;</span><span class="p">)</span>
                     <span class="n">exit_code</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
 
-                <span class="k">if</span> <span class="n">state</span> <span class="o">!=</span> <span class="s1">&#39;failed&#39;</span><span class="p">:</span>
-                    <span class="n">exit_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_utility_after_payload_finished</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">order</span> <span class="ow">in</span> <span class="p">[</span><span class="n">UTILITY_AFTER_PAYLOAD_FINISHED</span><span class="p">,</span> <span class="n">UTILITY_AFTER_PAYLOAD_FINISHED2</span><span class="p">]:</span>
+                    <span class="n">exit_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">run_utility_after_payload_finished</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
 
                 <span class="bp">self</span><span class="o">.</span><span class="n">post_payload</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">)</span>
 
@@ -687,26 +710,44 @@
 
         <span class="k">return</span> <span class="n">exit_code</span></div>
 
-<div class="viewcode-block" id="Executor.run_utility_after_payload_finished"><a class="viewcode-back" href="../../../../components/control/payloads/generic.html#pilot.control.payloads.generic.Executor.run_utility_after_payload_finished">[docs]</a>    <span class="k">def</span> <span class="nf">run_utility_after_payload_finished</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Executor.run_utility_after_payload_finished"><a class="viewcode-back" href="../../../../components/control/payloads/generic.html#pilot.control.payloads.generic.Executor.run_utility_after_payload_finished">[docs]</a>    <span class="k">def</span> <span class="nf">run_utility_after_payload_finished</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Run utility command after the main payload has finished.</span>
+<span class="sd">        In horovod mode, select the corresponding post-process. Otherwise, select different post-process (e.g. Xcache).</span>
 
+<span class="sd">        The order constant can be UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_AFTER_PAYLOAD_FINISHED2</span>
+
+<span class="sd">        :param state: payload state; finished/failed (string).</span>
+<span class="sd">        :param order: constant used for utility selection (constant).</span>
 <span class="sd">        :return: exit code (int).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">exit_code</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">cmd_after_payload</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">utility_after_payload_finished</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="n">cmd_after_payload</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">utility_after_payload_finished</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">cmd_after_payload</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="o">.</span><span class="n">postprocess</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cmd_after_payload</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="o">.</span><span class="n">postprocess</span> <span class="ow">and</span> <span class="n">state</span> <span class="o">!=</span> <span class="s1">&#39;failed&#39;</span><span class="p">:</span>
                 <span class="n">cmd_after_payload</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="o">.</span><span class="n">setup</span> <span class="o">+</span> <span class="n">cmd_after_payload</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">postprocess execution command:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">cmd_after_payload</span><span class="p">)</span>
-                <span class="n">exit_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute_utility_command</span><span class="p">(</span><span class="n">cmd_after_payload</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">,</span> <span class="s1">&#39;postprocess&#39;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">postprocess execution command:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">cmd_after_payload</span><span class="p">)</span>
+                <span class="n">exit_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute_utility_command</span><span class="p">(</span><span class="n">cmd_after_payload</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">cmd_after_payload</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">postprocess execution command:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">cmd_after_payload</span><span class="p">)</span>
-                <span class="n">exit_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute_utility_command</span><span class="p">(</span><span class="n">cmd_after_payload</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">,</span> <span class="s1">&#39;xcache&#39;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">postprocess execution command:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">cmd_after_payload</span><span class="p">)</span>
+
+                <span class="c1"># xcache debug</span>
+                <span class="c1">#if &#39;xcache&#39; in cmd_after_payload:</span>
+                <span class="c1">#    _exit_code, _stdout, _stderr = execute(&#39;pgrep -x xrootd | awk \&#39;{print \&quot;ps -p \&quot;$1\&quot; -o args --no-headers --cols 300\&quot;}\&#39; | sh&#39;)</span>
+                <span class="c1">#    logger.debug(&#39;[before xcache kill] stdout=%s&#39;, _stdout)</span>
+                <span class="c1">#    logger.debug(&#39;[before xcache kill] stderr=%s&#39;, _stderr)</span>
+
+                <span class="n">exit_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute_utility_command</span><span class="p">(</span><span class="n">cmd_after_payload</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
+
+                <span class="c1"># xcache debug</span>
+                <span class="c1">#if &#39;xcache&#39; in cmd_after_payload:</span>
+                <span class="c1">#    _exit_code, _stdout, _stderr = execute(&#39;pgrep -x xrootd | awk \&#39;{print \&quot;ps -p \&quot;$1\&quot; -o args --no-headers --cols 300\&quot;}\&#39; | sh&#39;)</span>
+                <span class="c1">#    logger.debug(&#39;[after xcache kill] stdout=%s&#39;, _stdout)</span>
+                <span class="c1">#    logger.debug(&#39;[after xcache kill] stderr=%s&#39;, _stderr)</span>
 
         <span class="k">return</span> <span class="n">exit_code</span></div>
 
@@ -724,11 +765,11 @@
             <span class="k">if</span> <span class="n">utproc</span><span class="p">:</span>
                 <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.common&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
                 <span class="n">sig</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">get_utility_command_kill_signal</span><span class="p">(</span><span class="n">utcmd</span><span class="p">)</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;stopping process </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> with signal </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">utcmd</span><span class="p">,</span> <span class="n">sig</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;stopping process </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> with signal </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">utcmd</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">os</span><span class="o">.</span><span class="n">killpg</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpgid</span><span class="p">(</span><span class="n">utproc</span><span class="o">.</span><span class="n">pid</span><span class="p">),</span> <span class="n">sig</span><span class="p">)</span>
-                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1"> (ignoring)&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1"> (ignoring)&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
 
                 <span class="n">user</span><span class="o">.</span><span class="n">post_utility_command_action</span><span class="p">(</span><span class="n">utcmd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">__job</span><span class="p">)</span></div>
 
@@ -745,7 +786,7 @@
             <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">iteration</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;cannot rename </span><span class="si">%s</span><span class="s1"> since it does not exist&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span></div></div>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;cannot rename </span><span class="si">%s</span><span class="s1"> since it does not exist&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span></div></div>
 </pre></div>
 
           </div>
@@ -796,7 +837,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

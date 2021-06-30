@@ -63,7 +63,7 @@
 
 <span class="kn">from</span> <span class="nn">.basedata</span> <span class="kn">import</span> <span class="n">BaseData</span>
 <span class="kn">from</span> <span class="nn">.filespec</span> <span class="kn">import</span> <span class="n">FileSpec</span>
-<span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">get_object_size</span>
+<span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">get_object_size</span><span class="p">,</span> <span class="n">get_key_value</span>
 <span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">LOG_TRANSFER_NOT_DONE</span>
 <span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">get_guid</span><span class="p">,</span> <span class="n">get_valid_path_from_list</span>
 <span class="kn">from</span> <span class="nn">pilot.util.timing</span> <span class="kn">import</span> <span class="n">get_elapsed_real_time</span>
@@ -122,12 +122,13 @@
     <span class="n">neventsw</span> <span class="o">=</span> <span class="mi">0</span>                   <span class="c1"># number of events written</span>
     <span class="n">dbtime</span> <span class="o">=</span> <span class="kc">None</span>                  <span class="c1">#</span>
     <span class="n">dbdata</span> <span class="o">=</span> <span class="kc">None</span>                  <span class="c1">#</span>
-    <span class="n">resimevents</span> <span class="o">=</span> <span class="mi">0</span>                <span class="c1"># ReSim events from job report (ATLAS)</span>
+    <span class="n">resimevents</span> <span class="o">=</span> <span class="kc">None</span>             <span class="c1"># ReSim events from job report (ATLAS)</span>
     <span class="n">payload</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                   <span class="c1"># payload name</span>
     <span class="n">utilities</span> <span class="o">=</span> <span class="p">{}</span>                 <span class="c1"># utility processes { &lt;name&gt;: [&lt;process handle&gt;, number of launches, command string], .. }</span>
     <span class="n">pid</span> <span class="o">=</span> <span class="kc">None</span>                     <span class="c1"># payload pid</span>
     <span class="n">pgrp</span> <span class="o">=</span> <span class="kc">None</span>                    <span class="c1"># payload process group</span>
     <span class="n">sizes</span> <span class="o">=</span> <span class="p">{}</span>                     <span class="c1"># job object sizes { timestamp: size, .. }</span>
+    <span class="n">currentsize</span> <span class="o">=</span> <span class="mi">0</span>                <span class="c1"># current job object size</span>
     <span class="n">command</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                   <span class="c1"># full payload command (set for container jobs)</span>
     <span class="n">setup</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                     <span class="c1"># full payload setup (needed by postprocess command)</span>
     <span class="n">zombies</span> <span class="o">=</span> <span class="p">[]</span>                   <span class="c1"># list of zombie process ids</span>
@@ -151,7 +152,8 @@
     <span class="n">attemptnr</span> <span class="o">=</span> <span class="mi">0</span>                  <span class="c1"># job attempt number</span>
     <span class="n">destinationdblock</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>         <span class="c1">## to be moved to FileSpec (job.outdata)</span>
     <span class="n">datasetin</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                 <span class="c1">## TO BE DEPRECATED: moved to FileSpec (job.indata)</span>
-    <span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>                  <span class="c1">#</span>
+    <span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>                  <span class="c1"># debug mode, when True, pilot will send debug info back to the server</span>
+    <span class="n">debug_command</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>             <span class="c1"># debug command (can be defined on the task side)</span>
     <span class="n">produserid</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>                <span class="c1"># the user DN (added to trace report)</span>
     <span class="n">jobdefinitionid</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>           <span class="c1"># the job definition id (added to trace report)</span>
     <span class="n">infilesguids</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>              <span class="c1">#</span>
@@ -232,7 +234,7 @@
             <span class="c1"># prepend IMAGE_BASE to imagename if necessary (for testing purposes)</span>
             <span class="n">image_base</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;IMAGE_BASE&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">image_base</span> <span class="ow">and</span> <span class="s1">&#39;IMAGE_BASE&#39;</span> <span class="ow">in</span> <span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">catchall</span><span class="p">:</span>
-                <span class="n">image_base</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_key_value</span><span class="p">(</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">catchall</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;IMAGE_BASE&#39;</span><span class="p">)</span>
+                <span class="n">image_base</span> <span class="o">=</span> <span class="n">get_key_value</span><span class="p">(</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">catchall</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;IMAGE_BASE&#39;</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">image_base</span><span class="p">:</span>
                 <span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">image_base</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imagename</span><span class="p">)),</span>
                          <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">image_base</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">imagename</span><span class="p">)]</span>
@@ -241,19 +243,6 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">imagename</span> <span class="o">=</span> <span class="n">local_path</span></div>
             <span class="c1">#if image_base and not os.path.isabs(self.imagename) and not self.imagename.startswith(&#39;docker&#39;):</span>
             <span class="c1">#    self.imagename = os.path.join(image_base, self.imagename)</span>
-
-<div class="viewcode-block" id="JobData.get_key_value"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.get_key_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_key_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">catchall</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;SOMEKEY&#39;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Return the value corresponding to key in catchall.</span>
-<span class="sd">        :param catchall: catchall free string.</span>
-<span class="sd">        :param key: key name (string).</span>
-<span class="sd">        :return: value (string).</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="c1"># ignore any non-key-value pairs that might be present in the catchall string</span>
-        <span class="n">s</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">catchall</span><span class="o">.</span><span class="n">split</span><span class="p">()</span> <span class="k">if</span> <span class="s1">&#39;=&#39;</span> <span class="ow">in</span> <span class="n">s</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="JobData.prepare_infiles"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.prepare_infiles">[docs]</a>    <span class="k">def</span> <span class="nf">prepare_infiles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -306,7 +295,7 @@
                     <span class="n">idat</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
 
             <span class="n">finfo</span> <span class="o">=</span> <span class="n">FileSpec</span><span class="p">(</span><span class="n">filetype</span><span class="o">=</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">idat</span><span class="p">)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;added file </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">lfn</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;added file </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1"> with accessmode </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">lfn</span><span class="p">,</span> <span class="n">accessmode</span><span class="p">))</span>
             <span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">finfo</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">ret</span></div>
@@ -643,7 +632,7 @@
 <span class="sd">        :return: updated job parameters (string).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="c1">#value += &#39; --athenaopts &quot;HITtoRDO:--nprocs=$ATHENA_CORE_NUMBER&quot; someblah&#39;</span>
+        <span class="c1">#   value += &#39; --athenaopts &quot;HITtoRDO:--nprocs=$ATHENA_CORE_NUMBER&quot; someblah&#39;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;cleaning jobparams: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">value</span><span class="p">)</span>
 
         <span class="c1"># user specific pre-filtering</span>
@@ -1018,7 +1007,12 @@
 <span class="sd">        :return: size (int).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">return</span> <span class="n">get_object_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+        <span class="c1"># protect against the case where the object changes size during calculation (rare)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">currentsize</span> <span class="o">=</span> <span class="n">get_object_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">currentsize</span></div>
 
 <div class="viewcode-block" id="JobData.collect_zombies"><a class="viewcode-back" href="../../../components/info/jobdata.html#pilot.info.jobdata.JobData.collect_zombies">[docs]</a>    <span class="k">def</span> <span class="nf">collect_zombies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -1145,7 +1139,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

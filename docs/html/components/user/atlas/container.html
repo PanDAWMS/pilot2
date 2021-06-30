@@ -81,7 +81,7 @@ setupATLAS -c $thePlatform</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pilot.user.atlas.container.create_middleware_container_command">
-<span class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></span><span class="sig-name descname"><span class="pre">create_middleware_container_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">container_options</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'stagein'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#create_middleware_container_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.create_middleware_container_command" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></span><span class="sig-name descname"><span class="pre">create_middleware_container_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">container_options</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'stagein'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proxy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#create_middleware_container_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.create_middleware_container_command" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create the stage-in/out container command.</p>
 <p>The function takes the isolated stage-in/out command, adds bits and pieces needed for the containerisation and stores
 it in a stage[in|out].sh script file. It then generates the actual command that will execute the stage-in/out script in a
@@ -314,18 +314,21 @@ The function typically returns: “source $AtlasSetup/scripts/asetup.sh 21.0,Ath
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pilot.user.atlas.container.get_middleware_container">
-<span class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></span><span class="sig-name descname"><span class="pre">get_middleware_container</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#get_middleware_container"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.get_middleware_container" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></span><span class="sig-name descname"><span class="pre">get_middleware_container</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#get_middleware_container"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.get_middleware_container" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the middleware container.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>path (string).</p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>label</strong> – label (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>path (string).</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pilot.user.atlas.container.get_middleware_container_script">
-<span class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></span><span class="sig-name descname"><span class="pre">get_middleware_container_script</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">middleware_container</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">asetup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#get_middleware_container_script"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.get_middleware_container_script" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pilot.user.atlas.container.</span></span><span class="sig-name descname"><span class="pre">get_middleware_container_script</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">middleware_container</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">asetup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/container.html#get_middleware_container_script"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.container.get_middleware_container_script" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the content of the middleware container script.
 If asetup is True, atlasLocalSetup will be added to the command.</p>
 <dl class="field-list simple">
@@ -622,7 +625,7 @@ This function will be called by pilot.util.container.execute() and prepends the 
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

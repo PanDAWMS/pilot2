@@ -92,7 +92,7 @@ environment variables.</p>
 <dd class="field-odd"><p><strong>name</strong> – utility name (string).</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>execution order constant (UTILITY_BEFORE_PAYLOAD or UTILITY_AFTER_PAYLOAD)</p>
+<dd class="field-even"><p>execution order constant (UTILITY_BEFORE_PAYLOAD or UTILITY_AFTER_PAYLOAD_STARTED)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -147,7 +147,7 @@ corresponding command setups using the utility command name.
 If the optional order parameter is set, the function should return the list of corresponding commands.
 E.g. if order=UTILITY_BEFORE_PAYLOAD, the function should return all commands that are to be executed before the
 payload. If order=UTILITY_WITH_PAYLOAD, the corresponding commands will be prepended to the payload execution
-string. If order=UTILITY_AFTER_PAYLOAD, the commands that should be executed after the payload has been started
+string. If order=UTILITY_AFTER_PAYLOAD_STARTED, the commands that should be executed after the payload has been started
 should be returned.</p>
 <p>FORMAT: {‘command’: &lt;command&gt;, ‘args’: &lt;args&gt;}</p>
 <dl class="field-list simple">
@@ -159,6 +159,20 @@ should be returned.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>dictionary of utilities to be executed in parallel with the payload.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.user.generic.common.post_prestagein_utility_command">
+<span class="sig-prename descclassname"><span class="pre">pilot.user.generic.common.</span></span><span class="sig-name descname"><span class="pre">post_prestagein_utility_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/generic/common.html#post_prestagein_utility_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.generic.common.post_prestagein_utility_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute any post pre-stage-in utility commands.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>kwargs</strong> – kwargs (dictionary).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
 </dd>
 </dl>
 </dd></dl>
@@ -176,6 +190,25 @@ should be returned.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.user.generic.common.process_debug_command">
+<span class="sig-prename descclassname"><span class="pre">pilot.user.generic.common.</span></span><span class="sig-name descname"><span class="pre">process_debug_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">debug_command</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pandaid</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/generic/common.html#process_debug_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.generic.common.process_debug_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>In debug mode, the server can send a special debug command to the pilot via the updateJob backchannel.
+This function can be used to process that command, i.e. to identify a proper pid to debug (which is unknown
+to the server).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>debug_command</strong> – debug command (string), payload pid (int).</p></li>
+<li><p><strong>pandaid</strong> – PanDA id (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated debug command (string)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -366,7 +399,7 @@ job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

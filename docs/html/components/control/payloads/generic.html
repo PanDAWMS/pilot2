@@ -239,11 +239,19 @@ exit code.
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pilot.control.payloads.generic.Executor.run_utility_after_payload_finished">
-<span class="sig-name descname"><span class="pre">run_utility_after_payload_finished</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.run_utility_after_payload_finished"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.run_utility_after_payload_finished" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run utility command after the main payload has finished.</p>
+<span class="sig-name descname"><span class="pre">run_utility_after_payload_finished</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.run_utility_after_payload_finished"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.run_utility_after_payload_finished" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run utility command after the main payload has finished.
+In horovod mode, select the corresponding post-process. Otherwise, select different post-process (e.g. Xcache).</p>
+<p>The order constant can be UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_AFTER_PAYLOAD_FINISHED2</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>exit code (int).</p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state</strong> – payload state; finished/failed (string).</p></li>
+<li><p><strong>order</strong> – constant used for utility selection (constant).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>exit code (int).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -261,13 +269,19 @@ exit code.
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pilot.control.payloads.generic.Executor.utility_after_payload_finished">
-<span class="sig-name descname"><span class="pre">utility_after_payload_finished</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.utility_after_payload_finished"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.utility_after_payload_finished" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">utility_after_payload_finished</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/control/payloads/generic.html#Executor.utility_after_payload_finished"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.payloads.generic.Executor.utility_after_payload_finished" title="Permalink to this definition">¶</a></dt>
 <dd><p>Prepare commands/utilities to run after payload has finished.</p>
 <p>This command will be executed later.</p>
-<p>REFACTOR</p>
+<p>The order constant can be UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_AFTER_PAYLOAD_FINISHED2</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job</strong> – job object.</p></li>
+<li><p><strong>order</strong> – constant used for utility selection (constant).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>command (string), label (string).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -425,7 +439,7 @@ Example of step: preprocess, postprocess.</p>
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

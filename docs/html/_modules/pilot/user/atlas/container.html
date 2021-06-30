@@ -932,7 +932,7 @@
     <span class="k">return</span> <span class="n">command</span></div>
 
 
-<div class="viewcode-block" id="create_middleware_container_command"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.create_middleware_container_command">[docs]</a><span class="k">def</span> <span class="nf">create_middleware_container_command</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">container_options</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;stagein&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="create_middleware_container_command"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.create_middleware_container_command">[docs]</a><span class="k">def</span> <span class="nf">create_middleware_container_command</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">container_options</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;stagein&#39;</span><span class="p">,</span> <span class="n">proxy</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create the stage-in/out container command.</span>
 
@@ -957,10 +957,16 @@
     <span class="n">command</span> <span class="o">=</span> <span class="s1">&#39;cd </span><span class="si">%s</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">workdir</span>
 
     <span class="c1"># add bits and pieces for the containerisation</span>
-    <span class="n">middleware_container</span> <span class="o">=</span> <span class="n">get_middleware_container</span><span class="p">()</span>
-    <span class="n">content</span> <span class="o">=</span> <span class="n">get_middleware_container_script</span><span class="p">(</span><span class="n">middleware_container</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
+    <span class="n">middleware_container</span> <span class="o">=</span> <span class="n">get_middleware_container</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">get_middleware_container_script</span><span class="p">(</span><span class="n">middleware_container</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
     <span class="c1"># store it in setup.sh</span>
-    <span class="n">script_name</span> <span class="o">=</span> <span class="s1">&#39;stagein.sh&#39;</span> <span class="k">if</span> <span class="n">label</span> <span class="o">==</span> <span class="s1">&#39;stage-in&#39;</span> <span class="k">else</span> <span class="s1">&#39;stageout.sh&#39;</span>
+    <span class="k">if</span> <span class="n">label</span> <span class="o">==</span> <span class="s1">&#39;stage-in&#39;</span><span class="p">:</span>
+        <span class="n">script_name</span> <span class="o">=</span> <span class="s1">&#39;stagein.sh&#39;</span>
+    <span class="k">elif</span> <span class="n">label</span> <span class="o">==</span> <span class="s1">&#39;stage-out&#39;</span><span class="p">:</span>
+        <span class="n">script_name</span> <span class="o">=</span> <span class="s1">&#39;stageout.sh&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">script_name</span> <span class="o">=</span> <span class="s1">&#39;general.sh&#39;</span>
+
     <span class="k">try</span><span class="p">:</span>
         <span class="n">status</span> <span class="o">=</span> <span class="n">write_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">script_name</span><span class="p">),</span> <span class="n">content</span><span class="p">)</span>
     <span class="k">except</span> <span class="n">PilotException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -968,9 +974,10 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">status</span><span class="p">:</span>
             <span class="c1"># generate the final container command</span>
-            <span class="n">x509</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;X509_USER_PROXY&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">x509</span><span class="p">:</span>
-                <span class="n">command</span> <span class="o">+=</span> <span class="s1">&#39;export X509_USER_PROXY=</span><span class="si">%s</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">x509</span>
+            <span class="k">if</span> <span class="n">proxy</span><span class="p">:</span>
+                <span class="n">x509</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;X509_USER_PROXY&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">x509</span><span class="p">:</span>
+                    <span class="n">command</span> <span class="o">+=</span> <span class="s1">&#39;export X509_USER_PROXY=</span><span class="si">%s</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">x509</span>
             <span class="n">command</span> <span class="o">+=</span> <span class="s1">&#39;export ALRB_CONT_RUNPAYLOAD=</span><span class="se">\&quot;</span><span class="s1">source /srv/</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1">;&#39;</span> <span class="o">%</span> <span class="n">script_name</span>
             <span class="n">command</span> <span class="o">+=</span> <span class="n">get_asetup</span><span class="p">(</span><span class="n">alrb</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;</span>
             <span class="n">command</span> <span class="o">+=</span> <span class="s1">&#39;source $</span><span class="si">{ATLAS_LOCAL_ROOT_BASE}</span><span class="s1">/user/atlasLocalSetup.sh -c </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">middleware_container</span>
@@ -997,7 +1004,7 @@
     <span class="k">return</span> <span class="n">content</span></div>
 
 
-<div class="viewcode-block" id="get_middleware_container_script"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.get_middleware_container_script">[docs]</a><span class="k">def</span> <span class="nf">get_middleware_container_script</span><span class="p">(</span><span class="n">middleware_container</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">asetup</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="get_middleware_container_script"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.get_middleware_container_script">[docs]</a><span class="k">def</span> <span class="nf">get_middleware_container_script</span><span class="p">(</span><span class="n">middleware_container</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">asetup</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return the content of the middleware container script.</span>
 <span class="sd">    If asetup is True, atlasLocalSetup will be added to the command.</span>
@@ -1017,9 +1024,11 @@
             <span class="n">content</span> <span class="o">+=</span> <span class="s1">&#39;export ALRB_LOCAL_PY3=YES; &#39;</span>
         <span class="k">if</span> <span class="n">asetup</span><span class="p">:</span>  <span class="c1"># export ATLAS_LOCAL_ROOT_BASE=/cvmfs/..;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;</span>
             <span class="n">content</span> <span class="o">+=</span> <span class="n">get_asetup</span><span class="p">(</span><span class="n">asetup</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">content</span> <span class="o">+=</span> <span class="n">sitename</span> <span class="o">+</span> <span class="s1">&#39;lsetup rucio davix xrootd; &#39;</span>
-        <span class="n">content</span> <span class="o">+=</span> <span class="s1">&#39;python3 </span><span class="si">%s</span><span class="s1"> &#39;</span> <span class="o">%</span> <span class="n">cmd</span> <span class="k">if</span> <span class="n">is_python3</span><span class="p">()</span> <span class="k">else</span> <span class="s1">&#39;python </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cmd</span>
-
+        <span class="k">if</span> <span class="n">label</span> <span class="o">==</span> <span class="s1">&#39;stagein&#39;</span> <span class="ow">or</span> <span class="n">label</span> <span class="o">==</span> <span class="s1">&#39;stageout&#39;</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">+=</span> <span class="n">sitename</span> <span class="o">+</span> <span class="s1">&#39;lsetup rucio davix xrootd; &#39;</span>
+            <span class="n">content</span> <span class="o">+=</span> <span class="s1">&#39;python3 </span><span class="si">%s</span><span class="s1"> &#39;</span> <span class="o">%</span> <span class="n">cmd</span> <span class="k">if</span> <span class="n">is_python3</span><span class="p">()</span> <span class="k">else</span> <span class="s1">&#39;python </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cmd</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">+=</span> <span class="n">cmd</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">asetup</span><span class="p">:</span>
         <span class="n">content</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">exit $?&#39;</span>
 
@@ -1028,12 +1037,16 @@
     <span class="k">return</span> <span class="n">content</span></div>
 
 
-<div class="viewcode-block" id="get_middleware_container"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.get_middleware_container">[docs]</a><span class="k">def</span> <span class="nf">get_middleware_container</span><span class="p">():</span>
+<div class="viewcode-block" id="get_middleware_container"><a class="viewcode-back" href="../../../../components/user/atlas/container.html#pilot.user.atlas.container.get_middleware_container">[docs]</a><span class="k">def</span> <span class="nf">get_middleware_container</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return the middleware container.</span>
 
+<span class="sd">    :param label: label (string).</span>
 <span class="sd">    :return: path (string).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">label</span> <span class="ow">and</span> <span class="n">label</span> <span class="o">==</span> <span class="s1">&#39;general&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;CentOS7&#39;</span>
 
     <span class="n">path</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Container</span><span class="o">.</span><span class="n">middleware_container</span>
     <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
@@ -1092,7 +1105,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

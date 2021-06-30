@@ -87,15 +87,15 @@
         <span class="n">check_hz</span><span class="p">()</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">cpuconsumptiontime</span> <span class="o">=</span> <span class="n">get_current_cpu_consumption_time</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;Exception caught: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;Exception caught: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">error</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
             <span class="n">exit_code</span> <span class="o">=</span> <span class="n">get_exception_error_code</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptiontime</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">cpuconsumptiontime</span><span class="p">))</span>
             <span class="n">job</span><span class="o">.</span><span class="n">cpuconversionfactor</span> <span class="o">=</span> <span class="mf">1.0</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;CPU consumption time for pid=</span><span class="si">%d</span><span class="s1">: </span><span class="si">%f</span><span class="s1"> (rounded to </span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">cpuconsumptiontime</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptiontime</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;CPU consumption time for pid=</span><span class="si">%d</span><span class="s1">: </span><span class="si">%f</span><span class="s1"> (rounded to </span><span class="si">%d</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">cpuconsumptiontime</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptiontime</span><span class="p">)</span>
 
         <span class="c1"># check how many cores the payload is using</span>
         <span class="n">set_number_used_cores</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
@@ -156,7 +156,7 @@
 
     <span class="n">payload_score</span> <span class="o">=</span> <span class="n">get_score</span><span class="p">(</span><span class="n">payload_pid</span><span class="p">)</span> <span class="k">if</span> <span class="n">payload_pid</span> <span class="k">else</span> <span class="s1">&#39;UNKNOWN&#39;</span>
     <span class="n">pilot_score</span> <span class="o">=</span> <span class="n">get_score</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">())</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;oom_score(pilot) = </span><span class="si">%s</span><span class="s1">, oom_score(payload) = </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pilot_score</span><span class="p">,</span> <span class="n">payload_score</span><span class="p">))</span></div>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;oom_score(pilot) = </span><span class="si">%s</span><span class="s1">, oom_score(payload) = </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">pilot_score</span><span class="p">,</span> <span class="n">payload_score</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_score"><a class="viewcode-back" href="../../../components/util/monitoring.html#pilot.util.monitoring.get_score">[docs]</a><span class="k">def</span> <span class="nf">get_score</span><span class="p">(</span><span class="n">pid</span><span class="p">):</span>
@@ -169,8 +169,8 @@
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">score</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">read_file</span><span class="p">(</span><span class="s1">&#39;/proc/</span><span class="si">%d</span><span class="s1">/oom_score&#39;</span> <span class="o">%</span> <span class="n">pid</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;caught exception reading oom_score: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;caught exception reading oom_score: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
         <span class="n">score</span> <span class="o">=</span> <span class="s1">&#39;UNKNOWN&#39;</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">score</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
@@ -240,8 +240,8 @@
         <span class="c1"># is the used memory within the allowed limit?</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">memory</span><span class="o">.</span><span class="n">memory_usage</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;caught exception: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;caught exception: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
             <span class="n">exit_code</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
         <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;ignoring failure to parse memory monitor output&#39;</span><span class="p">)</span>
@@ -324,8 +324,8 @@
         <span class="c1"># is the job looping?</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">looping_job</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">mt</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;exception caught in looping job algorithm: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;exception caught in looping job algorithm: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">error</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
             <span class="k">if</span> <span class="s2">&quot;No module named&quot;</span> <span class="ow">in</span> <span class="n">diagnostics</span><span class="p">:</span>
                 <span class="n">exit_code</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">BLACKHOLE</span>
@@ -404,15 +404,15 @@
         <span class="n">nproc</span> <span class="o">=</span> <span class="n">get_number_of_child_processes</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">nproc_env</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_MAXNPROC&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert PILOT_MAXNPROC to int: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert PILOT_MAXNPROC to int: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">nproc</span> <span class="o">&gt;</span> <span class="n">nproc_env</span><span class="p">:</span>
                 <span class="c1"># set the maximum number of found processes</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PILOT_MAXNPROC&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">nproc</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">nproc_env</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;maximum number of monitored processes: </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">nproc_env</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;maximum number of monitored processes: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">nproc_env</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;&quot;</span></div>
 
@@ -450,19 +450,19 @@
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">proc1</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">utility_command</span><span class="p">,</span> <span class="n">workdir</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">returnproc</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">usecontainer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                     <span class="n">stdout</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">queuedata</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="p">)</span>
-                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;could not execute: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;could not execute: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="c1"># store process handle in job object, and keep track on how many times the</span>
                     <span class="c1"># command has been launched</span>
                     <span class="n">job</span><span class="o">.</span><span class="n">utilities</span><span class="p">[</span><span class="n">utcmd</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">proc1</span><span class="p">,</span> <span class="n">utility_subprocess_launches</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">utility_command</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;detected crashed utility subprocess - too many restarts, will not restart </span><span class="si">%s</span><span class="s1"> again&#39;</span> <span class="o">%</span> <span class="n">utcmd</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;detected crashed utility subprocess - too many restarts, will not restart </span><span class="si">%s</span><span class="s1"> again&#39;</span><span class="p">,</span> <span class="n">utcmd</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>  <span class="c1"># check the utility output (the selector option adds a substring to the output file name)</span>
             <span class="n">filename</span> <span class="o">=</span> <span class="n">usercommon</span><span class="o">.</span><span class="n">get_utility_command_output_filename</span><span class="p">(</span><span class="n">utcmd</span><span class="p">,</span> <span class="n">selector</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;file: </span><span class="si">%s</span><span class="s1"> does not exist&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;file: </span><span class="si">%s</span><span class="s1"> does not exist&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
 
             <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span></div>
 
@@ -477,10 +477,9 @@
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">localsizelimit_stdout</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">local_size_limit_stdout</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="n">localsizelimit_stdout</span> <span class="o">=</span> <span class="mi">2097152</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;bad value in config for local_size_limit_stdout: </span><span class="si">%s</span><span class="s1"> (will use value: </span><span class="si">%d</span><span class="s1"> kB)&#39;</span> <span class="o">%</span>
-                       <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">localsizelimit_stdout</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;bad value in config for local_size_limit_stdout: </span><span class="si">%s</span><span class="s1"> (will use value: </span><span class="si">%d</span><span class="s1"> kB)&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">localsizelimit_stdout</span><span class="p">)</span>
 
     <span class="c1"># convert from kB to B</span>
     <span class="k">if</span> <span class="nb">bytes</span><span class="p">:</span>
@@ -517,17 +516,17 @@
     <span class="c1"># now loop over all files and check each individually (any large enough file will fail the job)</span>
     <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">file_list</span><span class="p">:</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;check_payload_stdout: filename=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;check_payload_stdout: filename=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;job.log.tgz&quot;</span> <span class="ow">in</span> <span class="n">filename</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;skipping file size check of file (</span><span class="si">%s</span><span class="s2">) since it is a special log file&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;skipping file size check of file (</span><span class="si">%s</span><span class="s2">) since it is a special log file&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
             <span class="k">continue</span>
 
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="c1"># get file size in bytes</span>
                 <span class="n">fsize</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;could not read file size of </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;could not read file size of </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># is the file too big?</span>
                 <span class="n">localsizelimit_stdout</span> <span class="o">=</span> <span class="n">get_local_size_limit_stdout</span><span class="p">()</span>
@@ -550,9 +549,9 @@
                         <span class="c1"># remove any lingering input files from the work dir</span>
                         <span class="n">exit_code</span> <span class="o">=</span> <span class="n">remove_files</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">lfns</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;payload log (</span><span class="si">%s</span><span class="s2">) within allowed size limit (</span><span class="si">%d</span><span class="s2"> B): </span><span class="si">%d</span><span class="s2"> B&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">filename</span><span class="p">),</span> <span class="n">localsizelimit_stdout</span><span class="p">,</span> <span class="n">fsize</span><span class="p">))</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;payload log (</span><span class="si">%s</span><span class="s2">) within allowed size limit (</span><span class="si">%d</span><span class="s2"> B): </span><span class="si">%d</span><span class="s2"> B&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">filename</span><span class="p">),</span> <span class="n">localsizelimit_stdout</span><span class="p">,</span> <span class="n">fsize</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;skipping file size check of payload stdout file (</span><span class="si">%s</span><span class="s2">) since it has not been created yet&quot;</span> <span class="o">%</span> <span class="n">filename</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;skipping file size check of payload stdout file (</span><span class="si">%s</span><span class="s2">) since it has not been created yet&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span></div>
 
@@ -572,7 +571,7 @@
 
     <span class="c1"># is there enough local space to run a job?</span>
     <span class="n">cwd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;checking local space on </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cwd</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;checking local space on </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cwd</span><span class="p">)</span>
     <span class="n">spaceleft</span> <span class="o">=</span> <span class="n">convert_mb_to_b</span><span class="p">(</span><span class="n">get_local_disk_space</span><span class="p">(</span><span class="n">cwd</span><span class="p">))</span>  <span class="c1"># B (diskspace is in MB)</span>
     <span class="n">free_space_limit</span> <span class="o">=</span> <span class="n">human2bytes</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">free_space_limit</span><span class="p">)</span> <span class="k">if</span> <span class="n">initial</span> <span class="k">else</span> <span class="n">human2bytes</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">free_space_limit_running</span><span class="p">)</span>
 
@@ -582,7 +581,7 @@
         <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">NOLOCALSPACE</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;sufficient remaining disk space (</span><span class="si">%d</span><span class="s1"> B)&#39;</span> <span class="o">%</span> <span class="n">spaceleft</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;sufficient remaining disk space (</span><span class="si">%d</span><span class="s1"> B)&#39;</span><span class="p">,</span> <span class="n">spaceleft</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span></div>
 
@@ -611,11 +610,11 @@
                 <span class="n">exit_code</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">USERDIRTOOLARGE</span>
                 <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;work directory (</span><span class="si">%s</span><span class="s2">) is too large: </span><span class="si">%d</span><span class="s2"> B (must be &lt; </span><span class="si">%d</span><span class="s2"> B)&quot;</span> <span class="o">%</span> \
                               <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">workdirsize</span><span class="p">,</span> <span class="n">maxwdirsize</span><span class="p">)</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">diagnostics</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">)</span>
 
                 <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;ls -altrR </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span>
                 <span class="n">_ec</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cmd</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">cmd</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">)</span>
 
                 <span class="c1"># kill the job</span>
                 <span class="c1"># pUtil.createLockFile(True, self.__env[&#39;jobDic&#39;][k][1].workdir, lockfile=&quot;JOBWILLBEKILLED&quot;)</span>
@@ -631,13 +630,13 @@
                     <span class="c1"># remeasure the size of the workdir at this point since the value is stored below</span>
                     <span class="n">workdirsize</span> <span class="o">=</span> <span class="n">get_directory_size</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;size of work directory </span><span class="si">%s</span><span class="s2">: </span><span class="si">%d</span><span class="s2"> B (within </span><span class="si">%d</span><span class="s2"> B limit)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">workdirsize</span><span class="p">,</span> <span class="n">maxwdirsize</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;size of work directory </span><span class="si">%s</span><span class="s2">: </span><span class="si">%d</span><span class="s2"> B (within </span><span class="si">%d</span><span class="s2"> B limit)&quot;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">workdirsize</span><span class="p">,</span> <span class="n">maxwdirsize</span><span class="p">)</span>
 
             <span class="c1"># Store the measured disk space (the max value will later be sent with the job metrics)</span>
             <span class="k">if</span> <span class="n">workdirsize</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">job</span><span class="o">.</span><span class="n">add_workdir_size</span><span class="p">(</span><span class="n">workdirsize</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;job work dir does not exist: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;job work dir does not exist: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;skipping size check of workdir since it has not been created yet&#39;</span><span class="p">)</span>
 
@@ -654,17 +653,17 @@
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">maxwdirsize</span> <span class="o">=</span> <span class="n">convert_mb_to_b</span><span class="p">(</span><span class="n">get_maximum_input_sizes</span><span class="p">())</span>  <span class="c1"># from MB to B, e.g. 16336 MB -&gt; 17,129,537,536 B</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
         <span class="n">max_input_size</span> <span class="o">=</span> <span class="n">get_max_input_size</span><span class="p">()</span>
         <span class="n">maxwdirsize</span> <span class="o">=</span> <span class="n">max_input_size</span> <span class="o">+</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">local_size_limit_stdout</span> <span class="o">*</span> <span class="mi">1024</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;work directory size check will use </span><span class="si">%d</span><span class="s2"> B as a max limit (maxinputsize [</span><span class="si">%d</span><span class="s2"> B] + local size limit for&quot;</span>
-                    <span class="s2">&quot; stdout [</span><span class="si">%d</span><span class="s2"> B])&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">maxwdirsize</span><span class="p">,</span> <span class="n">max_input_size</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">local_size_limit_stdout</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">))</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;conversion caught exception: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                    <span class="s2">&quot; stdout [</span><span class="si">%d</span><span class="s2"> B])&quot;</span><span class="p">,</span> <span class="n">maxwdirsize</span><span class="p">,</span> <span class="n">max_input_size</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">local_size_limit_stdout</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;conversion caught exception: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># grace margin, as discussed in https://its.cern.ch/jira/browse/ATLASPANDA-482</span>
         <span class="n">margin</span> <span class="o">=</span> <span class="mf">10.0</span>  <span class="c1"># percent, read later from somewhere</span>
         <span class="n">maxwdirsize</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">maxwdirsize</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">margin</span> <span class="o">/</span> <span class="mf">100.0</span><span class="p">))</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;work directory size check will use </span><span class="si">%d</span><span class="s2"> B as a max limit (10</span><span class="si">%%</span><span class="s2"> grace limit added)&quot;</span> <span class="o">%</span> <span class="n">maxwdirsize</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;work directory size check will use </span><span class="si">%d</span><span class="s2"> B as a max limit (10</span><span class="si">%%</span><span class="s2"> grace limit added)&quot;</span><span class="p">,</span> <span class="n">maxwdirsize</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">maxwdirsize</span></div>
 
@@ -687,8 +686,8 @@
                 <span class="n">_maxinputsize</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_maxinputsize</span><span class="p">)</span>  <span class="c1"># MB</span>
             <span class="k">else</span><span class="p">:</span>  <span class="c1"># convert to B int</span>
                 <span class="n">_maxinputsize</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_maxinputsize</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>  <span class="c1"># MB -&gt; B</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;schedconfig.maxinputsize: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;schedconfig.maxinputsize: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">megabyte</span><span class="p">:</span>
                 <span class="n">_maxinputsize</span> <span class="o">=</span> <span class="n">max_input_file_sizes_mb</span>
             <span class="k">else</span><span class="p">:</span>
@@ -700,9 +699,9 @@
             <span class="n">_maxinputsize</span> <span class="o">=</span> <span class="n">max_input_file_sizes</span>
 
     <span class="k">if</span> <span class="n">megabyte</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;max input size = </span><span class="si">%d</span><span class="s2"> MB (pilot default)&quot;</span> <span class="o">%</span> <span class="n">_maxinputsize</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;max input size = </span><span class="si">%d</span><span class="s2"> MB (pilot default)&quot;</span><span class="p">,</span> <span class="n">_maxinputsize</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Max input size = </span><span class="si">%d</span><span class="s2"> B (pilot default)&quot;</span> <span class="o">%</span> <span class="n">_maxinputsize</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Max input size = </span><span class="si">%d</span><span class="s2"> B (pilot default)&quot;</span><span class="p">,</span> <span class="n">_maxinputsize</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">_maxinputsize</span></div>
 
@@ -726,13 +725,13 @@
             <span class="n">fsize</span> <span class="o">=</span> <span class="n">get_local_file_size</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
             <span class="n">max_fsize</span> <span class="o">=</span> <span class="n">human2bytes</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">maximum_output_file_size</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">fsize</span> <span class="ow">and</span> <span class="n">fsize</span> <span class="o">&lt;</span> <span class="n">max_fsize</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;output file </span><span class="si">%s</span><span class="s1"> is within allowed size limit (</span><span class="si">%d</span><span class="s1"> B &lt; </span><span class="si">%d</span><span class="s1"> B)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">fsize</span><span class="p">,</span> <span class="n">max_fsize</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;output file </span><span class="si">%s</span><span class="s1"> is within allowed size limit (</span><span class="si">%d</span><span class="s1"> B &lt; </span><span class="si">%d</span><span class="s1"> B)&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">fsize</span><span class="p">,</span> <span class="n">max_fsize</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">exit_code</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">OUTPUTFILETOOLARGE</span>
                 <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;output file </span><span class="si">%s</span><span class="s1"> is not within allowed size limit (</span><span class="si">%d</span><span class="s1"> B &gt; </span><span class="si">%d</span><span class="s1"> B)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">fsize</span><span class="p">,</span> <span class="n">max_fsize</span><span class="p">)</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;output file size check: skipping output file </span><span class="si">%s</span><span class="s1"> since it does not exist&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;output file size check: skipping output file </span><span class="si">%s</span><span class="s1"> since it does not exist&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span></div>
 </pre></div>
@@ -785,7 +784,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
