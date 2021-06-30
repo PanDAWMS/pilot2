@@ -57,7 +57,8 @@ def copy_in(files, **kwargs):
     if not check_for_gfal():
         raise StageInFailure("No GFAL2 tools found")
 
-    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', None)
+    # note, env vars might be unknown inside middleware contrainers, if so get the value already in the trace report
+    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', trace_report.get_value('localSite'))
     for fspec in files:
         # update the trace report
         localsite = localsite if localsite else fspec.ddmendpoint

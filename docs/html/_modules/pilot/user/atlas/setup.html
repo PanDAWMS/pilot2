@@ -229,7 +229,7 @@
             <span class="n">inds</span> <span class="o">=</span> <span class="n">ds</span>
             <span class="k">break</span>
     <span class="k">if</span> <span class="n">inds</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;setting INDS environmental variable to: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">inds</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;setting INDS environmental variable to: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">inds</span><span class="p">)</span>
         <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;INDS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">inds</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;INDS unknown&quot;</span><span class="p">)</span></div>
@@ -252,24 +252,24 @@
     <span class="n">harvester_workdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HARVESTER_WORKDIR&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">harvester_workdir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">search_pattern</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">/jobO.*.tar.gz&quot;</span> <span class="o">%</span> <span class="n">harvester_workdir</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;search_pattern - </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">search_pattern</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;search_pattern - </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">search_pattern</span><span class="p">)</span>
         <span class="n">jobopt_files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">search_pattern</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">jobopt_file</span> <span class="ow">in</span> <span class="n">jobopt_files</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;jobopt_file = </span><span class="si">%s</span><span class="s2"> workdir = </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">jobopt_file</span><span class="p">,</span> <span class="n">workdir</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;jobopt_file = </span><span class="si">%s</span><span class="s2"> workdir = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">jobopt_file</span><span class="p">,</span> <span class="n">workdir</span><span class="p">)</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">copy</span><span class="p">(</span><span class="n">jobopt_file</span><span class="p">,</span> <span class="n">workdir</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;could not copy file </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2"> : </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">jobopt_file</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;could not copy file </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2"> : </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">jobopt_file</span><span class="p">,</span> <span class="n">workdir</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="s1">&#39;/&#39;</span> <span class="ow">in</span> <span class="n">transform</span><span class="p">:</span>
         <span class="n">transform_name</span> <span class="o">=</span> <span class="n">transform</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;did not detect any / in </span><span class="si">%s</span><span class="s1"> (using full transform name)&#39;</span> <span class="o">%</span> <span class="n">transform</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;did not detect any / in </span><span class="si">%s</span><span class="s1"> (using full transform name)&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="p">)</span>
         <span class="n">transform_name</span> <span class="o">=</span> <span class="n">transform</span>
 
     <span class="c1"># is the command already available? (e.g. if already downloaded by a preprocess/main process step)</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">)):</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;script </span><span class="si">%s</span><span class="s1"> is already available - no need to download again&#39;</span> <span class="o">%</span> <span class="n">transform_name</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;script </span><span class="si">%s</span><span class="s1"> is already available - no need to download again&#39;</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="n">transform_name</span>
 
     <span class="n">original_base_url</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
@@ -288,7 +288,7 @@
     <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">for</span> <span class="n">base_url</span> <span class="ow">in</span> <span class="n">get_valid_base_urls</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">original_base_url</span><span class="p">):</span>
         <span class="n">trf</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">original_base_url</span><span class="p">,</span> <span class="n">base_url</span><span class="p">,</span> <span class="n">transform</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;attempting to download script: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">trf</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;attempting to download script: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">trf</span><span class="p">)</span>
         <span class="n">status</span><span class="p">,</span> <span class="n">diagnostics</span> <span class="o">=</span> <span class="n">download_transform</span><span class="p">(</span><span class="n">trf</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">,</span> <span class="n">workdir</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">status</span><span class="p">:</span>
             <span class="k">break</span>
@@ -298,11 +298,11 @@
 
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;successfully downloaded script&quot;</span><span class="p">)</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">transform_name</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;changing permission of </span><span class="si">%s</span><span class="s2"> to 0o755&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;changing permission of </span><span class="si">%s</span><span class="s2"> to 0o755&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">chmod</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="mo">0o755</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;failed to chmod </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">transform_name</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;failed to chmod </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">transform_name</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">errors</span><span class="o">.</span><span class="n">CHMODTRF</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
 
     <span class="k">return</span> <span class="n">ec</span><span class="p">,</span> <span class="n">diagnostics</span><span class="p">,</span> <span class="n">transform_name</span></div>
@@ -340,7 +340,7 @@
 
     <span class="c1"># try to download the trf a maximum of 3 times</span>
     <span class="k">while</span> <span class="n">trial</span> <span class="o">&lt;=</span> <span class="n">max_trials</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;executing command [trial </span><span class="si">%d</span><span class="s2">/</span><span class="si">%d</span><span class="s2">]: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">max_trials</span><span class="p">,</span> <span class="n">cmd</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;executing command [trial </span><span class="si">%d</span><span class="s2">/</span><span class="si">%d</span><span class="s2">]: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">trial</span><span class="p">,</span> <span class="n">max_trials</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
 
         <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">stdout</span><span class="p">:</span>
@@ -350,14 +350,14 @@
             <span class="n">diagnostics</span> <span class="o">=</span> <span class="s2">&quot;curl command failed: </span><span class="si">%d</span><span class="s2">, </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">diagnostics</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">trial</span> <span class="o">==</span> <span class="n">max_trials</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;could not download transform: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">stdout</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;could not download transform: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">)</span>
                 <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
                 <span class="k">break</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;will try again after 60 s&quot;</span><span class="p">)</span>
                 <span class="n">sleep</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;curl command returned: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">stdout</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;curl command returned: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">)</span>
             <span class="n">status</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">break</span>
         <span class="n">trial</span> <span class="o">+=</span> <span class="mi">1</span>
@@ -446,8 +446,8 @@
 <div class="viewcode-block" id="get_writetoinput_filenames"><a class="viewcode-back" href="../../../../components/user/atlas/setup.html#pilot.user.atlas.setup.get_writetoinput_filenames">[docs]</a><span class="k">def</span> <span class="nf">get_writetoinput_filenames</span><span class="p">(</span><span class="n">writetofile</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Extract the writeToFile file name(s).</span>
-<span class="sd">    writeToFile=&#39;tmpin_mc16_13TeV.345935.PhPy8EG_A14_ttbarMET100_200_hdamp258p75_nonallhad.merge.AOD.e6620_e5984_s3126_r10724_r10726_tid15760866_00:AOD.15760866._000002.pool.root.1&#39;</span>
-<span class="sd">    -&gt; return &#39;tmpin_mc16_13TeV.345935.PhPy8EG_A14_ttbarMET100_200_hdamp258p75_nonallhad.merge.AOD.e6620_e5984_s3126_r10724_r10726_tid15760866_00&#39;</span>
+<span class="sd">    writeToFile=&#39;tmpin_mc16_13TeV.blah:AOD.15760866._000002.pool.root.1&#39;</span>
+<span class="sd">    -&gt; return &#39;tmpin_mc16_13TeV.blah&#39;</span>
 
 <span class="sd">    :param writetofile: string containing file name information.</span>
 <span class="sd">    :return: list of file names</span>
@@ -489,12 +489,11 @@
                 <span class="c1"># if turl.startswith(&#39;root://&#39;) and turl not in cmd:</span>
                 <span class="k">if</span> <span class="n">turl</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cmd</span><span class="p">:</span>
                     <span class="n">cmd</span> <span class="o">=</span> <span class="n">cmd</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">inputfile</span><span class="p">,</span> <span class="n">turl</span><span class="p">)</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;replaced &#39;</span><span class="si">%s</span><span class="s2">&#39; with &#39;</span><span class="si">%s</span><span class="s2">&#39; in the run command&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">inputfile</span><span class="p">,</span> <span class="n">turl</span><span class="p">))</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;replaced &#39;</span><span class="si">%s</span><span class="s2">&#39; with &#39;</span><span class="si">%s</span><span class="s2">&#39; in the run command&quot;</span><span class="p">,</span> <span class="n">inputfile</span><span class="p">,</span> <span class="n">turl</span><span class="p">)</span>
 
         <span class="c1"># replace the LFNs with TURLs in the writetofile input file list (if it exists)</span>
         <span class="k">if</span> <span class="n">writetofile</span> <span class="ow">and</span> <span class="n">turl_dictionary</span><span class="p">:</span>
             <span class="n">filenames</span> <span class="o">=</span> <span class="n">get_writetoinput_filenames</span><span class="p">(</span><span class="n">writetofile</span><span class="p">)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;filenames=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">filenames</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
                 <span class="n">new_lines</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">workdir</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
@@ -512,11 +511,10 @@
                     <span class="n">lines</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_lines</span><span class="p">)</span>
                     <span class="k">if</span> <span class="n">lines</span><span class="p">:</span>
                         <span class="n">write_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">lines</span><span class="p">)</span>
-                        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;lines=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">lines</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;file does not exist: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;file does not exist: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;could not find file: </span><span class="si">%s</span><span class="s2"> (cannot locate TURLs for direct access)&quot;</span> <span class="o">%</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;could not find file: </span><span class="si">%s</span><span class="s2"> (cannot locate TURLs for direct access)&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">cmd</span></div>
 </pre></div>
@@ -569,7 +567,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

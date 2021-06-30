@@ -7,7 +7,7 @@
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021
 # - Wen Guan, wen.guan@cern.ch, 2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
 
@@ -32,7 +32,7 @@ from pilot.util.common import should_abort
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN, PILOT_PRE_STAGEOUT, PILOT_POST_STAGEOUT, LOG_TRANSFER_IN_PROGRESS,\
     LOG_TRANSFER_DONE, LOG_TRANSFER_NOT_DONE, LOG_TRANSFER_FAILED, SERVER_UPDATE_RUNNING, MAX_KILL_WAIT_TIME, UTILITY_BEFORE_STAGEIN
 from pilot.util.container import execute
-from pilot.util.filehandling import remove
+from pilot.util.filehandling import remove, write_file
 from pilot.util.processes import threads_aborted
 from pilot.util.queuehandling import declare_failed_by_kill, put_in_queue
 from pilot.util.timing import add_to_pilot_timing
@@ -63,7 +63,7 @@ def control(queues, traces, args):
                 pass
             else:
                 exc_type, exc_obj, exc_trace = exc
-                logger.warning("thread \'%s\' received an exception from bucket: %s" % (thread.name, exc_obj))
+                logger.warning("thread \'%s\' received an exception from bucket: %s", thread.name, exc_obj)
 
                 # deal with the exception
                 # ..
@@ -107,8 +107,8 @@ def skip_special_files(job):
     user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
     try:
         user.update_stagein(job)
-    except Exception as e:
-        logger.warning('caught exception: %s' % e)
+    except Exception as error:
+        logger.warning('caught exception: %s', error)
 
 
 def update_indata(job):
@@ -124,7 +124,7 @@ def update_indata(job):
         if fspec.status == 'no_transfer':
             toberemoved.append(fspec)
     for fspec in toberemoved:
-        logger.info('removing fspec object (lfn=%s) from list of input files' % fspec.lfn)
+        logger.info('removing fspec object (lfn=%s) from list of input files', fspec.lfn)
         job.indata.remove(fspec)
 
 
@@ -193,11 +193,11 @@ def _stage_in(args, job):
             pilot.util.middleware.containerise_middleware(job, job.indata, args.queue, eventtype, localsite, remotesite,
                                                           job.infosys.queuedata.container_options, args.input_dir,
                                                           label=label, container_type=job.infosys.queuedata.container_type.get("middleware"))
-        except PilotException as e:
-            logger.warning('stage-in containerisation threw a pilot exception: %s' % e)
-        except Exception as e:
+        except PilotException as error:
+            logger.warning('stage-in containerisation threw a pilot exception: %s', error)
+        except Exception as error:
             import traceback
-            logger.warning('stage-in containerisation threw an exception: %s' % e)
+            logger.warning('stage-in containerisation threw an exception: %s', error)
             logger.error(traceback.format_exc())
     else:
         try:
@@ -224,17 +224,17 @@ def _stage_in(args, job):
             msg = errors.format_diagnostics(error.get_error_code(), error_msg)
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(error.get_error_code(), msg=msg)
         except Exception as error:
-            logger.error('failed to stage-in: error=%s' % error)
+            logger.error('failed to stage-in: error=%s', error)
 
     logger.info('summary of transferred files:')
-    for e in job.indata:
-        status = e.status if e.status else "(not transferred)"
-        logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, status))
+    for infile in job.indata:
+        status = infile.status if infile.status else "(not transferred)"
+        logger.info(" -- lfn=%s, status_code=%s, status=%s", infile.lfn, infile.status_code, status)
 
     # write time stamps to pilot timing file
     add_to_pilot_timing(job.jobid, PILOT_POST_STAGEIN, time.time(), args)
 
-    remain_files = [e for e in job.indata if e.status not in ['remote_io', 'transferred', 'no_transfer']]
+    remain_files = [infile for infile in job.indata if infile.status not in ['remote_io', 'transferred', 'no_transfer']]
     logger.info("stage-in finished") if not remain_files else logger.info("stage-in failed")
 
     return not remain_files
@@ -255,8 +255,8 @@ def get_rse(data, lfn=""):
     if lfn == "":
         try:
             return data[0].ddmendpoint
-        except Exception as e:
-            logger.warning("exception caught: %s" % e)
+        except Exception as error:
+            logger.warning("exception caught: %s", error)
             logger.warning("end point is currently unknown")
             return "unknown"
 
@@ -271,7 +271,7 @@ def get_rse(data, lfn=""):
     return rse
 
 
-def stage_in_auto(site, files):
+def stage_in_auto(files):
     """
     Separate dummy implementation for automatic stage-in outside of pilot workflows.
     Should be merged with regular stage-in functionality later, but we need to have
@@ -289,47 +289,47 @@ def stage_in_auto(site, files):
                   '--no-subdir']
 
     # quickly remove non-existing destinations
-    for f in files:
-        if not os.path.exists(f['destination']):
-            f['status'] = 'failed'
-            f['errmsg'] = 'Destination directory does not exist: %s' % f['destination']
-            f['errno'] = 1
+    for _file in files:
+        if not os.path.exists(_file['destination']):
+            _file['status'] = 'failed'
+            _file['errmsg'] = 'Destination directory does not exist: %s' % _file['destination']
+            _file['errno'] = 1
         else:
-            f['status'] = 'running'
-            f['errmsg'] = 'File not yet successfully downloaded.'
-            f['errno'] = 2
+            _file['status'] = 'running'
+            _file['errmsg'] = 'File not yet successfully downloaded.'
+            _file['errno'] = 2
 
-    for f in files:
-        if f['errno'] == 1:
+    for _file in files:
+        if _file['errno'] == 1:
             continue
 
         tmp_executable = objectcopy.deepcopy(executable)
 
-        tmp_executable += ['--dir', f['destination']]
-        tmp_executable.append('%s:%s' % (f['scope'],
-                                         f['name']))
+        tmp_executable += ['--dir', _file['destination']]
+        tmp_executable.append('%s:%s' % (_file['scope'],
+                                         _file['name']))
         process = subprocess.Popen(tmp_executable,
                                    bufsize=-1,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
-        f['errno'] = 2
+        _file['errno'] = 2
         while True:
             time.sleep(0.5)
             exit_code = process.poll()
             if exit_code is not None:
-                stdout, stderr = process.communicate()
+                _, stderr = process.communicate()
                 if exit_code == 0:
-                    f['status'] = 'done'
-                    f['errno'] = 0
-                    f['errmsg'] = 'File successfully downloaded.'
+                    _file['status'] = 'done'
+                    _file['errno'] = 0
+                    _file['errmsg'] = 'File successfully downloaded.'
                 else:
-                    f['status'] = 'failed'
-                    f['errno'] = 3
+                    _file['status'] = 'failed'
+                    _file['errno'] = 3
                     try:
                         # the Details: string is set in rucio: lib/rucio/common/exception.py in __str__()
-                        f['errmsg'] = [detail for detail in stderr.split('\n') if detail.startswith('Details:')][0][9:-1]
-                    except Exception as e:
-                        f['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % str(e)
+                        _file['errmsg'] = [detail for detail in stderr.split('\n') if detail.startswith('Details:')][0][9:-1]
+                    except Exception as error:
+                        _file['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % error
                 break
             else:
                 continue
@@ -337,7 +337,7 @@ def stage_in_auto(site, files):
     return files
 
 
-def stage_out_auto(site, files):
+def stage_out_auto(files):
     """
     Separate dummy implementation for automatic stage-out outside of pilot workflows.
     Should be merged with regular stage-out functionality later, but we need to have
@@ -351,63 +351,60 @@ def stage_out_auto(site, files):
                   'rucio', '-v', 'upload']
 
     # quickly remove non-existing destinations
-    for f in files:
-        if not os.path.exists(f['file']):
-            f['status'] = 'failed'
-            f['errmsg'] = 'Source file does not exist: %s' % f['file']
-            f['errno'] = 1
+    for _file in files:
+        if not os.path.exists(_file['file']):
+            _file['status'] = 'failed'
+            _file['errmsg'] = 'Source file does not exist: %s' % _file['file']
+            _file['errno'] = 1
         else:
-            f['status'] = 'running'
-            f['errmsg'] = 'File not yet successfully uploaded.'
-            f['errno'] = 2
+            _file['status'] = 'running'
+            _file['errmsg'] = 'File not yet successfully uploaded.'
+            _file['errno'] = 2
 
-    for f in files:
-        if f['errno'] == 1:
+    for _file in files:
+        if _file['errno'] == 1:
             continue
 
         tmp_executable = objectcopy.deepcopy(executable)
 
-        tmp_executable += ['--rse', f['rse']]
+        tmp_executable += ['--rse', _file['rse']]
 
-        if 'no_register' in list(f.keys()) and f['no_register']:  # Python 2/3
+        if 'no_register' in list(_file.keys()) and _file['no_register']:  # Python 2/3
             tmp_executable += ['--no-register']
 
-        if 'summary' in list(f.keys()) and f['summary']:  # Python 2/3
+        if 'summary' in list(_file.keys()) and _file['summary']:  # Python 2/3
             tmp_executable += ['--summary']
 
-        if 'lifetime' in list(f.keys()):  # Python 2/3
-            tmp_executable += ['--lifetime', str(f['lifetime'])]
+        if 'lifetime' in list(_file.keys()):  # Python 2/3
+            tmp_executable += ['--lifetime', str(_file['lifetime'])]
 
-        if 'guid' in list(f.keys()):  # Python 2/3
-            tmp_executable += ['--guid', f['guid']]
+        if 'guid' in list(_file.keys()):  # Python 2/3
+            tmp_executable += ['--guid', _file['guid']]
 
-        if 'attach' in list(f.keys()):  # Python 2/3
-            tmp_executable += ['--scope', f['scope'], '%s:%s' % (f['attach']['scope'], f['attach']['name']), f['file']]
+        if 'attach' in list(_file.keys()):  # Python 2/3
+            tmp_executable += ['--scope', _file['scope'], '%s:%s' % (_file['attach']['scope'], _file['attach']['name']), _file['file']]
         else:
-            tmp_executable += ['--scope', f['scope'], f['file']]
+            tmp_executable += ['--scope', _file['scope'], _file['file']]
 
-        process = subprocess.Popen(tmp_executable,
-                                   bufsize=-1,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
-        f['errno'] = 2
+        process = subprocess.Popen(tmp_executable, bufsize=-1, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        _file['errno'] = 2
         while True:
             time.sleep(0.5)
             exit_code = process.poll()
             if exit_code is not None:
-                stdout, stderr = process.communicate()
+                _, stderr = process.communicate()
                 if exit_code == 0:
-                    f['status'] = 'done'
-                    f['errno'] = 0
-                    f['errmsg'] = 'File successfully uploaded.'
+                    _file['status'] = 'done'
+                    _file['errno'] = 0
+                    _file['errmsg'] = 'File successfully uploaded.'
                 else:
-                    f['status'] = 'failed'
-                    f['errno'] = 3
+                    _file['status'] = 'failed'
+                    _file['errno'] = 3
                     try:
                         # the Details: string is set in rucio: lib/rucio/common/exception.py in __str__()
-                        f['errmsg'] = [detail for detail in stderr.split('\n') if detail.startswith('Details:')][0][9:-1]
-                    except Exception as e:
-                        f['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % str(e)
+                        _file['errmsg'] = [detail for detail in stderr.split('\n') if detail.startswith('Details:')][0][9:-1]
+                    except Exception as error:
+                        _file['errmsg'] = 'Could not find rucio error message details - please check stderr directly: %s' % error
                 break
             else:
                 continue
@@ -415,36 +412,39 @@ def stage_out_auto(site, files):
     return files
 
 
-def xcache_proxy(output):
+def write_output(filename, output):
+    """
+    Write command output to file.
 
-    for line in output.split('\n'):
-        if 'ALRB_XCACHE_PROXY' in line:
-            set_xcache_proxy(line, remote='REMOTE' in line)
-        if 'Messages logged in' in line:
-            set_xcache_log(line)
+    :param filename: file name (string).
+    :param output: command stdout/stderr (string).
+    :return:
+    """
 
-
-def set_xcache_proxy(line, remote=None):
-
-    import re
-    pattern = r'\ export\ ALRB_XCACHE_PROXY_REMOTE\=\"(.+)\"' if remote else r'\ export\ ALRB_XCACHE_PROXY\=\"(.+)\"'
-    pattern = re.compile(pattern)
-    result = re.findall(pattern, line)
-    if result:
-        if remote:
-            os.environ['ALRB_XCACHE_PROXY_REMOTE'] = result[0]
-        else:
-            os.environ['ALRB_XCACHE_PROXY'] = result[0]
+    try:
+        write_file(filename, output, unique=True)
+    except PilotException as error:
+        logger.warning('failed to write utility output to file: %s, %s', error, output)
+    else:
+        logger.debug('wrote %s', filename)
 
 
-def set_xcache_log(line):
+def write_utility_output(workdir, step, stdout, stderr):
+    """
+    Write the utility command output to stdout, stderr files to the job.workdir for the current step.
+    -> <step>_stdout.txt, <step>_stderr.txt
+    Example of step: xcache.
 
-    import re
-    pattern = r'xcache\ started\ successfully.\ \ Messages\ logged\ in\ (.+)'
-    pattern = re.compile(pattern)
-    result = re.findall(pattern, line)
-    if result:
-        os.environ['ALRB_XCACHE_LOG'] = result[0]
+    :param workdir: job workdir (string).
+    :param step: utility step (string).
+    :param stdout: command stdout (string).
+    :param stderr: command stderr (string).
+    :return:
+    """
+
+    # dump to files
+    write_output(os.path.join(workdir, step + '_stdout.txt'), stdout)
+    write_output(os.path.join(workdir, step + '_stderr.txt'), stderr)
 
 
 def copytool_in(queues, traces, args):
@@ -474,15 +474,26 @@ def copytool_in(queues, traces, args):
             user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
             cmd = user.get_utility_commands(job=job, order=UTILITY_BEFORE_STAGEIN)
             if cmd:
-                exit_code, stdout, stderr = execute(cmd.get('command'))
-                logger.debug('exit_code=%d' % exit_code)
-                logger.debug('stderr=%s' % stderr)
-                logger.debug('stdout=%s' % stdout)
-                # move code to user area
-                xcache_proxy(stdout)
+                # xcache debug
+                #_, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                #logger.debug('[before xcache start] stdout=%s', _stdout)
+                #logger.debug('[before xcache start] stderr=%s', _stderr)
 
-            logger.debug('ALRB_XCACHE_PROXY=%s' % os.environ.get('ALRB_XCACHE_PROXY', '<not set>'))
-            logger.debug('ALRB_XCACHE_PROXY_REMOTE=%s' % os.environ.get('ALRB_XCACHE_PROXY_REMOTE', '<not set>'))
+                _, stdout, stderr = execute(cmd.get('command'))
+                logger.debug('stdout=%s', stdout)
+                logger.debug('stderr=%s', stderr)
+
+                # xcache debug
+                #_, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
+                #logger.debug('[after xcache start] stdout=%s', _stdout)
+                #logger.debug('[after xcache start] stderr=%s', _stderr)
+
+                # perform any action necessary after command execution (e.g. stdout processing)
+                kwargs = {'label': cmd.get('label', 'utility'), 'output': stdout}
+                user.post_prestagein_utility_command(**kwargs)
+
+                # write output to log files
+                write_utility_output(job.workdir, cmd.get('label', 'utility'), stdout, stderr)
 
             # place it in the current stage-in queue (used by the jobs' queue monitoring)
             put_in_queue(job, queues.current_data_in)
@@ -516,7 +527,7 @@ def copytool_in(queues, traces, args):
                 # remove the job from the current stage-in queue
                 _job = queues.current_data_in.get(block=True, timeout=1)
                 if _job:
-                    logger.debug('job %s has been removed from the current_data_in queue' % _job.jobid)
+                    logger.debug('job %s has been removed from the current_data_in queue', _job.jobid)
 
                 # now create input file metadata if required by the payload
                 if os.environ.get('PILOT_ES_EXECUTOR_TYPE', 'generic') == 'generic':
@@ -524,12 +535,12 @@ def copytool_in(queues, traces, args):
                     user = __import__('pilot.user.%s.metadata' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
                     file_dictionary = get_input_file_dictionary(job.indata)
                     xml = user.create_input_file_metadata(file_dictionary, job.workdir)
-                    logger.info('created input file metadata:\n%s' % xml)
+                    logger.info('created input file metadata:\n%s', xml)
             else:
                 # remove the job from the current stage-in queue
                 _job = queues.current_data_in.get(block=True, timeout=1)
                 if _job:
-                    logger.debug('job %s has been removed from the current_data_in queue' % _job.jobid)
+                    logger.debug('job %s has been removed from the current_data_in queue', _job.jobid)
                 logger.warning('stage-in failed, adding job object to failed_data_in queue')
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEINFAILED)
                 set_pilot_state(job=job, state="failed")
@@ -593,7 +604,7 @@ def copytool_out(queues, traces, args):
                     if is_already_processed(queues, processed_jobs):
                         continue
 
-                logger.info('will perform stage-out for job id=%s' % job.jobid)
+                logger.info('will perform stage-out for job id=%s', job.jobid)
 
                 if args.abort_job.is_set():
                     traces.pilot['command'] = 'abort'
@@ -655,7 +666,7 @@ def is_already_processed(queues, processed_jobs):
 
     for jobid in processed_jobs:
         if jobid in jobids:
-            logger.warning('output from job %s has already been staged out' % jobid)
+            logger.warning('output from job %s has already been staged out', jobid)
             found = True
             break
     if found:
@@ -669,6 +680,7 @@ def get_input_file_dictionary(indata):
     Return an input file dictionary.
     Format: {'guid': 'pfn', ..}
     Normally use_turl would be set to True if direct access is used.
+    Note: any environment variables in the turls will be expanded
 
     :param indata: list of FileSpec objects.
     :return: file dictionary.
@@ -678,6 +690,7 @@ def get_input_file_dictionary(indata):
 
     for fspec in indata:
         ret[fspec.guid] = fspec.turl if fspec.status == 'remote_io' else fspec.lfn
+        ret[fspec.guid] = os.path.expandvars(ret[fspec.guid])
 
         # correction for ND and mv
         # in any case use the lfn instead of pfn since there are trf's that have problems with pfn's
@@ -695,7 +708,7 @@ def filter_files_for_log(directory):
     """
     filtered_files = []
     maxfilesize = 10
-    for root, dirnames, filenames in os.walk(directory):
+    for root, _, filenames in os.walk(directory):
         for filename in filenames:
             location = os.path.join(root, filename)
             if os.path.exists(location):  # do not include broken links
@@ -705,7 +718,7 @@ def filter_files_for_log(directory):
     return filtered_files
 
 
-def create_log(workdir, logfile_name, tarball_name, cleanup, input_files=[], output_files=[], is_looping=False):
+def create_log(workdir, logfile_name, tarball_name, cleanup, input_files=[], output_files=[], is_looping=False, debugmode=False):
     """
     Create the tarball for the job.
 
@@ -716,11 +729,13 @@ def create_log(workdir, logfile_name, tarball_name, cleanup, input_files=[], out
     :param input_files: list of input files to remove (list).
     :param output_files: list of output files to remove (list).
     :param is_looping: True for looping jobs, False by default (Boolean).
+    :param debugmode: True if debug mode has been switched on (Boolean).
     :raises LogFileCreationFailure: in case of log file creation problem.
     :return:
     """
 
-    logger.debug('preparing to create log file')
+    logger.debug('preparing to create log file (debug mode=%s)', str(debugmode))
+
     # PILOT_HOME is the launch directory of the pilot (or the one specified in pilot options as pilot workdir)
     pilot_home = os.environ.get('PILOT_HOME', os.getcwd())
     current_dir = os.getcwd()
@@ -731,13 +746,13 @@ def create_log(workdir, logfile_name, tarball_name, cleanup, input_files=[], out
     if cleanup:
         pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
-        user.remove_redundant_files(workdir, islooping=is_looping)
+        user.remove_redundant_files(workdir, islooping=is_looping, debugmode=debugmode)
 
     # remove any present input/output files before tarring up workdir
-    for f in input_files + output_files:
-        path = os.path.join(workdir, f)
+    for fname in input_files + output_files:
+        path = os.path.join(workdir, fname)
         if os.path.exists(path):
-            logger.info('removing file: %s' % path)
+            logger.info('removing file: %s', path)
             remove(path)
 
     if logfile_name is None or len(logfile_name.strip('/ ')) == 0:
@@ -751,20 +766,20 @@ def create_log(workdir, logfile_name, tarball_name, cleanup, input_files=[], out
     workdir = newworkdir
 
     fullpath = os.path.join(workdir, logfile_name)  # /some/path/to/dirname/log.tgz
-    logger.info('will create archive %s' % fullpath)
+    logger.info('will create archive %s', fullpath)
     try:
         cmd = "pwd;tar cvfz %s %s --dereference --one-file-system; echo $?" % (fullpath, tarball_name)
-        exit_code, stdout, stderr = execute(cmd)
-    except Exception as e:
-        raise LogFileCreationFailure(e)
+        _, stdout, _ = execute(cmd)
+    except Exception as error:
+        raise LogFileCreationFailure(error)
     else:
         if pilot_home != current_dir:
             os.chdir(pilot_home)
-        logger.debug('stdout = %s' % stdout)
+        logger.debug('stdout = %s', stdout)
     try:
         os.rename(workdir, orgworkdir)
-    except Exception as e:
-        logger.debug('exception caught: %s' % e)
+    except Exception as error:
+        logger.debug('exception caught: %s', error)
 
 
 def _do_stageout(job, xdata, activity, queue, title, output_dir=''):
@@ -779,7 +794,7 @@ def _do_stageout(job, xdata, activity, queue, title, output_dir=''):
     :return: True in case of success transfers
     """
 
-    logger.info('prepare to stage-out %d %s file(s)' % (len(xdata), title))
+    logger.info('prepare to stage-out %d %s file(s)', len(xdata), title)
     label = 'stage-out'
 
     # should stage-in be done by a script (for containerisation) or by invoking the API (ie classic mode)?
@@ -791,10 +806,10 @@ def _do_stageout(job, xdata, activity, queue, title, output_dir=''):
             pilot.util.middleware.containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
                                                           job.infosys.queuedata.container_options, output_dir,
                                                           label=label, container_type=job.infosys.queuedata.container_type.get("middleware"))
-        except PilotException as e:
-            logger.warning('stage-out containerisation threw a pilot exception: %s' % e)
-        except Exception as e:
-            logger.warning('stage-out containerisation threw an exception: %s' % e)
+        except PilotException as error:
+            logger.warning('stage-out containerisation threw a pilot exception: %s', error)
+        except Exception as error:
+            logger.warning('stage-out containerisation threw an exception: %s', error)
     else:
         try:
             logger.info('stage-out will not be done in a container')
@@ -824,16 +839,14 @@ def _do_stageout(job, xdata, activity, queue, title, output_dir=''):
             logger.debug('stage-out client completed')
 
     logger.info('summary of transferred files:')
-    for e in xdata:
-        if not e.status:
+    for iofile in xdata:
+        if not iofile.status:
             status = "(not transferred)"
         else:
-            status = e.status
-        logger.info(" -- lfn=%s, status_code=%s, status=%s" % (e.lfn, e.status_code, status))
+            status = iofile.status
+        logger.info(" -- lfn=%s, status_code=%s, status=%s", iofile.lfn, iofile.status_code, status)
 
-    remain_files = [e for e in xdata if e.status not in ['transferred']]
-    logger.debug('remain_files=%s' % str(remain_files))
-    logger.debug('xdata=%s' % str(xdata))
+    remain_files = [iofile for iofile in xdata if iofile.status not in ['transferred']]
 
     return not remain_files
 
@@ -882,9 +895,9 @@ def _stage_out_new(job, args):
             output_files = [fspec.lfn for fspec in job.outdata]
             create_log(job.workdir, logfile.lfn, tarball_name, args.cleanup,
                        input_files=input_files, output_files=output_files,
-                       is_looping=errors.LOOPINGJOB in job.piloterrorcodes)
-        except LogFileCreationFailure as e:
-            logger.warning('failed to create tar file: %s' % e)
+                       is_looping=errors.LOOPINGJOB in job.piloterrorcodes, debugmode=job.debug)
+        except LogFileCreationFailure as error:
+            logger.warning('failed to create tar file: %s', error)
             set_pilot_state(job=job, state="failed")
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.LOGFILECREATIONFAILURE)
             return False
@@ -904,32 +917,27 @@ def _stage_out_new(job, args):
 
     # generate fileinfo details to be send to Panda
     fileinfo = {}
-    for e in job.outdata + job.logdata:
-        if e.status in ['transferred']:
-            logger.debug('got surl=%s' % e.surl)
-            logger.debug('got turl=%s' % e.turl)
-            fileinfo[e.lfn] = {'guid': e.guid, 'fsize': e.filesize,
-                               'adler32': e.checksum.get('adler32'),
-                               'surl': e.turl}
+    for iofile in job.outdata + job.logdata:
+        if iofile.status in ['transferred']:
+            fileinfo[iofile.lfn] = {'guid': iofile.guid,
+                                    'fsize': iofile.filesize,
+                                    'adler32': iofile.checksum.get('adler32'),
+                                    'surl': iofile.turl}
 
     job.fileinfo = fileinfo
-    logger.info('prepared job.fileinfo=%s' % job.fileinfo)
 
     # WARNING THE FOLLOWING RESETS ANY PREVIOUS STAGEOUT ERRORS
     if not is_success:
         # set error code + message (a more precise error code might have been set already)
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.STAGEOUTFAILED)
         set_pilot_state(job=job, state="failed")
-        logger.warning('stage-out failed')  # with error: %d, %s (setting job state to failed)' %
-        # logger.warning('stage-out failed with error: %d, %s (setting job state to failed)' %
-        #  (job['pilotErrorCode'], job['pilotErrorDiag']))
-        # send_state(job, args, 'failed')
+        logger.warning('stage-out failed')
         return False
 
     logger.info('stage-out finished correctly')
 
     if not job.state or (job.state and job.state == 'stageout'):  # is the job state already set? if so, don't change the state (unless it's the stageout state)
-        logger.debug('changing job state from %s to finished' % job.state)
+        logger.debug('changing job state from %s to finished', job.state)
         set_pilot_state(job=job, state="finished")
 
     # send final server update since all transfers have finished correctly
@@ -970,13 +978,10 @@ def queue_monitoring(queues, traces, args):
             # TODO: put in data_out queue instead?
 
             if not _stage_out_new(job, args):
-                logger.info("job %s failed during stage-in and stage-out of log, adding job object to failed_data_outs "
-                            "queue" % job.jobid)
-                #queues.failed_data_out.put(job)
+                logger.info("job %s failed during stage-in and stage-out of log, adding job object to failed_data_outs queue", job.jobid)
                 put_in_queue(job, queues.failed_data_out)
             else:
-                logger.info("job %s failed during stage-in, adding job object to failed_jobs queue" % job.jobid)
-                #queues.failed_jobs.put(job)
+                logger.info("job %s failed during stage-in, adding job object to failed_jobs queue", job.jobid)
                 put_in_queue(job, queues.failed_jobs)
 
         # monitor the finished_data_out queue
@@ -1005,13 +1010,8 @@ def queue_monitoring(queues, traces, args):
             job.stageout = "log"
             set_pilot_state(job=job, state="failed")
             if not _stage_out_new(job, args):
-                logger.info("job %s failed during stage-out of data file(s) as well as during stage-out of log, "
-                            "adding job object to failed_jobs queue" % job.jobid)
-            else:
-                logger.info("job %s failed during stage-out of data file(s) - stage-out of log succeeded, adding job "
-                            "object to failed_jobs queue" % job.jobid)
+                logger.info("job %s failed during stage-out", job.jobid)
 
-            #queues.failed_jobs.put(job)
             put_in_queue(job, queues.failed_jobs)
 
         if abort:

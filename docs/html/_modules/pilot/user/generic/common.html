@@ -45,7 +45,7 @@
 
 <span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">TrfDownloadFailure</span>
 <span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
-<span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">UTILITY_BEFORE_PAYLOAD</span><span class="p">,</span> <span class="n">UTILITY_AFTER_PAYLOAD</span>
+<span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">UTILITY_BEFORE_PAYLOAD</span><span class="p">,</span> <span class="n">UTILITY_AFTER_PAYLOAD_STARTED</span>
 <span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">read_file</span>
 <span class="kn">from</span> <span class="nn">.setup</span> <span class="kn">import</span> <span class="n">get_analysis_trf</span>
 
@@ -163,7 +163,7 @@
 <span class="sd">    If the optional order parameter is set, the function should return the list of corresponding commands.</span>
 <span class="sd">    E.g. if order=UTILITY_BEFORE_PAYLOAD, the function should return all commands that are to be executed before the</span>
 <span class="sd">    payload. If order=UTILITY_WITH_PAYLOAD, the corresponding commands will be prepended to the payload execution</span>
-<span class="sd">    string. If order=UTILITY_AFTER_PAYLOAD, the commands that should be executed after the payload has been started</span>
+<span class="sd">    string. If order=UTILITY_AFTER_PAYLOAD_STARTED, the commands that should be executed after the payload has been started</span>
 <span class="sd">    should be returned.</span>
 
 <span class="sd">    FORMAT: {&#39;command&#39;: &lt;command&gt;, &#39;args&#39;: &lt;args&gt;}</span>
@@ -193,14 +193,14 @@
 <span class="sd">    Should the given utility command be executed before or after the payload?</span>
 
 <span class="sd">    :param name: utility name (string).</span>
-<span class="sd">    :return: execution order constant (UTILITY_BEFORE_PAYLOAD or UTILITY_AFTER_PAYLOAD)</span>
+<span class="sd">    :return: execution order constant (UTILITY_BEFORE_PAYLOAD or UTILITY_AFTER_PAYLOAD_STARTED)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># example implementation</span>
     <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;monitor&#39;</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">UTILITY_BEFORE_PAYLOAD</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">UTILITY_AFTER_PAYLOAD</span></div>
+        <span class="k">return</span> <span class="n">UTILITY_AFTER_PAYLOAD_STARTED</span></div>
 
 
 <div class="viewcode-block" id="post_utility_command_action"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.post_utility_command_action">[docs]</a><span class="k">def</span> <span class="nf">post_utility_command_action</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">job</span><span class="p">):</span>
@@ -289,6 +289,34 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="post_prestagein_utility_command"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.post_prestagein_utility_command">[docs]</a><span class="k">def</span> <span class="nf">post_prestagein_utility_command</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execute any post pre-stage-in utility commands.</span>
+
+<span class="sd">    :param kwargs: kwargs (dictionary).</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># label = kwargs.get(&#39;label&#39;, &#39;unknown_label&#39;)</span>
+    <span class="c1"># stdout = kwargs.get(&#39;output&#39;, None)</span>
+
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="process_debug_command"><a class="viewcode-back" href="../../../../components/user/generic/common.html#pilot.user.generic.common.process_debug_command">[docs]</a><span class="k">def</span> <span class="nf">process_debug_command</span><span class="p">(</span><span class="n">debug_command</span><span class="p">,</span> <span class="n">pandaid</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    In debug mode, the server can send a special debug command to the pilot via the updateJob backchannel.</span>
+<span class="sd">    This function can be used to process that command, i.e. to identify a proper pid to debug (which is unknown</span>
+<span class="sd">    to the server).</span>
+
+<span class="sd">    :param debug_command: debug command (string), payload pid (int).</span>
+<span class="sd">    :param pandaid: PanDA id (string).</span>
+<span class="sd">    :return: updated debug command (string)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">debug_command</span></div>
 </pre></div>
 
           </div>
@@ -339,7 +367,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

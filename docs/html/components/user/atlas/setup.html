@@ -166,8 +166,8 @@ NOTE: the URL list may be out of date.</p>
 <dt class="sig sig-object py" id="pilot.user.atlas.setup.get_writetoinput_filenames">
 <span class="sig-prename descclassname"><span class="pre">pilot.user.atlas.setup.</span></span><span class="sig-name descname"><span class="pre">get_writetoinput_filenames</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writetofile</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/setup.html#get_writetoinput_filenames"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.setup.get_writetoinput_filenames" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extract the writeToFile file name(s).
-writeToFile=’tmpin_mc16_13TeV.345935.PhPy8EG_A14_ttbarMET100_200_hdamp258p75_nonallhad.merge.AOD.e6620_e5984_s3126_r10724_r10726_tid15760866_00:AOD.15760866._000002.pool.root.1’
--&gt; return ‘tmpin_mc16_13TeV.345935.PhPy8EG_A14_ttbarMET100_200_hdamp258p75_nonallhad.merge.AOD.e6620_e5984_s3126_r10724_r10726_tid15760866_00’</p>
+writeToFile=’tmpin_mc16_13TeV.blah:AOD.15760866._000002.pool.root.1’
+-&gt; return ‘tmpin_mc16_13TeV.blah’</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>writetofile</strong> – string containing file name information.</p>
@@ -325,7 +325,7 @@ If a stand-alone container / user defined container is used, pilot should not pr
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

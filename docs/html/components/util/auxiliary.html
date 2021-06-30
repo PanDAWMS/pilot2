@@ -126,6 +126,23 @@ it will dump the contents of</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="pilot.util.auxiliary.get_display_info">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></span><span class="sig-name descname"><span class="pre">get_display_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#get_display_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.get_display_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the product and vendor from the lshw command.
+E.g.</p>
+<blockquote>
+<div><p>product: GD 5446 [1013:B8]
+vendor: Cirrus Logic [1013]</p>
+</div></blockquote>
+<p>-&gt; GD 5446, Cirrus Logic</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>product (string), vendor (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="pilot.util.auxiliary.get_error_code_translation_dictionary">
 <span class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></span><span class="sig-name descname"><span class="pre">get_error_code_translation_dictionary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#get_error_code_translation_dictionary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.get_error_code_translation_dictionary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Define the error code translation dictionary.</p>
@@ -145,6 +162,15 @@ it will dump the contents of</p>
 <dd class="field-odd"><p>job scheduler id (string)</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.util.auxiliary.get_key_value">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></span><span class="sig-name descname"><span class="pre">get_key_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">catchall</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SOMEKEY'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#get_key_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.get_key_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the value corresponding to key in catchall.
+:param catchall: catchall free string.
+:param key: key name (string).
+:return: value (string).</p>
 </dd></dl>
 
 <dl class="py function">
@@ -186,6 +212,28 @@ this definition for possible later investigation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>obj</strong> – object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.util.auxiliary.get_pid_from_command">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></span><span class="sig-name descname"><span class="pre">get_pid_from_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gdb</span> <span class="pre">--pid</span> <span class="pre">(\\d+)'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#get_pid_from_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.get_pid_from_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identify an explicit process id in the given command.</p>
+<dl class="simple">
+<dt>Example:</dt><dd><p>cmd = ‘gdb –pid 19114 -ex ‘generate-core-file’’
+-&gt; pid = 19114</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> – command containing a pid (string).</p></li>
+<li><p><strong>pattern</strong> – regex pattern (raw string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>pid (int).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -287,6 +335,34 @@ of that.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>boolean.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.util.auxiliary.list_hardware">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></span><span class="sig-name descname"><span class="pre">list_hardware</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#list_hardware"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.list_hardware" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute lshw to list local hardware.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>lshw output (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.util.auxiliary.locate_core_file">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.auxiliary.</span></span><span class="sig-name descname"><span class="pre">locate_core_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/auxiliary.html#locate_core_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.auxiliary.locate_core_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Locate the core file produced by gdb.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmd</strong> – optional command containing pid corresponding to core file (string).</p></li>
+<li><p><strong>pid</strong> – optional pid to use with core file (core.pid) (int).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>path to core file (string).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -438,7 +514,7 @@ Any error code that is to be converted by this function, should be added to the 
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

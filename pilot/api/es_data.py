@@ -7,7 +7,7 @@
 # Authors:
 # - Wen Guan, wen.guan@cern,ch, 2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2019
-# - Paul Nilsson, paul.nilsson@cern.ch, 2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2021
 
 import logging
 
@@ -46,7 +46,7 @@ class StageInESClient(StageInClient):
                     fspec.scope = 'transient'
                 if storage_id:
                     fspec.ddmendpoint = self.infosys.get_ddmendpoint(storage_id)
-                logger.info("Processed file with storage id: %s" % fspec)
+                logger.info("Processed file with storage id: %s", fspec)
 
 
 class StageOutESClient(StageOutClient):

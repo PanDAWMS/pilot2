@@ -38,13 +38,13 @@
 <span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
 <span class="c1">#</span>
 <span class="c1"># Authors:</span>
-<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018-2020</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018-2021</span>
 
 <span class="kn">from</span> <span class="nn">pilot.common.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
-<span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">whoami</span><span class="p">,</span> <span class="n">set_pilot_state</span><span class="p">,</span> <span class="n">cut_output</span>
+<span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">whoami</span><span class="p">,</span> <span class="n">set_pilot_state</span><span class="p">,</span> <span class="n">cut_output</span><span class="p">,</span> <span class="n">locate_core_file</span>
 <span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
 <span class="kn">from</span> <span class="nn">pilot.util.container</span> <span class="kn">import</span> <span class="n">execute</span>
-<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">remove_files</span><span class="p">,</span> <span class="n">find_latest_modified_file</span><span class="p">,</span> <span class="n">verify_file_list</span>
+<span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">remove_files</span><span class="p">,</span> <span class="n">find_latest_modified_file</span><span class="p">,</span> <span class="n">verify_file_list</span><span class="p">,</span> <span class="n">copy</span>
 <span class="kn">from</span> <span class="nn">pilot.util.parameters</span> <span class="kn">import</span> <span class="n">convert_to_int</span>
 <span class="kn">from</span> <span class="nn">pilot.util.processes</span> <span class="kn">import</span> <span class="n">kill_processes</span>
 <span class="kn">from</span> <span class="nn">pilot.util.timing</span> <span class="kn">import</span> <span class="n">time_stamp</span>
@@ -92,18 +92,47 @@
         <span class="c1"># the payload process is considered to be looping if it&#39;s files have not been touched within looping_limit time</span>
         <span class="k">if</span> <span class="n">time_last_touched</span><span class="p">:</span>
             <span class="n">ct</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;current time: </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">ct</span><span class="p">)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;last time files were touched: </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">time_last_touched</span><span class="p">)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;looping limit: </span><span class="si">%d</span><span class="s1"> s&#39;</span> <span class="o">%</span> <span class="n">looping_limit</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;current time: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ct</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;last time files were touched: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">time_last_touched</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;looping limit: </span><span class="si">%d</span><span class="s1"> s&#39;</span><span class="p">,</span> <span class="n">looping_limit</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">ct</span> <span class="o">-</span> <span class="n">time_last_touched</span> <span class="o">&gt;</span> <span class="n">looping_limit</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># first produce core dump and copy it</span>
+                    <span class="n">create_core_dump</span><span class="p">(</span><span class="n">pid</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">,</span> <span class="n">workdir</span><span class="o">=</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+                    <span class="c1"># set debug mode to prevent core file from being removed before log creation</span>
+                    <span class="n">job</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="kc">True</span>
                     <span class="n">kill_looping_job</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
-                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;no files were touched&#39;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">diagnostics</span></div>
+
+
+<div class="viewcode-block" id="create_core_dump"><a class="viewcode-back" href="../../../components/util/loopingjob.html#pilot.util.loopingjob.create_core_dump">[docs]</a><span class="k">def</span> <span class="nf">create_core_dump</span><span class="p">(</span><span class="n">pid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">workdir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create core dump and copy it to work directory</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">pid</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">workdir</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;cannot create core file since pid or workdir is unknown&#39;</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;gdb --pid </span><span class="si">%d</span><span class="s1"> -ex </span><span class="se">\&#39;</span><span class="s1">generate-core-file</span><span class="se">\&#39;</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">pid</span>
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">exit_code</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">locate_core_file</span><span class="p">(</span><span class="n">pid</span><span class="o">=</span><span class="n">pid</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">copy</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">workdir</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to copy core file: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;copied core dump to workdir&#39;</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to execute command: </span><span class="si">%s</span><span class="s1">, stdout+err=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cmd</span><span class="p">,</span> <span class="n">stdout</span> <span class="o">+</span> <span class="n">stderr</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_time_for_last_touch"><a class="viewcode-back" href="../../../components/util/loopingjob.html#pilot.util.loopingjob.get_time_for_last_touch">[docs]</a><span class="k">def</span> <span class="nf">get_time_for_last_touch</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">mt</span><span class="p">,</span> <span class="n">looping_limit</span><span class="p">):</span>
@@ -131,14 +160,14 @@
             <span class="c1"># remove unwanted list items (*.py, *.pyc, workdir, ...)</span>
             <span class="n">files</span> <span class="o">=</span> <span class="n">loopingjob_definitions</span><span class="o">.</span><span class="n">remove_unwanted_files</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">files</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">files</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;found </span><span class="si">%d</span><span class="s1"> files that were recently updated&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">))</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;recent files:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">files</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;found </span><span class="si">%d</span><span class="s1"> files that were recently updated&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;recent files:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">files</span><span class="p">)</span>
                 <span class="n">updated_files</span> <span class="o">=</span> <span class="n">verify_file_list</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
 
                 <span class="c1"># now get the mod times for these file, and identify the most recently update file</span>
                 <span class="n">latest_modified_file</span><span class="p">,</span> <span class="n">mtime</span> <span class="o">=</span> <span class="n">find_latest_modified_file</span><span class="p">(</span><span class="n">updated_files</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">latest_modified_file</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;file </span><span class="si">%s</span><span class="s2"> is the most recently updated file (at time=</span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">latest_modified_file</span><span class="p">,</span> <span class="n">mtime</span><span class="p">))</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;file </span><span class="si">%s</span><span class="s2"> is the most recently updated file (at time=</span><span class="si">%d</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">latest_modified_file</span><span class="p">,</span> <span class="n">mtime</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;looping job algorithm failed to identify latest updated file&#39;</span><span class="p">)</span>
                     <span class="k">return</span> <span class="n">mt</span><span class="o">.</span><span class="n">ct_looping_last_touched</span>
@@ -153,7 +182,7 @@
         <span class="c1"># cut the output if too long</span>
         <span class="n">stdout</span> <span class="o">=</span> <span class="n">cut_output</span><span class="p">(</span><span class="n">stdout</span><span class="p">)</span>
         <span class="n">stderr</span> <span class="o">=</span> <span class="n">cut_output</span><span class="p">(</span><span class="n">stderr</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;find command failed: </span><span class="si">%d</span><span class="s1">, </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;find command failed: </span><span class="si">%d</span><span class="s1">, </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">mt</span><span class="o">.</span><span class="n">ct_looping_last_touched</span></div>
 
@@ -173,19 +202,19 @@
 
     <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;ps -fwu </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">whoami</span><span class="p">()</span>
     <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cmd</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">cmd</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">)</span>
 
     <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;ls -ltr </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
     <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cmd</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">cmd</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">)</span>
 
     <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;ps -o pid,ppid,sid,pgid,tpgid,stat,comm -u </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">whoami</span><span class="p">()</span>
     <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cmd</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">cmd</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">)</span>
 
     <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;pstree -g -a&#39;</span>
     <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cmd</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">cmd</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">)</span>
 
     <span class="c1"># set the relevant error code</span>
     <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="s1">&#39;stagein&#39;</span><span class="p">:</span>
@@ -217,7 +246,7 @@
     <span class="n">looping_limit</span> <span class="o">=</span> <span class="n">convert_to_int</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">looping_limit_default</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">2</span> <span class="o">*</span> <span class="mi">3600</span><span class="p">)</span>
     <span class="n">looping_limit_min_default</span> <span class="o">=</span> <span class="n">convert_to_int</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">Pilot</span><span class="o">.</span><span class="n">looping_limit_min_default</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">2</span> <span class="o">*</span> <span class="mi">3600</span><span class="p">)</span>
     <span class="n">looping_limit</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">looping_limit</span><span class="p">,</span> <span class="n">looping_limit_min_default</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;using looping job limit: </span><span class="si">%d</span><span class="s2"> s&quot;</span> <span class="o">%</span> <span class="n">looping_limit</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;using looping job limit: </span><span class="si">%d</span><span class="s2"> s&quot;</span><span class="p">,</span> <span class="n">looping_limit</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">looping_limit</span></div>
 </pre></div>
@@ -270,7 +299,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

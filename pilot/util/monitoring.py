@@ -54,15 +54,15 @@ def job_monitor_tasks(job, mt, args):
         check_hz()
         try:
             cpuconsumptiontime = get_current_cpu_consumption_time(job.pid)
-        except Exception as e:
-            diagnostics = "Exception caught: %s" % e
+        except Exception as error:
+            diagnostics = "Exception caught: %s" % error
             logger.warning(diagnostics)
             exit_code = get_exception_error_code(diagnostics)
             return exit_code, diagnostics
         else:
             job.cpuconsumptiontime = int(round(cpuconsumptiontime))
             job.cpuconversionfactor = 1.0
-            logger.info('CPU consumption time for pid=%d: %f (rounded to %d)' % (job.pid, cpuconsumptiontime, job.cpuconsumptiontime))
+            logger.info('CPU consumption time for pid=%d: %f (rounded to %d)', job.pid, cpuconsumptiontime, job.cpuconsumptiontime)
 
         # check how many cores the payload is using
         set_number_used_cores(job)
@@ -123,7 +123,7 @@ def display_oom_info(payload_pid):
 
     payload_score = get_score(payload_pid) if payload_pid else 'UNKNOWN'
     pilot_score = get_score(os.getpid())
-    logger.info('oom_score(pilot) = %s, oom_score(payload) = %s' % (pilot_score, payload_score))
+    logger.info('oom_score(pilot) = %s, oom_score(payload) = %s', pilot_score, payload_score)
 
 
 def get_score(pid):
@@ -136,8 +136,8 @@ def get_score(pid):
 
     try:
         score = '%s' % read_file('/proc/%d/oom_score' % pid)
-    except Exception as e:
-        logger.warning('caught exception reading oom_score: %s' % e)
+    except Exception as error:
+        logger.warning('caught exception reading oom_score: %s', error)
         score = 'UNKNOWN'
     else:
         if score.endswith('\n'):
@@ -207,8 +207,8 @@ def verify_memory_usage(current_time, mt, job):
         # is the used memory within the allowed limit?
         try:
             exit_code, diagnostics = memory.memory_usage(job)
-        except Exception as e:
-            logger.warning('caught exception: %s' % e)
+        except Exception as error:
+            logger.warning('caught exception: %s', error)
             exit_code = -1
         if exit_code != 0:
             logger.warning('ignoring failure to parse memory monitor output')
@@ -291,8 +291,8 @@ def verify_looping_job(current_time, mt, job):
         # is the job looping?
         try:
             exit_code, diagnostics = looping_job(job, mt)
-        except Exception as e:
-            diagnostics = 'exception caught in looping job algorithm: %s' % e
+        except Exception as error:
+            diagnostics = 'exception caught in looping job algorithm: %s' % error
             logger.warning(diagnostics)
             if "No module named" in diagnostics:
                 exit_code = errors.BLACKHOLE
@@ -371,15 +371,15 @@ def verify_running_processes(current_time, mt, pid):
         nproc = get_number_of_child_processes(pid)
         try:
             nproc_env = int(os.environ.get('PILOT_MAXNPROC', 0))
-        except Exception as e:
-            logger.warning('failed to convert PILOT_MAXNPROC to int: %s' % e)
+        except Exception as error:
+            logger.warning('failed to convert PILOT_MAXNPROC to int: %s', error)
         else:
             if nproc > nproc_env:
                 # set the maximum number of found processes
                 os.environ['PILOT_MAXNPROC'] = str(nproc)
 
         if nproc_env > 0:
-            logger.info('maximum number of monitored processes: %d' % nproc_env)
+            logger.info('maximum number of monitored processes: %d', nproc_env)
 
     return 0, ""
 
@@ -417,19 +417,19 @@ def utility_monitor(job):
                 try:
                     proc1 = execute(utility_command, workdir=job.workdir, returnproc=True, usecontainer=False,
                                     stdout=PIPE, stderr=PIPE, cwd=job.workdir, queuedata=job.infosys.queuedata)
-                except Exception as e:
-                    logger.error('could not execute: %s' % e)
+                except Exception as error:
+                    logger.error('could not execute: %s', error)
                 else:
                     # store process handle in job object, and keep track on how many times the
                     # command has been launched
                     job.utilities[utcmd] = [proc1, utility_subprocess_launches + 1, utility_command]
             else:
-                logger.warning('detected crashed utility subprocess - too many restarts, will not restart %s again' % utcmd)
+                logger.warning('detected crashed utility subprocess - too many restarts, will not restart %s again', utcmd)
         else:  # check the utility output (the selector option adds a substring to the output file name)
             filename = usercommon.get_utility_command_output_filename(utcmd, selector=True)
             path = os.path.join(job.workdir, filename)
             if not os.path.exists(path):
-                logger.warning('file: %s does not exist' % path)
+                logger.warning('file: %s does not exist', path)
 
             time.sleep(10)
 
@@ -444,10 +444,9 @@ def get_local_size_limit_stdout(bytes=True):
 
     try:
         localsizelimit_stdout = int(config.Pilot.local_size_limit_stdout)
-    except Exception as e:
+    except Exception as error:
         localsizelimit_stdout = 2097152
-        logger.warning('bad value in config for local_size_limit_stdout: %s (will use value: %d kB)' %
-                       (e, localsizelimit_stdout))
+        logger.warning('bad value in config for local_size_limit_stdout: %s (will use value: %d kB)', error, localsizelimit_stdout)
 
     # convert from kB to B
     if bytes:
@@ -484,17 +483,17 @@ def check_payload_stdout(job):
     # now loop over all files and check each individually (any large enough file will fail the job)
     for filename in file_list:
 
-        logger.debug('check_payload_stdout: filename=%s' % filename)
+        logger.debug('check_payload_stdout: filename=%s', filename)
         if "job.log.tgz" in filename:
-            logger.info("skipping file size check of file (%s) since it is a special log file" % (filename))
+            logger.info("skipping file size check of file (%s) since it is a special log file", filename)
             continue
 
         if os.path.exists(filename):
             try:
                 # get file size in bytes
                 fsize = os.path.getsize(filename)
-            except Exception as e:
-                logger.warning("could not read file size of %s: %s" % (filename, e))
+            except Exception as error:
+                logger.warning("could not read file size of %s: %s", filename, error)
             else:
                 # is the file too big?
                 localsizelimit_stdout = get_local_size_limit_stdout()
@@ -517,9 +516,9 @@ def check_payload_stdout(job):
                         # remove any lingering input files from the work dir
                         exit_code = remove_files(job.workdir, lfns)
                 else:
-                    logger.info("payload log (%s) within allowed size limit (%d B): %d B" % (os.path.basename(filename), localsizelimit_stdout, fsize))
+                    logger.info("payload log (%s) within allowed size limit (%d B): %d B", os.path.basename(filename), localsizelimit_stdout, fsize)
         else:
-            logger.info("skipping file size check of payload stdout file (%s) since it has not been created yet" % filename)
+            logger.info("skipping file size check of payload stdout file (%s) since it has not been created yet", filename)
 
     return exit_code, diagnostics
 
@@ -539,7 +538,7 @@ def check_local_space(initial=True):
 
     # is there enough local space to run a job?
     cwd = os.getcwd()
-    logger.debug('checking local space on %s' % cwd)
+    logger.debug('checking local space on %s', cwd)
     spaceleft = convert_mb_to_b(get_local_disk_space(cwd))  # B (diskspace is in MB)
     free_space_limit = human2bytes(config.Pilot.free_space_limit) if initial else human2bytes(config.Pilot.free_space_limit_running)
 
@@ -549,7 +548,7 @@ def check_local_space(initial=True):
         ec = errors.NOLOCALSPACE
         logger.warning(diagnostics)
     else:
-        logger.info('sufficient remaining disk space (%d B)' % spaceleft)
+        logger.info('sufficient remaining disk space (%d B)', spaceleft)
 
     return ec, diagnostics
 
@@ -578,11 +577,11 @@ def check_work_dir(job):
                 exit_code = errors.USERDIRTOOLARGE
                 diagnostics = "work directory (%s) is too large: %d B (must be < %d B)" % \
                               (job.workdir, workdirsize, maxwdirsize)
-                logger.fatal("%s" % diagnostics)
+                logger.fatal("%s", diagnostics)
 
                 cmd = 'ls -altrR %s' % job.workdir
                 _ec, stdout, stderr = execute(cmd, mute=True)
-                logger.info("%s: %s" % (cmd + '\n', stdout))
+                logger.info("%s: %s", cmd + '\n', stdout)
 
                 # kill the job
                 # pUtil.createLockFile(True, self.__env['jobDic'][k][1].workdir, lockfile="JOBWILLBEKILLED")
@@ -598,13 +597,13 @@ def check_work_dir(job):
                     # remeasure the size of the workdir at this point since the value is stored below
                     workdirsize = get_directory_size(directory=job.workdir)
             else:
-                logger.info("size of work directory %s: %d B (within %d B limit)" % (job.workdir, workdirsize, maxwdirsize))
+                logger.info("size of work directory %s: %d B (within %d B limit)", job.workdir, workdirsize, maxwdirsize)
 
             # Store the measured disk space (the max value will later be sent with the job metrics)
             if workdirsize > 0:
                 job.add_workdir_size(workdirsize)
         else:
-            logger.warning('job work dir does not exist: %s' % job.workdir)
+            logger.warning('job work dir does not exist: %s', job.workdir)
     else:
         logger.warning('skipping size check of workdir since it has not been created yet')
 
@@ -621,17 +620,17 @@ def get_max_allowed_work_dir_size(queuedata):
 
     try:
         maxwdirsize = convert_mb_to_b(get_maximum_input_sizes())  # from MB to B, e.g. 16336 MB -> 17,129,537,536 B
-    except Exception as e:
+    except Exception as error:
         max_input_size = get_max_input_size()
         maxwdirsize = max_input_size + config.Pilot.local_size_limit_stdout * 1024
         logger.info("work directory size check will use %d B as a max limit (maxinputsize [%d B] + local size limit for"
-                    " stdout [%d B])" % (maxwdirsize, max_input_size, config.Pilot.local_size_limit_stdout * 1024))
-        logger.warning('conversion caught exception: %s' % e)
+                    " stdout [%d B])", maxwdirsize, max_input_size, config.Pilot.local_size_limit_stdout * 1024)
+        logger.warning('conversion caught exception: %s', error)
     else:
         # grace margin, as discussed in https://its.cern.ch/jira/browse/ATLASPANDA-482
         margin = 10.0  # percent, read later from somewhere
         maxwdirsize = int(maxwdirsize * (1 + margin / 100.0))
-        logger.info("work directory size check will use %d B as a max limit (10%% grace limit added)" % maxwdirsize)
+        logger.info("work directory size check will use %d B as a max limit (10%% grace limit added)", maxwdirsize)
 
     return maxwdirsize
 
@@ -654,8 +653,8 @@ def get_max_input_size(queuedata, megabyte=False):
                 _maxinputsize = int(_maxinputsize)  # MB
             else:  # convert to B int
                 _maxinputsize = int(_maxinputsize) * 1024 * 1024  # MB -> B
-        except Exception as e:
-            logger.warning("schedconfig.maxinputsize: %s" % e)
+        except Exception as error:
+            logger.warning("schedconfig.maxinputsize: %s", error)
             if megabyte:
                 _maxinputsize = max_input_file_sizes_mb
             else:
@@ -667,9 +666,9 @@ def get_max_input_size(queuedata, megabyte=False):
             _maxinputsize = max_input_file_sizes
 
     if megabyte:
-        logger.info("max input size = %d MB (pilot default)" % _maxinputsize)
+        logger.info("max input size = %d MB (pilot default)", _maxinputsize)
     else:
-        logger.info("Max input size = %d B (pilot default)" % _maxinputsize)
+        logger.info("Max input size = %d B (pilot default)", _maxinputsize)
 
     return _maxinputsize
 
@@ -693,12 +692,12 @@ def check_output_file_sizes(job):
             fsize = get_local_file_size(path)
             max_fsize = human2bytes(config.Pilot.maximum_output_file_size)
             if fsize and fsize < max_fsize:
-                logger.info('output file %s is within allowed size limit (%d B < %d B)' % (path, fsize, max_fsize))
+                logger.info('output file %s is within allowed size limit (%d B < %d B)', path, fsize, max_fsize)
             else:
                 exit_code = errors.OUTPUTFILETOOLARGE
                 diagnostics = 'output file %s is not within allowed size limit (%d B > %d B)' % (path, fsize, max_fsize)
                 logger.warning(diagnostics)
         else:
-            logger.info('output file size check: skipping output file %s since it does not exist' % path)
+            logger.info('output file size check: skipping output file %s since it does not exist', path)
 
     return exit_code, diagnostics

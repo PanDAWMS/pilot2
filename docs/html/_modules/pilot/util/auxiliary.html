@@ -38,9 +38,10 @@
 <span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
 <span class="c1">#</span>
 <span class="c1"># Authors:</span>
-<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021</span>
 
 <span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">deque</span><span class="p">,</span> <span class="n">OrderedDict</span>
@@ -54,9 +55,17 @@
     <span class="n">zero_depth_bases</span> <span class="o">=</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">Number</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="nb">bytearray</span><span class="p">)</span>  <span class="c1"># Python 3</span>
     <span class="n">iteritems</span> <span class="o">=</span> <span class="s1">&#39;items&#39;</span>
 
+<span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">SUCCESS</span><span class="p">,</span>
+    <span class="n">FAILURE</span><span class="p">,</span>
+    <span class="n">SERVER_UPDATE_FINAL</span><span class="p">,</span>
+    <span class="n">SERVER_UPDATE_NOT_DONE</span><span class="p">,</span>
+    <span class="n">SERVER_UPDATE_TROUBLE</span><span class="p">,</span>
+    <span class="n">get_pilot_version</span><span class="p">,</span>
+<span class="p">)</span>
+
 <span class="kn">from</span> <span class="nn">pilot.common.errorcodes</span> <span class="kn">import</span> <span class="n">ErrorCodes</span>
 <span class="kn">from</span> <span class="nn">pilot.util.container</span> <span class="kn">import</span> <span class="n">execute</span>
-<span class="kn">from</span> <span class="nn">pilot.util.constants</span> <span class="kn">import</span> <span class="n">SUCCESS</span><span class="p">,</span> <span class="n">FAILURE</span><span class="p">,</span> <span class="n">SERVER_UPDATE_FINAL</span><span class="p">,</span> <span class="n">SERVER_UPDATE_NOT_DONE</span><span class="p">,</span> <span class="n">SERVER_UPDATE_TROUBLE</span><span class="p">,</span> <span class="n">get_pilot_version</span>
 <span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">dump</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
@@ -130,7 +139,7 @@
         <span class="n">dump</span><span class="p">(</span><span class="s2">&quot;/etc/issue&quot;</span><span class="p">)</span>
         <span class="n">dump</span><span class="p">(</span><span class="s2">&quot;$MACHTYPE&quot;</span><span class="p">,</span> <span class="n">cmd</span><span class="o">=</span><span class="s2">&quot;echo&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">stdout</span><span class="p">)</span></div>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">stdout</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_batchsystem_jobid"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.get_batchsystem_jobid">[docs]</a><span class="k">def</span> <span class="nf">get_batchsystem_jobid</span><span class="p">():</span>
@@ -341,7 +350,7 @@
                 <span class="k">pass</span>
                 <span class="c1"># &lt;class &#39;collections.OrderedDict&#39;&gt;: unbound method iteritems() must be called</span>
                 <span class="c1"># with OrderedDict instance as first argument (got nothing instead)</span>
-                <span class="c1">#logger.debug(&#39;exception caught for obj=%s: %s&#39; % (str(obj), e))</span>
+                <span class="c1">#logger.debug(&#39;exception caught for obj=%s: %s&#39;, (str(obj), e))</span>
 
         <span class="c1"># Check for custom object instances - may subclass above too</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;__dict__&#39;</span><span class="p">):</span>
@@ -408,7 +417,7 @@
         <span class="k">if</span> <span class="n">server_update</span> <span class="o">==</span> <span class="n">SERVER_UPDATE_FINAL</span> <span class="ow">or</span> <span class="n">server_update</span> <span class="o">==</span> <span class="n">SERVER_UPDATE_TROUBLE</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;server update done, finishing&#39;</span><span class="p">)</span>
             <span class="k">break</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;server update not finished (#</span><span class="si">%d</span><span class="s1">/#</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">max_i</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;server update not finished (#</span><span class="si">%d</span><span class="s1">/#</span><span class="si">%d</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">max_i</span><span class="p">)</span>
         <span class="n">sleep</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
         <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span></div>
 
@@ -476,7 +485,7 @@
         <span class="n">_value</span> <span class="o">=</span> <span class="n">extract_memory_usage_value</span><span class="p">(</span><span class="n">_stdout</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="n">_value</span> <span class="o">=</span> <span class="s2">&quot;(unknown)&quot;</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;current pilot memory usage:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n\n</span><span class="s1">usage: </span><span class="si">%s</span><span class="s1"> kB</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_stdout</span><span class="p">,</span> <span class="n">_value</span><span class="p">))</span></div>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;current pilot memory usage:</span><span class="se">\n\n</span><span class="si">%s</span><span class="se">\n\n</span><span class="s1">usage: </span><span class="si">%s</span><span class="s1"> kB</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">_stdout</span><span class="p">,</span> <span class="n">_value</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_memory_usage"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.get_memory_usage">[docs]</a><span class="k">def</span> <span class="nf">get_memory_usage</span><span class="p">(</span><span class="n">pid</span><span class="p">):</span>
@@ -572,6 +581,116 @@
                 <span class="n">ret</span> <span class="o">+=</span> <span class="s1">&#39;|</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">if</span> <span class="n">ret</span> <span class="k">else</span> <span class="n">i</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="locate_core_file"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.locate_core_file">[docs]</a><span class="k">def</span> <span class="nf">locate_core_file</span><span class="p">(</span><span class="n">cmd</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pid</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Locate the core file produced by gdb.</span>
+
+<span class="sd">    :param cmd: optional command containing pid corresponding to core file (string).</span>
+<span class="sd">    :param pid: optional pid to use with core file (core.pid) (int).</span>
+<span class="sd">    :return: path to core file (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">pid</span> <span class="ow">and</span> <span class="n">cmd</span><span class="p">:</span>
+        <span class="n">pid</span> <span class="o">=</span> <span class="n">get_pid_from_command</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">pid</span><span class="p">:</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;core.</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">pid</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_HOME&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">),</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;found core file at: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;did not find </span><span class="si">%s</span><span class="s1"> in </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;cannot locate core file since pid could not be extracted from command&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">path</span></div>
+
+
+<div class="viewcode-block" id="get_pid_from_command"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.get_pid_from_command">[docs]</a><span class="k">def</span> <span class="nf">get_pid_from_command</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;gdb --pid (\d+)&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Identify an explicit process id in the given command.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        cmd = &#39;gdb --pid 19114 -ex \&#39;generate-core-file\&#39;&#39;</span>
+<span class="sd">        -&gt; pid = 19114</span>
+
+<span class="sd">    :param cmd: command containing a pid (string).</span>
+<span class="sd">    :param pattern: regex pattern (raw string).</span>
+<span class="sd">    :return: pid (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pid</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">pid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">pid</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;no match for pattern </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1"> in command=</span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">cmd</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">pid</span></div>
+
+
+<div class="viewcode-block" id="list_hardware"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.list_hardware">[docs]</a><span class="k">def</span> <span class="nf">list_hardware</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execute lshw to list local hardware.</span>
+
+<span class="sd">    :return: lshw output (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="s1">&#39;lshw -numeric -C display&#39;</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;Command not found&#39;</span> <span class="ow">in</span> <span class="n">stdout</span> <span class="ow">or</span> <span class="s1">&#39;Command not found&#39;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
+        <span class="n">stdout</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">stdout</span></div>
+
+
+<div class="viewcode-block" id="get_display_info"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.get_display_info">[docs]</a><span class="k">def</span> <span class="nf">get_display_info</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract the product and vendor from the lshw command.</span>
+<span class="sd">    E.g.</span>
+<span class="sd">           product: GD 5446 [1013:B8]</span>
+<span class="sd">           vendor: Cirrus Logic [1013]</span>
+<span class="sd">    -&gt; GD 5446, Cirrus Logic</span>
+
+<span class="sd">    :return: product (string), vendor (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">vendor</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">product</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">stdout</span> <span class="o">=</span> <span class="n">list_hardware</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">stdout</span><span class="p">:</span>
+        <span class="n">vendor_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;vendor\:\ (.+)\ .&#39;</span><span class="p">)</span>
+        <span class="n">product_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;product\:\ (.+)\ .&#39;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">stdout</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s1">&#39;vendor&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">vendor_pattern</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+                    <span class="n">vendor</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="s1">&#39;product&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">product_pattern</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+                    <span class="n">product</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">product</span><span class="p">,</span> <span class="n">vendor</span></div>
+
+
+<div class="viewcode-block" id="get_key_value"><a class="viewcode-back" href="../../../components/util/auxiliary.html#pilot.util.auxiliary.get_key_value">[docs]</a><span class="k">def</span> <span class="nf">get_key_value</span><span class="p">(</span><span class="n">catchall</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;SOMEKEY&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the value corresponding to key in catchall.</span>
+<span class="sd">    :param catchall: catchall free string.</span>
+<span class="sd">    :param key: key name (string).</span>
+<span class="sd">    :return: value (string).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># ignore any non-key-value pairs that might be present in the catchall string</span>
+    <span class="n">_dic</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">_str</span> <span class="ow">in</span> <span class="n">catchall</span><span class="o">.</span><span class="n">split</span><span class="p">()</span> <span class="k">if</span> <span class="s1">&#39;=&#39;</span> <span class="ow">in</span> <span class="n">_str</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">_dic</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
 </pre></div>
 
           </div>
@@ -622,7 +741,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

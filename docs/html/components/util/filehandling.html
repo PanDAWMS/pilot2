@@ -239,13 +239,21 @@ The file is assumed to exist.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pilot.util.filehandling.establish_logging">
-<span class="sig-prename descclassname"><span class="pre">pilot.util.filehandling.</span></span><span class="sig-name descname"><span class="pre">establish_logging</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pilotlog.txt'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/filehandling.html#establish_logging"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.filehandling.establish_logging" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pilot.util.filehandling.</span></span><span class="sig-name descname"><span class="pre">establish_logging</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nopilotlog</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pilotlog.txt'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loglevel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/filehandling.html#establish_logging"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.filehandling.establish_logging" title="Permalink to this definition">¶</a></dt>
 <dd><p>Setup and establish logging.</p>
+<p>Option loglevel can be used to decide which (predetermined) logging format to use.
+Example:</p>
+<blockquote>
+<div><p>loglevel=0: ‘%(asctime)s | %(levelname)-8s | %(name)-32s | %(funcName)-25s | %(message)s’
+loglevel=1: ‘ts=%(asctime)s level=%(levelname)-8s event=%(name)-32s.%(funcName)-25s msg=”%(message)s”’</p>
+</div></blockquote>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>args</strong> – pilot arguments object.</p></li>
-<li><p><strong>filename</strong> – name of log file.</p></li>
+<li><p><strong>debug</strong> – debug mode (Boolean),</p></li>
+<li><p><strong>nopilotlog</strong> – True when pilot log is not known (Boolean).</p></li>
+<li><p><strong>filename</strong> – name of log file (string).</p></li>
+<li><p><strong>loglevel</strong> – selector for logging level (int).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -264,6 +272,20 @@ The file is assumed to exist.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>full path to command if it exists, otherwise empty string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.util.filehandling.find_last_line">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.filehandling.</span></span><span class="sig-name descname"><span class="pre">find_last_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/filehandling.html#find_last_line"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.filehandling.find_last_line" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the last line in a (not too large) file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>filename</strong> – file name, full path (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>last line (string).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -493,6 +515,25 @@ The function reads the first character of the file, and if it is “{” then re
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="pilot.util.filehandling.locate_file">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.filehandling.</span></span><span class="sig-name descname"><span class="pre">locate_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/filehandling.html#locate_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.filehandling.locate_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Locate a file defined by the pattern.</p>
+<dl class="simple">
+<dt>Example:</dt><dd><p>pattern = os.path.join(os.getcwd(), ‘<a href="#id1"><span class="problematic" id="id2">**</span></a>/core.123’)
+-&gt; /Users/Paul/Development/python/tt/core.123</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>pattern</strong> – pattern name (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>path (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="pilot.util.filehandling.mkdirs">
 <span class="sig-prename descclassname"><span class="pre">pilot.util.filehandling.</span></span><span class="sig-name descname"><span class="pre">mkdirs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chmod</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">504</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/filehandling.html#mkdirs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.filehandling.mkdirs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a directory.
@@ -509,6 +550,20 @@ Perform a chmod if set.</p>
 </dd>
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.util.filehandling.move">
+<span class="sig-prename descclassname"><span class="pre">pilot.util.filehandling.</span></span><span class="sig-name descname"><span class="pre">move</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/util/filehandling.html#move"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.util.filehandling.move" title="Permalink to this definition">¶</a></dt>
+<dd><p>Move a file from path1 to path2.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path1</strong> – source path (string).</p></li>
+<li><p><strong>path2</strong> – destination path2 (string).</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -875,7 +930,7 @@ If unique=True, then if the file already exists, an index will be added (e.g. �
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

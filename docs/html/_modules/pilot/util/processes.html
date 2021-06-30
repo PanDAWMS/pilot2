@@ -38,7 +38,7 @@
 <span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
 <span class="c1">#</span>
 <span class="c1"># Authors:</span>
-<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018-2021</span>
 
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">time</span>
@@ -80,8 +80,8 @@
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">thispid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
                 <span class="n">thisppid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">1</span><span class="p">])</span>
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">thisppid</span> <span class="o">==</span> <span class="n">pid</span><span class="p">:</span>
                 <span class="n">find_processes_in_group</span><span class="p">(</span><span class="n">cpids</span><span class="p">,</span> <span class="n">thispid</span><span class="p">)</span></div>
 
@@ -117,7 +117,7 @@
     <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">mute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">stdout</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;ps command failed: </span><span class="si">%d</span><span class="s1">, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1">, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;ps command failed: </span><span class="si">%d</span><span class="s1">, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1">, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># extract the relevant processes</span>
         <span class="n">p_commands</span> <span class="o">=</span> <span class="n">stdout</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
@@ -186,13 +186,13 @@
             <span class="k">return</span>
 
         <span class="n">children</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;process IDs to be killed: </span><span class="si">%s</span><span class="s2"> (in reverse order)&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">children</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;process IDs to be killed: </span><span class="si">%s</span><span class="s2"> (in reverse order)&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">children</span><span class="p">))</span>
 
         <span class="c1"># find which commands are still running</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">cmds</span> <span class="o">=</span> <span class="n">get_process_commands</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">geteuid</span><span class="p">(),</span> <span class="n">children</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;get_process_commands() threw an exception: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;get_process_commands() threw an exception: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cmds</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;found no corresponding commands to process id(s)&quot;</span><span class="p">)</span>
@@ -210,6 +210,8 @@
                     <span class="n">kill_process</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
 
     <span class="c1"># kill any remaining orphan processes</span>
+    <span class="c1"># note: this should no longer be necessary since ctypes has made sure all subprocesses are parented</span>
+    <span class="c1"># if orphan process killing is not desired, set env var PILOT_NOKILL</span>
     <span class="n">kill_orphans</span><span class="p">()</span></div>
 
 
@@ -226,13 +228,13 @@
 
     <span class="c1"># reverse the process order so that the athena process is killed first (otherwise the stdout will be truncated)</span>
     <span class="n">children</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;process IDs to be killed: </span><span class="si">%s</span><span class="s2"> (in reverse order)&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">children</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;process IDs to be killed: </span><span class="si">%s</span><span class="s2"> (in reverse order)&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">children</span><span class="p">))</span>
 
     <span class="c1"># find which commands are still running</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">cmds</span> <span class="o">=</span> <span class="n">get_process_commands</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">geteuid</span><span class="p">(),</span> <span class="n">children</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;get_process_commands() threw an exception: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;get_process_commands() threw an exception: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cmds</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;found no corresponding commands to process id(s)&quot;</span><span class="p">)</span>
@@ -262,26 +264,26 @@
     <span class="n">_sleep</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="c1"># kill the process gracefully</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;killing group process </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">pgrp</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;killing group process </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">pgrp</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">killpg</span><span class="p">(</span><span class="n">pgrp</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;exception thrown when killing child group process under SIGTERM: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;exception thrown when killing child group process under SIGTERM: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
         <span class="n">_sleep</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;SIGTERM sent to process group </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">pgrp</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;SIGTERM sent to process group </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">pgrp</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">_sleep</span><span class="p">:</span>
         <span class="n">_t</span> <span class="o">=</span> <span class="mi">30</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;sleeping </span><span class="si">%d</span><span class="s2"> s to allow processes to exit&quot;</span> <span class="o">%</span> <span class="n">_t</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;sleeping </span><span class="si">%d</span><span class="s2"> s to allow processes to exit&quot;</span><span class="p">,</span> <span class="n">_t</span><span class="p">)</span>
         <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">_t</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">killpg</span><span class="p">(</span><span class="n">pgrp</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;exception thrown when killing child group process with SIGKILL: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;exception thrown when killing child group process with SIGKILL: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;SIGKILL sent to process group </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">pgrp</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;SIGKILL sent to process group </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">pgrp</span><span class="p">)</span>
         <span class="n">status</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="k">return</span> <span class="n">status</span></div>
@@ -301,7 +303,7 @@
     <span class="n">kill</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">)</span>
 
     <span class="n">_t</span> <span class="o">=</span> <span class="mi">10</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;sleeping </span><span class="si">%d</span><span class="s2"> s to allow process to exit&quot;</span> <span class="o">%</span> <span class="n">_t</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;sleeping </span><span class="si">%d</span><span class="s2"> s to allow process to exit&quot;</span><span class="p">,</span> <span class="n">_t</span><span class="p">)</span>
     <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">_t</span><span class="p">)</span>
 
     <span class="c1"># now do a hard kill just in case some processes haven&#39;t gone away</span>
@@ -322,10 +324,10 @@
     <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">kill</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;exception thrown when killing process </span><span class="si">%d</span><span class="s2"> with signal=</span><span class="si">%d</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;exception thrown when killing process </span><span class="si">%d</span><span class="s2"> with signal=</span><span class="si">%d</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;killed process </span><span class="si">%d</span><span class="s2"> with signal=</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">sig</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;killed process </span><span class="si">%d</span><span class="s2"> with signal=</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span>
         <span class="n">status</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="k">return</span> <span class="n">status</span></div>
@@ -344,12 +346,12 @@
     <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">find_processes_in_group</span><span class="p">(</span><span class="n">children</span><span class="p">,</span> <span class="n">pid</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;exception caught in find_processes_in_group: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;exception caught in find_processes_in_group: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">pid</span><span class="p">:</span>
             <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">children</span><span class="p">)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;number of running child processes to parent process </span><span class="si">%d</span><span class="s2">: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;number of running child processes to parent process </span><span class="si">%d</span><span class="s2">: </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;pid not yet set&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">n</span></div>
@@ -366,16 +368,16 @@
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">killpg</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">pid</span><span class="p">),</span> <span class="n">sig</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;failed to execute killpg(): </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;failed to execute killpg(): </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
         <span class="n">cmd</span> <span class="o">=</span> <span class="s1">&#39;kill -</span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">pid</span><span class="p">)</span>
         <span class="n">exit_code</span><span class="p">,</span> <span class="n">rs</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">rs</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;killed orphaned process </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;killed orphaned process </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;killed orphaned process group </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span></div>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;killed orphaned process group </span><span class="si">%s</span><span class="s2"> (</span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_pilot_pid_from_processes"><a class="viewcode-back" href="../../../components/util/processes.html#pilot.util.processes.get_pilot_pid_from_processes">[docs]</a><span class="k">def</span> <span class="nf">get_pilot_pid_from_processes</span><span class="p">(</span><span class="n">_processes</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
@@ -395,8 +397,8 @@
             <span class="n">args</span> <span class="o">=</span> <span class="n">ids</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">pid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert pid to int: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert pid to int: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="s1">&#39;pilot.py&#39;</span> <span class="ow">in</span> <span class="n">args</span> <span class="ow">and</span> <span class="s1">&#39;python&#39;</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
                 <span class="n">pilot_pid</span> <span class="o">=</span> <span class="n">pid</span>
@@ -436,30 +438,29 @@
             <span class="n">args</span> <span class="o">=</span> <span class="n">ids</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">pid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert pid to int: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to convert pid to int: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
                 <span class="k">continue</span>
             <span class="k">if</span> <span class="s1">&#39;cvmfs2&#39;</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ignoring possible orphan process running cvmfs2: pid=</span><span class="si">%s</span><span class="s2">, ppid=</span><span class="si">%s</span><span class="s2">, args=</span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2">&quot;</span> <span class="o">%</span>
-                            <span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">ppid</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ignoring possible orphan process running cvmfs2: pid=</span><span class="si">%s</span><span class="s2">, ppid=</span><span class="si">%s</span><span class="s2">, args=</span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="n">ppid</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
             <span class="k">elif</span> <span class="s1">&#39;pilots_starter.py&#39;</span> <span class="ow">in</span> <span class="n">args</span> <span class="ow">or</span> <span class="s1">&#39;runpilot2-wrapper.sh&#39;</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ignoring pilot launcher: pid=</span><span class="si">%s</span><span class="s2">, ppid=</span><span class="si">%s</span><span class="s2">, args=&#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">ppid</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ignoring pilot launcher: pid=</span><span class="si">%s</span><span class="s2">, ppid=</span><span class="si">%s</span><span class="s2">, args=&#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="n">ppid</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">ppid</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">:</span>
                 <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;found orphan process: pid=</span><span class="si">%s</span><span class="s2">, ppid=</span><span class="si">%s</span><span class="s2">, args=&#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">ppid</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;found orphan process: pid=</span><span class="si">%s</span><span class="s2">, ppid=</span><span class="si">%s</span><span class="s2">, args=&#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="n">ppid</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
                 <span class="k">if</span> <span class="s1">&#39;bash&#39;</span> <span class="ow">in</span> <span class="n">args</span> <span class="ow">or</span> <span class="p">(</span><span class="s1">&#39;python&#39;</span> <span class="ow">in</span> <span class="n">args</span> <span class="ow">and</span> <span class="s1">&#39;pilot.py&#39;</span> <span class="ow">in</span> <span class="n">args</span><span class="p">):</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;will not kill bash process&quot;</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">killpg</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
                     <span class="n">_t</span> <span class="o">=</span> <span class="mi">10</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;sleeping </span><span class="si">%d</span><span class="s2"> s to allow processes to exit&quot;</span> <span class="o">%</span> <span class="n">_t</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;sleeping </span><span class="si">%d</span><span class="s2"> s to allow processes to exit&quot;</span><span class="p">,</span> <span class="n">_t</span><span class="p">)</span>
                     <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">_t</span><span class="p">)</span>
                     <span class="n">killpg</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIGKILL</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;did not find any orphan processes&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;found </span><span class="si">%d</span><span class="s2"> orphan process(es)&quot;</span> <span class="o">%</span> <span class="n">count</span><span class="p">)</span></div>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;found </span><span class="si">%d</span><span class="s2"> orphan process(es)&quot;</span><span class="p">,</span> <span class="n">count</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_max_memory_usage_from_cgroups"><a class="viewcode-back" href="../../../components/util/processes.html#pilot.util.processes.get_max_memory_usage_from_cgroups">[docs]</a><span class="k">def</span> <span class="nf">get_max_memory_usage_from_cgroups</span><span class="p">():</span>
@@ -484,19 +485,19 @@
             <span class="k">if</span> <span class="s2">&quot;:memory:&quot;</span> <span class="ow">in</span> <span class="n">out</span><span class="p">:</span>
                 <span class="n">pos</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
                 <span class="n">path</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">pos</span><span class="p">:]</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;extracted path = </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;extracted path = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
 
                 <span class="n">pre</span> <span class="o">=</span> <span class="n">get_cgroups_base_path</span><span class="p">()</span>
                 <span class="k">if</span> <span class="n">pre</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
                     <span class="n">path</span> <span class="o">=</span> <span class="n">pre</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;memory.max_usage_in_bytes&quot;</span><span class="p">)</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;path to CGROUPS memory info: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;path to CGROUPS memory info: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
                     <span class="n">max_memory</span> <span class="o">=</span> <span class="n">read_file</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;CGROUPS base path could not be extracted - not a CGROUPS site&quot;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;invalid format: </span><span class="si">%s</span><span class="s2"> (expected ..:memory:[path])&quot;</span> <span class="o">%</span> <span class="n">out</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;invalid format: </span><span class="si">%s</span><span class="s2"> (expected ..:memory:[path])&quot;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;path </span><span class="si">%s</span><span class="s2"> does not exist (not a CGROUPS site)&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;path </span><span class="si">%s</span><span class="s2"> does not exist (not a CGROUPS site)&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">max_memory</span></div>
 
@@ -549,7 +550,7 @@
 
     <span class="n">hz</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">sysconf</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sysconf_names</span><span class="p">[</span><span class="s1">&#39;SC_CLK_TCK&#39;</span><span class="p">])</span>
     <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">hz</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;unknown SC_CLK_TCK: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">hz</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;unknown SC_CLK_TCK: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">hz</span><span class="p">))</span>
         <span class="k">return</span> <span class="mf">0.0</span>
 
     <span class="k">if</span> <span class="n">pid</span> <span class="ow">and</span> <span class="n">hz</span> <span class="ow">and</span> <span class="n">hz</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -617,21 +618,21 @@
     <span class="c1"># make sure the workdir is deleted</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">cleanup</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">remove_dir_tree</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">):</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;removed </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;removed </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">):</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;work directory still exists: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;work directory still exists: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;work directory was removed: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;work directory was removed: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;workdir not removed </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;workdir not removed </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span>
 
     <span class="c1"># collect any zombie processes</span>
     <span class="n">job</span><span class="o">.</span><span class="n">collect_zombies</span><span class="p">(</span><span class="n">tn</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;collected zombie processes&quot;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;will now attempt to kill all subprocesses of pid=</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;will now attempt to kill all subprocesses of pid=</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
         <span class="n">kill_processes</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">pid</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;cannot kill any subprocesses since job.pid is not set&#39;</span><span class="p">)</span></div>
@@ -661,6 +662,133 @@
         <span class="n">aborted</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="k">return</span> <span class="n">aborted</span></div>
+
+
+<div class="viewcode-block" id="convert_ps_to_dict"><a class="viewcode-back" href="../../../components/util/processes.html#pilot.util.processes.convert_ps_to_dict">[docs]</a><span class="k">def</span> <span class="nf">convert_ps_to_dict</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;(\d+) (\d+) (\d+) (.+)&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert output from a ps command to a dictionary.</span>
+
+<span class="sd">    Example: ps axo pid,ppid,pgid,cmd</span>
+<span class="sd">      PID  PPID  PGID COMMAND</span>
+<span class="sd">      22091  6672 22091 bash</span>
+<span class="sd">      32581 22091 32581 ps something;sdfsdfds/athena.py ddfg</span>
+<span class="sd">      -&gt; dictionary = { &#39;PID&#39;: [22091, 32581], &#39;PPID&#39;: [22091, 6672], .. , &#39;COMMAND&#39;: [&#39;ps ..&#39;, &#39;bash&#39;]}</span>
+
+<span class="sd">    :param output: ps stdout (string).</span>
+<span class="sd">    :param pattern: regex pattern matching the ps output (raw string).</span>
+<span class="sd">    :return: dictionary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">dictionary</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">first_line</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># e.g. PID PPID PGID COMMAND</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">output</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># remove leading and trailing spaces</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="c1"># remove multiple spaces inside the line</span>
+            <span class="n">_l</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39; +&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">first_line</span> <span class="o">==</span> <span class="p">[]:</span>
+                <span class="n">_l</span> <span class="o">=</span> <span class="p">[</span><span class="n">_f</span> <span class="k">for</span> <span class="n">_f</span> <span class="ow">in</span> <span class="n">_l</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">_f</span><span class="p">]</span>
+                <span class="n">first_line</span> <span class="o">=</span> <span class="n">_l</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">_l</span><span class="p">)):</span>
+                    <span class="n">dictionary</span><span class="p">[</span><span class="n">_l</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># e.g. 22091 6672 22091 bash</span>
+                <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">_l</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">first_line</span><span class="p">)):</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">var</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+                        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                            <span class="n">var</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="n">dictionary</span><span class="p">[</span><span class="n">first_line</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;unexpected format of utility output: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dictionary</span></div>
+
+
+<div class="viewcode-block" id="get_trimmed_dictionary"><a class="viewcode-back" href="../../../components/util/processes.html#pilot.util.processes.get_trimmed_dictionary">[docs]</a><span class="k">def</span> <span class="nf">get_trimmed_dictionary</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">dictionary</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a sub-dictionary with only the given keys.</span>
+
+<span class="sd">    :param keys: keys to keep (list).</span>
+<span class="sd">    :param dictionary: full dictionary.</span>
+<span class="sd">    :return: trimmed dictionary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">subdictionary</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">dictionary</span><span class="p">:</span>
+            <span class="n">subdictionary</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">dictionary</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">subdictionary</span></div>
+
+
+<div class="viewcode-block" id="find_cmd_pids"><a class="viewcode-back" href="../../../components/util/processes.html#pilot.util.processes.find_cmd_pids">[docs]</a><span class="k">def</span> <span class="nf">find_cmd_pids</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">ps_dictionary</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find all pids for the given command.</span>
+<span class="sd">    Example. cmd = &#39;athena.py&#39; -&gt; pids = [1234, 2267] (in case there are two pilots running on the WN).</span>
+
+<span class="sd">    :param cmd: command (string).</span>
+<span class="sd">    :param ps_dictionary: converted ps output (dictionary).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pids</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">for</span> <span class="n">_cmd</span> <span class="ow">in</span> <span class="n">ps_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;COMMAND&#39;</span><span class="p">):</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">cmd</span> <span class="ow">in</span> <span class="n">_cmd</span><span class="p">:</span>
+            <span class="n">pids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ps_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PID&#39;</span><span class="p">)[</span><span class="n">i</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">pids</span></div>
+
+
+<div class="viewcode-block" id="find_pid"><a class="viewcode-back" href="../../../components/util/processes.html#pilot.util.processes.find_pid">[docs]</a><span class="k">def</span> <span class="nf">find_pid</span><span class="p">(</span><span class="n">pandaid</span><span class="p">,</span> <span class="n">ps_dictionary</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find the process id for the command that contains &#39;export PandaID=%d&#39;.</span>
+
+<span class="sd">    :param pandaid: PanDA ID (string).</span>
+<span class="sd">    :param ps_dictionaryL ps output dictionary.</span>
+<span class="sd">    :return: pid (int).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pid</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">pandaid_cmd</span> <span class="o">=</span> <span class="s1">&#39;export PandaID=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">pandaid</span>
+    <span class="k">for</span> <span class="n">_cmd</span> <span class="ow">in</span> <span class="n">ps_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;COMMAND&#39;</span><span class="p">):</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">pandaid_cmd</span> <span class="ow">in</span> <span class="n">_cmd</span><span class="p">:</span>
+            <span class="n">pid</span> <span class="o">=</span> <span class="n">ps_dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PID&#39;</span><span class="p">)[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">break</span>
+
+    <span class="k">return</span> <span class="n">pid</span></div>
+
+
+<div class="viewcode-block" id="is_child"><a class="viewcode-back" href="../../../components/util/processes.html#pilot.util.processes.is_child">[docs]</a><span class="k">def</span> <span class="nf">is_child</span><span class="p">(</span><span class="n">pid</span><span class="p">,</span> <span class="n">pandaid_pid</span><span class="p">,</span> <span class="n">dictionary</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Is the given pid a child process of the pandaid_pid?</span>
+<span class="sd">    Proceed recursively until the parent pandaid_pid has been found, or return False if it fails to find it.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># where are we at in the PID list?</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PID&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="c1"># not in the list</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># get the corresponding ppid</span>
+        <span class="n">ppid</span> <span class="o">=</span> <span class="n">dictionary</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PPID&#39;</span><span class="p">)[</span><span class="n">index</span><span class="p">]</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">pid</span><span class="p">,</span> <span class="n">ppid</span><span class="p">,</span> <span class="n">pandaid_pid</span><span class="p">)</span>
+        <span class="c1"># is the current parent the same as the pandaid_pid? if yes, we are done</span>
+        <span class="k">if</span> <span class="n">ppid</span> <span class="o">==</span> <span class="n">pandaid_pid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># try another pid</span>
+            <span class="k">return</span> <span class="n">is_child</span><span class="p">(</span><span class="n">ppid</span><span class="p">,</span> <span class="n">pandaid_pid</span><span class="p">,</span> <span class="n">dictionary</span><span class="p">)</span></div>
 </pre></div>
 
           </div>
@@ -711,7 +839,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

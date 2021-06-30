@@ -41,7 +41,7 @@
 <span class="c1"># - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017</span>
 <span class="c1"># - Daniel Drizhuk, d.drizhuk@gmail.com, 2017</span>
 <span class="c1"># - Tobias Wegner, tobias.wegner@cern.ch, 2017</span>
-<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021</span>
 <span class="c1"># - Wen Guan, wen.guan@cern.ch, 2017-2018</span>
 
 <span class="kn">import</span> <span class="nn">os</span>
@@ -55,7 +55,7 @@
 
 <span class="kn">from</span> <span class="nn">pilot.control.payloads</span> <span class="kn">import</span> <span class="n">generic</span><span class="p">,</span> <span class="n">eventservice</span><span class="p">,</span> <span class="n">eventservicemerge</span>
 <span class="kn">from</span> <span class="nn">pilot.control.job</span> <span class="kn">import</span> <span class="n">send_state</span>
-<span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">set_pilot_state</span><span class="p">,</span> <span class="n">show_memory_usage</span>
+<span class="kn">from</span> <span class="nn">pilot.util.auxiliary</span> <span class="kn">import</span> <span class="n">set_pilot_state</span>
 <span class="kn">from</span> <span class="nn">pilot.util.processes</span> <span class="kn">import</span> <span class="n">get_cpu_consumption_time</span>
 <span class="kn">from</span> <span class="nn">pilot.util.config</span> <span class="kn">import</span> <span class="n">config</span>
 <span class="kn">from</span> <span class="nn">pilot.util.filehandling</span> <span class="kn">import</span> <span class="n">read_file</span><span class="p">,</span> <span class="n">remove_core_dumps</span><span class="p">,</span> <span class="n">get_guid</span>
@@ -97,7 +97,7 @@
                 <span class="k">pass</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_obj</span><span class="p">,</span> <span class="n">exc_trace</span> <span class="o">=</span> <span class="n">exc</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;thread </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> received an exception from bucket: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">thread</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">exc_obj</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;thread </span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> received an exception from bucket: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">thread</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">exc_obj</span><span class="p">)</span>
 
                 <span class="c1"># deal with the exception</span>
                 <span class="c1"># ..</span>
@@ -179,8 +179,8 @@
     <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.common&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">status</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;failed to execute user validate() function: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;failed to execute user validate() function: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
         <span class="n">status</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="k">return</span> <span class="n">status</span></div>
@@ -236,7 +236,7 @@
             <span class="n">peek</span> <span class="o">=</span> <span class="p">[</span><span class="n">s_job</span> <span class="k">for</span> <span class="n">s_job</span> <span class="ow">in</span> <span class="n">q_snapshot</span> <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span> <span class="o">==</span> <span class="n">s_job</span><span class="o">.</span><span class="n">jobid</span><span class="p">]</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">peek</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">validated_payloads</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>  <span class="c1"># Python 3</span>
+                <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>  <span class="c1"># Python 3</span>
                     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">graceful_stop</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
                         <span class="k">break</span>
                     <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
@@ -246,13 +246,13 @@
             <span class="c1">#queues.monitored_payloads.put(job)</span>
             <span class="n">put_in_queue</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">queues</span><span class="o">.</span><span class="n">monitored_payloads</span><span class="p">)</span>
 
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;job </span><span class="si">%s</span><span class="s1"> added to monitored payloads queue&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;job </span><span class="si">%s</span><span class="s1"> added to monitored payloads queue&#39;</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">jobid</span><span class="p">)</span>
 
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">payloadstdout</span><span class="p">),</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span>
                 <span class="n">err</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">payloadstderr</span><span class="p">),</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to open payload stdout/err: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to open payload stdout/err: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
                 <span class="n">out</span> <span class="o">=</span> <span class="kc">None</span>
                 <span class="n">err</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="n">send_state</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="s1">&#39;starting&#39;</span><span class="p">)</span>
@@ -263,9 +263,7 @@
                 <span class="k">break</span>
 
             <span class="n">payload_executor</span> <span class="o">=</span> <span class="n">get_payload_executor</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">err</span><span class="p">,</span> <span class="n">traces</span><span class="p">)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Got payload executor: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">payload_executor</span><span class="p">)</span>
-
-            <span class="n">show_memory_usage</span><span class="p">()</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;will use payload executor: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">payload_executor</span><span class="p">)</span>
 
             <span class="c1"># run the payload and measure the execution time</span>
             <span class="n">job</span><span class="o">.</span><span class="n">t0</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">times</span><span class="p">()</span>
@@ -285,13 +283,13 @@
                                   <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">user</span><span class="o">.</span><span class="n">update_output_for_hpo</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
-                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught by update_output_for_hpo(): </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught by update_output_for_hpo(): </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">for</span> <span class="n">dat</span> <span class="ow">in</span> <span class="n">job</span><span class="o">.</span><span class="n">outdata</span><span class="p">:</span>
                         <span class="k">if</span> <span class="ow">not</span> <span class="n">dat</span><span class="o">.</span><span class="n">guid</span><span class="p">:</span>
                             <span class="n">dat</span><span class="o">.</span><span class="n">guid</span> <span class="o">=</span> <span class="n">get_guid</span><span class="p">()</span>
-                            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;guid not set: generated guid=</span><span class="si">%s</span><span class="s1"> for lfn=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">dat</span><span class="o">.</span><span class="n">guid</span><span class="p">,</span> <span class="n">dat</span><span class="o">.</span><span class="n">lfn</span><span class="p">))</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;guid not set: generated guid=</span><span class="si">%s</span><span class="s1"> for lfn=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">dat</span><span class="o">.</span><span class="n">guid</span><span class="p">,</span> <span class="n">dat</span><span class="o">.</span><span class="n">lfn</span><span class="p">)</span>
 
             <span class="c1">#if traces.pilot[&#39;nr_jobs&#39;] == 1:</span>
             <span class="c1">#    logger.debug(&#39;faking job failure in first multi-job&#39;)</span>
@@ -308,8 +306,8 @@
             <span class="n">user</span> <span class="o">=</span> <span class="nb">__import__</span><span class="p">(</span><span class="s1">&#39;pilot.user.</span><span class="si">%s</span><span class="s1">.diagnose&#39;</span> <span class="o">%</span> <span class="n">pilot_user</span><span class="p">,</span> <span class="nb">globals</span><span class="p">(),</span> <span class="nb">locals</span><span class="p">(),</span> <span class="p">[</span><span class="n">pilot_user</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Python 2/3</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">exit_code_interpret</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">interpret</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
                 <span class="c1">#exit_code_interpret = -1</span>
                 <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">INTERNALPILOTPROBLEM</span><span class="p">)</span>
 
@@ -331,8 +329,8 @@
 
         <span class="k">except</span> <span class="n">queue</span><span class="o">.</span><span class="n">Empty</span><span class="p">:</span>
             <span class="k">continue</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;execute payloads caught an exception (cannot recover): </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()))</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;execute payloads caught an exception (cannot recover): </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
             <span class="k">if</span> <span class="n">job</span><span class="p">:</span>
                 <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">PAYLOADEXECUTIONEXCEPTION</span><span class="p">)</span>
                 <span class="c1">#queues.failed_payloads.put(job)</span>
@@ -362,8 +360,7 @@
     <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptiontime</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">cpuconsumptiontime</span><span class="p">))</span>
     <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptionunit</span> <span class="o">=</span> <span class="s2">&quot;s&quot;</span>
     <span class="n">job</span><span class="o">.</span><span class="n">cpuconversionfactor</span> <span class="o">=</span> <span class="mf">1.0</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;CPU consumption time: </span><span class="si">%f</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> (rounded to </span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span>
-                <span class="p">(</span><span class="n">cpuconsumptiontime</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptionunit</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptiontime</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptionunit</span><span class="p">))</span></div>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;CPU consumption time: </span><span class="si">%f</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> (rounded to </span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="n">cpuconsumptiontime</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptionunit</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptiontime</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">cpuconsumptionunit</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="perform_initial_payload_error_analysis"><a class="viewcode-back" href="../../../components/control/payload.html#pilot.control.payload.perform_initial_payload_error_analysis">[docs]</a><span class="k">def</span> <span class="nf">perform_initial_payload_error_analysis</span><span class="p">(</span><span class="n">job</span><span class="p">,</span> <span class="n">exit_code</span><span class="p">):</span>
@@ -376,40 +373,51 @@
 <span class="sd">    :return:</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="c1"># look for singularity errors (the exit code can be zero in this case)</span>
+    <span class="n">stderr</span> <span class="o">=</span> <span class="n">read_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">payloadstderr</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">stderr</span><span class="p">:</span>
+        <span class="n">exit_code</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">resolve_transform_error</span><span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
-        <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;main payload execution returned non-zero exit code: </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">exit_code</span><span class="p">)</span>
-        <span class="n">stderr</span> <span class="o">=</span> <span class="n">read_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">Payload</span><span class="o">.</span><span class="n">payloadstderr</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;main payload execution returned non-zero exit code: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">exit_code</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">stderr</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">extract_stderr_error</span><span class="p">(</span><span class="n">stderr</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">msg</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
                 <span class="c1"># look for warning messages instead (might not be fatal so do not set UNRECOGNIZEDTRFSTDERR)</span>
                 <span class="n">msg</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">extract_stderr_warning</span><span class="p">(</span><span class="n">stderr</span><span class="p">)</span>
-                <span class="n">fatal</span> <span class="o">=</span> <span class="kc">False</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">fatal</span> <span class="o">=</span> <span class="kc">True</span>
-            <span class="k">if</span> <span class="n">msg</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;extracted message from stderr:</span><span class="se">\n</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">msg</span><span class="p">)</span>
-                <span class="n">ec</span> <span class="o">=</span> <span class="n">set_error_code_from_stderr</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">fatal</span><span class="p">)</span>
+            <span class="c1">#    fatal = False</span>
+            <span class="c1">#else:</span>
+            <span class="c1">#    fatal = True</span>
+            <span class="c1">#if msg != &quot;&quot;:  # redundant since resolve_transform_error is used above</span>
+            <span class="c1">#    logger.warning(&quot;extracted message from stderr:\n%s&quot;, msg)</span>
+            <span class="c1">#    exit_code = set_error_code_from_stderr(msg, fatal)</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">ec</span><span class="p">:</span>
-            <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">resolve_transform_error</span><span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">ec</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">msg</span><span class="p">:</span>
-                <span class="n">msg</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">format_diagnostics</span><span class="p">(</span><span class="n">ec</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
-            <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">ec</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;error code(s) already set: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">))</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># check if core dumps exist, if so remove them and return True</span>
-                <span class="k">if</span> <span class="n">remove_core_dumps</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">):</span>
-                    <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">COREDUMP</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;initial error analysis did not resolve the issue (and core dumps were not found)&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">msg</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">format_diagnostics</span><span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+        <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        if exit_code != 0:</span>
+<span class="sd">            if msg:</span>
+<span class="sd">                msg = errors.format_diagnostics(exit_code, msg)</span>
+<span class="sd">            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code, msg=msg)</span>
+<span class="sd">        else:</span>
+<span class="sd">            if job.piloterrorcodes:</span>
+<span class="sd">                logger.warning(&#39;error code(s) already set: %s&#39;, str(job.piloterrorcodes))</span>
+<span class="sd">            else:</span>
+<span class="sd">                # check if core dumps exist, if so remove them and return True</span>
+<span class="sd">                if remove_core_dumps(job.workdir) and not job.debug:</span>
+<span class="sd">                    job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.COREDUMP)</span>
+<span class="sd">                else:</span>
+<span class="sd">                    logger.warning(&#39;initial error analysis did not resolve the issue (and core dumps were not found)&#39;)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;main payload execution returned zero exit code, but will check it more carefully&#39;</span><span class="p">)</span></div>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;main payload execution returned zero exit code&#39;</span><span class="p">)</span>
+
+    <span class="c1"># check if core dumps exist, if so remove them and return True</span>
+    <span class="k">if</span> <span class="n">remove_core_dumps</span><span class="p">(</span><span class="n">job</span><span class="o">.</span><span class="n">workdir</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">job</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+        <span class="n">job</span><span class="o">.</span><span class="n">piloterrorcodes</span><span class="p">,</span> <span class="n">job</span><span class="o">.</span><span class="n">piloterrordiags</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">add_error_code</span><span class="p">(</span><span class="n">errors</span><span class="o">.</span><span class="n">COREDUMP</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="set_error_code_from_stderr"><a class="viewcode-back" href="../../../components/control/payload.html#pilot.control.payload.set_error_code_from_stderr">[docs]</a><span class="k">def</span> <span class="nf">set_error_code_from_stderr</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="n">fatal</span><span class="p">):</span>
@@ -422,24 +430,24 @@
 <span class="sd">    :return: error code (int).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">if</span> <span class="s2">&quot;Failed invoking the NEWUSER namespace runtime&quot;</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
-        <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">SINGULARITYNEWUSERNAMESPACE</span>
-    <span class="k">elif</span> <span class="s2">&quot;Failed to create user namespace&quot;</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
-        <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">SINGULARITYFAILEDUSERNAMESPACE</span>
-    <span class="k">elif</span> <span class="s2">&quot;command not found&quot;</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
-        <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">TRANSFORMNOTFOUND</span>
-    <span class="k">elif</span> <span class="s2">&quot;SL5 is unsupported&quot;</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
-        <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">UNSUPPORTEDSL5OS</span>
-    <span class="k">elif</span> <span class="s2">&quot;resource temporarily unavailable&quot;</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
-        <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">SINGULARITYRESOURCEUNAVAILABLE</span>
-    <span class="k">elif</span> <span class="s2">&quot;unrecognized arguments&quot;</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
-        <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">UNRECOGNIZEDTRFARGUMENTS</span>
-    <span class="k">elif</span> <span class="n">fatal</span><span class="p">:</span>
-        <span class="n">ec</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">UNRECOGNIZEDTRFSTDERR</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">exit_code</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">error_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">errors</span><span class="o">.</span><span class="n">SINGULARITYNEWUSERNAMESPACE</span><span class="p">:</span> <span class="s2">&quot;Failed invoking the NEWUSER namespace runtime&quot;</span><span class="p">,</span>
+                 <span class="n">errors</span><span class="o">.</span><span class="n">SINGULARITYFAILEDUSERNAMESPACE</span><span class="p">:</span> <span class="s2">&quot;Failed to create user namespace&quot;</span><span class="p">,</span>
+                 <span class="n">errors</span><span class="o">.</span><span class="n">SINGULARITYRESOURCEUNAVAILABLE</span><span class="p">:</span> <span class="s2">&quot;resource temporarily unavailable&quot;</span><span class="p">,</span>
+                 <span class="n">errors</span><span class="o">.</span><span class="n">SINGULARITYNOTINSTALLED</span><span class="p">:</span> <span class="s2">&quot;Singularity is not installed&quot;</span><span class="p">,</span>
+                 <span class="n">errors</span><span class="o">.</span><span class="n">TRANSFORMNOTFOUND</span><span class="p">:</span> <span class="s2">&quot;command not found&quot;</span><span class="p">,</span>
+                 <span class="n">errors</span><span class="o">.</span><span class="n">UNSUPPORTEDSL5OS</span><span class="p">:</span> <span class="s2">&quot;SL5 is unsupported&quot;</span><span class="p">,</span>
+                 <span class="n">errors</span><span class="o">.</span><span class="n">UNRECOGNIZEDTRFARGUMENTS</span><span class="p">:</span> <span class="s2">&quot;unrecognized arguments&quot;</span><span class="p">}</span>
 
-    <span class="k">return</span> <span class="n">ec</span></div>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">error_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
+            <span class="n">exit_code</span> <span class="o">=</span> <span class="n">key</span>
+            <span class="k">break</span>
+
+    <span class="k">if</span> <span class="n">fatal</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">exit_code</span><span class="p">:</span>
+        <span class="n">exit_code</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">UNRECOGNIZEDTRFSTDERR</span>
+
+    <span class="k">return</span> <span class="n">exit_code</span></div>
 
 
 <div class="viewcode-block" id="validate_post"><a class="viewcode-back" href="../../../components/control/payload.html#pilot.control.payload.validate_post">[docs]</a><span class="k">def</span> <span class="nf">validate_post</span><span class="p">(</span><span class="n">queues</span><span class="p">,</span> <span class="n">traces</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
@@ -565,7 +573,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

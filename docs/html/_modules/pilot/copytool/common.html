@@ -39,7 +39,7 @@
 <span class="c1">#</span>
 <span class="c1"># Authors:</span>
 <span class="c1"># - Tobias Wegner, tobias.wegner@cern.ch, 2017</span>
-<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021</span>
 <span class="c1"># - Mario Lassnig, mario.lassnig@cern.ch, 2020</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
@@ -94,8 +94,8 @@
         <span class="n">checksum_local</span> <span class="o">=</span> <span class="n">calculate_checksum</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="n">checksum_type</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">checksum_type</span> <span class="o">==</span> <span class="s1">&#39;ad32&#39;</span><span class="p">:</span>
             <span class="n">checksum_type</span> <span class="o">=</span> <span class="s1">&#39;adler32&#39;</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;checksum (catalog): </span><span class="si">%s</span><span class="s1"> (type: </span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">checksum_catalog</span><span class="p">,</span> <span class="n">checksum_type</span><span class="p">))</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;checksum (local): </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">checksum_local</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;checksum (catalog): </span><span class="si">%s</span><span class="s1"> (type: </span><span class="si">%s</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="n">checksum_catalog</span><span class="p">,</span> <span class="n">checksum_type</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;checksum (local): </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">checksum_local</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">checksum_local</span> <span class="ow">and</span> <span class="n">checksum_local</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="ow">and</span> <span class="n">checksum_local</span> <span class="o">!=</span> <span class="n">checksum_catalog</span><span class="p">:</span>
             <span class="n">diagnostics</span> <span class="o">=</span> <span class="s1">&#39;checksum verification failed for LFN=</span><span class="si">%s</span><span class="s1">: checksum (catalog)=</span><span class="si">%s</span><span class="s1"> != checksum (local)=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> \
                           <span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">checksum_catalog</span><span class="p">,</span> <span class="n">checksum_local</span><span class="p">)</span>
@@ -300,7 +300,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

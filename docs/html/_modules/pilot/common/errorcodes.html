@@ -180,6 +180,7 @@
     <span class="n">XRDCPERROR</span> <span class="o">=</span> <span class="mi">1362</span>
     <span class="n">KILLPAYLOAD</span> <span class="o">=</span> <span class="mi">1363</span>  <span class="c1"># note, not a failure but a kill instruction from Raythena</span>
     <span class="n">MISSINGCREDENTIALS</span> <span class="o">=</span> <span class="mi">1364</span>
+    <span class="n">NOCTYPES</span> <span class="o">=</span> <span class="mi">1365</span>
 
     <span class="n">_error_messages</span> <span class="o">=</span> <span class="p">{</span>
         <span class="n">GENERALERROR</span><span class="p">:</span> <span class="s2">&quot;General pilot error, consult batch log&quot;</span><span class="p">,</span>
@@ -305,7 +306,8 @@
         <span class="n">REMOTEFILECOULDNOTBEOPENED</span><span class="p">:</span> <span class="s2">&quot;Remote file could not be opened&quot;</span><span class="p">,</span>
         <span class="n">XRDCPERROR</span><span class="p">:</span> <span class="s2">&quot;Xrdcp was unable to open file&quot;</span><span class="p">,</span>
         <span class="n">KILLPAYLOAD</span><span class="p">:</span> <span class="s2">&quot;Raythena has decided to kill payload&quot;</span><span class="p">,</span>
-        <span class="n">MISSINGCREDENTIALS</span><span class="p">:</span> <span class="s2">&quot;Unable to locate credentials for S3 transfer&quot;</span>
+        <span class="n">MISSINGCREDENTIALS</span><span class="p">:</span> <span class="s2">&quot;Unable to locate credentials for S3 transfer&quot;</span><span class="p">,</span>
+        <span class="n">NOCTYPES</span><span class="p">:</span> <span class="s2">&quot;Python module ctypes not available on worker node&quot;</span>
     <span class="p">}</span>
 
     <span class="n">put_error_codes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1135</span><span class="p">,</span> <span class="mi">1136</span><span class="p">,</span> <span class="mi">1137</span><span class="p">,</span> <span class="mi">1141</span><span class="p">,</span> <span class="mi">1152</span><span class="p">,</span> <span class="mi">1181</span><span class="p">]</span>
@@ -419,6 +421,7 @@
 <span class="sd">        :return: pilot error code (int)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
+        <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">if</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">251</span> <span class="ow">and</span> <span class="s2">&quot;Not mounting requested bind point&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
             <span class="n">ec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SINGULARITYBINDPOINTFAILURE</span>
         <span class="k">elif</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">255</span> <span class="ow">and</span> <span class="s2">&quot;No more available loop devices&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
@@ -427,16 +430,18 @@
             <span class="n">ec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SINGULARITYIMAGEMOUNTFAILURE</span>
         <span class="k">elif</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">255</span> <span class="ow">and</span> <span class="s2">&quot;Operation not permitted&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
             <span class="n">ec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SINGULARITYGENERALFAILURE</span>
-        <span class="k">elif</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">64</span> <span class="ow">and</span> <span class="s2">&quot;Singularity is not installed&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="s2">&quot;Singularity is not installed&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>  <span class="c1"># exit code should be 64 but not always?</span>
             <span class="n">ec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SINGULARITYNOTINSTALLED</span>
         <span class="k">elif</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="mi">64</span> <span class="ow">and</span> <span class="s2">&quot;cannot create directory&quot;</span> <span class="ow">in</span> <span class="n">stderr</span><span class="p">:</span>
             <span class="n">ec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">MKDIR</span>
         <span class="k">elif</span> <span class="n">exit_code</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
             <span class="n">ec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UNKNOWNTRFFAILURE</span>
-        <span class="k">else</span><span class="p">:</span>
+        <span class="c1">#else:</span>
             <span class="c1"># do not assign a pilot error code for unidentified transform error, return 0</span>
-            <span class="n">ec</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="c1"># ec = 0</span>
 
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ec</span><span class="p">:</span>
+            <span class="n">ec</span> <span class="o">=</span> <span class="n">exit_code</span>
         <span class="k">return</span> <span class="n">ec</span></div>
 
 <div class="viewcode-block" id="ErrorCodes.extract_stderr_error"><a class="viewcode-back" href="../../../components/common/errorcodes.html#pilot.common.errorcodes.ErrorCodes.extract_stderr_error">[docs]</a>    <span class="k">def</span> <span class="nf">extract_stderr_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stderr</span><span class="p">):</span>
@@ -592,7 +597,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

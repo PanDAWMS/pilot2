@@ -135,6 +135,13 @@
             <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">execute</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
             <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;uuid&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">stdout</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="TraceReport.get_value"><a class="viewcode-back" href="../../../components/util/tracereport.html#pilot.util.tracereport.TraceReport.get_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="TraceReport.verify_trace"><a class="viewcode-back" href="../../../components/util/tracereport.html#pilot.util.tracereport.TraceReport.verify_trace">[docs]</a>    <span class="k">def</span> <span class="nf">verify_trace</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Verify the trace consistency.</span>
@@ -165,6 +172,11 @@
 
 <span class="sd">        :return: Boolean.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># only send trace if it is actually required (can be turned off with pilot option)</span>
+        <span class="k">if</span> <span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PILOT_USE_RUCIO_TRACES&#39;</span><span class="p">,</span> <span class="s1">&#39;True&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;False&#39;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;rucio trace does not need to be sent&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
 
         <span class="n">url</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">Rucio</span><span class="o">.</span><span class="n">url</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;tracing server: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">url</span><span class="p">)</span>
@@ -259,7 +271,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

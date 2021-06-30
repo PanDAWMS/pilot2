@@ -5,9 +5,10 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021
 
 import os
+import re
 import sys
 
 from collections import Set, Mapping, deque, OrderedDict
@@ -21,9 +22,17 @@ except NameError:
     zero_depth_bases = (str, bytes, Number, range, bytearray)  # Python 3
     iteritems = 'items'
 
+from pilot.util.constants import (
+    SUCCESS,
+    FAILURE,
+    SERVER_UPDATE_FINAL,
+    SERVER_UPDATE_NOT_DONE,
+    SERVER_UPDATE_TROUBLE,
+    get_pilot_version,
+)
+
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.container import execute
-from pilot.util.constants import SUCCESS, FAILURE, SERVER_UPDATE_FINAL, SERVER_UPDATE_NOT_DONE, SERVER_UPDATE_TROUBLE, get_pilot_version
 from pilot.util.filehandling import dump
 
 import logging
@@ -97,7 +106,7 @@ def display_architecture_info():
         dump("/etc/issue")
         dump("$MACHTYPE", cmd="echo")
     else:
-        logger.info("\n%s" % stdout)
+        logger.info("\n%s", stdout)
 
 
 def get_batchsystem_jobid():
@@ -308,7 +317,7 @@ def get_size(obj_0):
                 pass
                 # <class 'collections.OrderedDict'>: unbound method iteritems() must be called
                 # with OrderedDict instance as first argument (got nothing instead)
-                #logger.debug('exception caught for obj=%s: %s' % (str(obj), e))
+                #logger.debug('exception caught for obj=%s: %s', (str(obj), e))
 
         # Check for custom object instances - may subclass above too
         if hasattr(obj, '__dict__'):
@@ -375,7 +384,7 @@ def check_for_final_server_update(update_server):
         if server_update == SERVER_UPDATE_FINAL or server_update == SERVER_UPDATE_TROUBLE:
             logger.info('server update done, finishing')
             break
-        logger.info('server update not finished (#%d/#%d)' % (i + 1, max_i))
+        logger.info('server update not finished (#%d/#%d)', i + 1, max_i)
         sleep(30)
         i += 1
 
@@ -443,7 +452,7 @@ def show_memory_usage():
         _value = extract_memory_usage_value(_stdout)
     except Exception:
         _value = "(unknown)"
-    logger.debug('current pilot memory usage:\n\n%s\n\nusage: %s kB\n' % (_stdout, _value))
+    logger.debug('current pilot memory usage:\n\n%s\n\nusage: %s kB\n', _stdout, _value)
 
 
 def get_memory_usage(pid):
@@ -539,3 +548,113 @@ def has_instruction_sets(instruction_sets):
                 ret += '|%s' % i.upper() if ret else i.upper()
 
     return ret
+
+
+def locate_core_file(cmd=None, pid=None):
+    """
+    Locate the core file produced by gdb.
+
+    :param cmd: optional command containing pid corresponding to core file (string).
+    :param pid: optional pid to use with core file (core.pid) (int).
+    :return: path to core file (string).
+    """
+
+    path = None
+    if not pid and cmd:
+        pid = get_pid_from_command(cmd)
+    if pid:
+        filename = 'core.%d' % pid
+        path = os.path.join(os.environ.get('PILOT_HOME', '.'), filename)
+        if os.path.exists(path):
+            logger.debug('found core file at: %s', path)
+
+        else:
+            logger.debug('did not find %s in %s', filename, path)
+    else:
+        logger.warning('cannot locate core file since pid could not be extracted from command')
+
+    return path
+
+
+def get_pid_from_command(cmd, pattern=r'gdb --pid (\d+)'):
+    """
+    Identify an explicit process id in the given command.
+
+    Example:
+        cmd = 'gdb --pid 19114 -ex \'generate-core-file\''
+        -> pid = 19114
+
+    :param cmd: command containing a pid (string).
+    :param pattern: regex pattern (raw string).
+    :return: pid (int).
+    """
+
+    pid = None
+    match = re.search(pattern, cmd)
+    if match:
+        try:
+            pid = int(match.group(1))
+        except Exception:
+            pid = None
+    else:
+        print('no match for pattern \'%s\' in command=\'%s\'' % (pattern, cmd))
+
+    return pid
+
+
+def list_hardware():
+    """
+    Execute lshw to list local hardware.
+
+    :return: lshw output (string).
+    """
+
+    exit_code, stdout, stderr = execute('lshw -numeric -C display', mute=True)
+    if 'Command not found' in stdout or 'Command not found' in stderr:
+        stdout = ''
+    return stdout
+
+
+def get_display_info():
+    """
+    Extract the product and vendor from the lshw command.
+    E.g.
+           product: GD 5446 [1013:B8]
+           vendor: Cirrus Logic [1013]
+    -> GD 5446, Cirrus Logic
+
+    :return: product (string), vendor (string).
+    """
+
+    vendor = ''
+    product = ''
+    stdout = list_hardware()
+    if stdout:
+        vendor_pattern = re.compile(r'vendor\:\ (.+)\ .')
+        product_pattern = re.compile(r'product\:\ (.+)\ .')
+
+        for line in stdout.split('\n'):
+            if 'vendor' in line:
+                result = re.findall(vendor_pattern, line)
+                if result:
+                    vendor = result[0]
+            elif 'product' in line:
+                result = re.findall(product_pattern, line)
+                if result:
+                    product = result[0]
+
+    return product, vendor
+
+
+def get_key_value(catchall, key='SOMEKEY'):
+    """
+    Return the value corresponding to key in catchall.
+    :param catchall: catchall free string.
+    :param key: key name (string).
+    :return: value (string).
+    """
+
+    # ignore any non-key-value pairs that might be present in the catchall string
+    _dic = dict(_str.split('=', 1) for _str in catchall.split() if '=' in _str)
+
+    return _dic.get(key)

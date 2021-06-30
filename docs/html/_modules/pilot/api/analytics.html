@@ -38,7 +38,7 @@
 <span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
 <span class="c1">#</span>
 <span class="c1"># Authors:</span>
-<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2018-2021</span>
 
 <span class="kn">from</span> <span class="nn">.services</span> <span class="kn">import</span> <span class="n">Services</span>
 <span class="kn">from</span> <span class="nn">pilot.common.exception</span> <span class="kn">import</span> <span class="n">NotDefined</span><span class="p">,</span> <span class="n">NotSameLength</span><span class="p">,</span> <span class="n">UnknownException</span>
@@ -179,21 +179,20 @@
                 <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
 
             <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">7</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">7</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;fitting </span><span class="si">%s</span><span class="s1"> vs </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">y_name</span><span class="p">,</span> <span class="n">x_name</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;fitting </span><span class="si">%s</span><span class="s1"> vs </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">y_name</span><span class="p">,</span> <span class="n">x_name</span><span class="p">)</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">fit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
                     <span class="n">_slope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">slope</span><span class="p">()</span>
                 <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to fit data, x=</span><span class="si">%s</span><span class="s1">, y=</span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">e</span><span class="p">))</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;failed to fit data, x=</span><span class="si">%s</span><span class="s1">, y=</span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">e</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">_slope</span><span class="p">:</span>
                         <span class="n">slope</span> <span class="o">=</span> <span class="n">float_to_rounded_string</span><span class="p">(</span><span class="n">fit</span><span class="o">.</span><span class="n">slope</span><span class="p">(),</span> <span class="n">precision</span><span class="o">=</span><span class="n">precision</span><span class="p">)</span>
                         <span class="n">chi2</span> <span class="o">=</span> <span class="n">float_to_rounded_string</span><span class="p">(</span><span class="n">fit</span><span class="o">.</span><span class="n">chi2</span><span class="p">(),</span> <span class="n">precision</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># decimals are not needed for chi2</span>
                         <span class="k">if</span> <span class="n">slope</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
-                            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;current memory leak: </span><span class="si">%s</span><span class="s1"> B/s (using </span><span class="si">%d</span><span class="s1"> data points, chi2=</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span>
-                                        <span class="p">(</span><span class="n">slope</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">chi2</span><span class="p">))</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;current memory leak: </span><span class="si">%s</span><span class="s1"> B/s (using </span><span class="si">%d</span><span class="s1"> data points, chi2=</span><span class="si">%s</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="n">slope</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">chi2</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;wrong length of table data, x=</span><span class="si">%s</span><span class="s1">, y=</span><span class="si">%s</span><span class="s1"> (must be same and length&gt;=4)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">y</span><span class="p">)))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;wrong length of table data, x=</span><span class="si">%s</span><span class="s1">, y=</span><span class="si">%s</span><span class="s1"> (must be same and length&gt;=4)&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;slope&quot;</span><span class="p">:</span> <span class="n">slope</span><span class="p">,</span> <span class="s2">&quot;chi2&quot;</span><span class="p">:</span> <span class="n">chi2</span><span class="p">}</span></div>
 
@@ -215,8 +214,8 @@
                 <span class="n">y2_name</span> <span class="o">=</span> <span class="n">y_name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;+&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
                 <span class="n">y1_value</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">y1_name</span><span class="p">,</span> <span class="p">[])</span>
                 <span class="n">y2_value</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">y2_name</span><span class="p">,</span> <span class="p">[])</span>
-            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
                 <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="n">y</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">else</span><span class="p">:</span>
@@ -271,7 +270,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">set_intersect</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">set_chi2</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> model is not implemented&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\&#39;</span><span class="si">%s</span><span class="se">\&#39;</span><span class="s2"> model is not implemented&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="Fit.fit"><a class="viewcode-back" href="../../../components/api/analytics.html#pilot.api.analytics.Fit.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -411,7 +410,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

@@ -7,7 +7,7 @@
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
 # - Alexey Anisenkov, anisyonk@cern.ch, 2019
-# - Paul Nilsson, paul.nilsson@cern.ch, 2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019-2021
 
 import os
 import json
@@ -73,7 +73,7 @@ def resolve_surl(fspec, protocol, ddmconf, **kwargs):
 #        :return: protocol as dictionary
 #    """
 #
-#    logger.info("Resolving protocol for file(lfn: %s, ddmendpoint: %s) with activity(%s)" % (fspec.lfn, fspec.ddmendpoint, activity))
+#    logger.info("Resolving protocol for file(lfn: %s, ddmendpoint: %s) with activity(%s)", fspec.lfn, fspec.ddmendpoint, activity)
 #
 #    activity = get_ddm_activity(activity)
 #    protocols = ddm.arprotocols.get(activity)
@@ -87,7 +87,7 @@ def resolve_surl(fspec, protocol, ddmconf, **kwargs):
 #        logger.error(err)
 #        raise PilotException(err)
 #    protocol = protocols_allow[0]
-#    logger.info("Resolved protocol for file(lfn: %s, ddmendpoint: %s) with activity(%s): %s" % (fspec.lfn, fspec.ddmendpoint, activity, protocol))
+#    logger.info("Resolved protocol for file(lfn: %s, ddmendpoint: %s) with activity(%s): %s", fspec.lfn, fspec.ddmendpoint, activity, protocol)
 #    return protocol
 
 
@@ -109,7 +109,7 @@ def copy_in(files, **kwargs):
     for fspec in files:
 
         cmd = []
-        logger.info("To transfer file: %s" % fspec)
+        logger.info("To transfer file: %s", fspec)
         if fspec.protocol_id:
             ddm = ddmconf.get(fspec.ddmendpoint)
             if ddm:
@@ -212,7 +212,7 @@ def copy_out(files, **kwargs):
             cwd = fspec.workdir or kwargs.get('workdir') or '.'
             path = os.path.join(cwd, 'rucio_upload.json')
             if not os.path.exists(path):
-                logger.error('Failed to resolve Rucio summary JSON, wrong path? file=%s' % path)
+                logger.error('Failed to resolve Rucio summary JSON, wrong path? file=%s', path)
             else:
                 with open(path, 'rb') as f:
                     summary = json.load(f)

@@ -223,6 +223,25 @@ stage-in to finish).</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="pilot.control.job.delayed_space_check">
+<span class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></span><span class="sig-name descname"><span class="pre">delayed_space_check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#delayed_space_check"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.delayed_space_check" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the delayed space check if necessary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queues</strong> – queues object.</p></li>
+<li><p><strong>traces</strong> – traces object.</p></li>
+<li><p><strong>args</strong> – args object.</p></li>
+<li><p><strong>job</strong> – job object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="pilot.control.job.fail_monitored_job">
 <span class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></span><span class="sig-name descname"><span class="pre">fail_monitored_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exit_code</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diagnostics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#fail_monitored_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.fail_monitored_job" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fail a monitored job.</p>
@@ -273,6 +292,35 @@ The function makes sure that the value exists and is within allowed limits (&lt;
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>data structure (dictionary).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.control.job.get_debug_command">
+<span class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></span><span class="sig-name descname"><span class="pre">get_debug_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#get_debug_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.get_debug_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identify and filter the given debug command.</p>
+<p>Note: only a single command will be allowed from a predefined list: tail, ls, gdb, ps, du.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>cmd</strong> – raw debug command from job definition (string).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>debug_mode (Boolean, True if command is deemed ok), debug_command (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.control.job.get_debug_stdout">
+<span class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></span><span class="sig-name descname"><span class="pre">get_debug_stdout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#get_debug_stdout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.get_debug_stdout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the requested output from a given debug command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>output (string).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -329,6 +377,20 @@ If failed, order a log transfer. If the job is in state ‘failed’ and abort_j
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>job object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.control.job.get_general_command_stdout">
+<span class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></span><span class="sig-name descname"><span class="pre">get_general_command_stdout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#get_general_command_stdout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.get_general_command_stdout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the output from the requested debug command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>output (string).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -490,6 +552,34 @@ StatusCode  0: succeeded</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="pilot.control.job.get_latest_log_tail">
+<span class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></span><span class="sig-name descname"><span class="pre">get_latest_log_tail</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#get_latest_log_tail"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.get_latest_log_tail" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the tail of the latest updated file from the given file list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>files</strong> – files (list).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.control.job.get_ls">
+<span class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></span><span class="sig-name descname"><span class="pre">get_ls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">debug_command</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#get_ls"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.get_ls" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the requested ls debug command.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>debug_command</strong> – full debug command (string).</p></li>
+<li><p><strong>workdir</strong> – job work directory (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>output (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="pilot.control.job.get_panda_server">
 <span class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></span><span class="sig-name descname"><span class="pre">get_panda_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#get_panda_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.get_panda_server" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the URL for the PanDA server.</p>
@@ -508,11 +598,11 @@ StatusCode  0: succeeded</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pilot.control.job.get_payload_log_tail">
-<span class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></span><span class="sig-name descname"><span class="pre">get_payload_log_tail</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#get_payload_log_tail"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.get_payload_log_tail" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></span><span class="sig-name descname"><span class="pre">get_payload_log_tail</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#get_payload_log_tail"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.get_payload_log_tail" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the tail of the payload stdout or its latest updated log file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+<dd class="field-odd"><p><strong>workdir</strong> – job work directory (string).</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>tail of stdout (string).</p>
@@ -536,6 +626,28 @@ sent.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>valid server state (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.control.job.get_requested_log_tail">
+<span class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></span><span class="sig-name descname"><span class="pre">get_requested_log_tail</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">debug_command</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#get_requested_log_tail"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.get_requested_log_tail" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the tail of the requested debug log.</p>
+<dl class="simple">
+<dt>Examples</dt><dd><p>tail workdir/tmp.stdout* &lt;- pilot finds the requested log file in the specified relative path
+tail log.RAWtoALL &lt;- pilot finds the requested log file</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>debug_command</strong> – full debug command (string).</p></li>
+<li><p><strong>workdir</strong> – job work directory (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>output (string).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -623,13 +735,13 @@ Note: the job object was extracted from monitored_payloads queue before this fun
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pilot.control.job.is_queue_empty">
-<span class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></span><span class="sig-name descname"><span class="pre">is_queue_empty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#is_queue_empty"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.is_queue_empty" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></span><span class="sig-name descname"><span class="pre">is_queue_empty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queue</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#is_queue_empty"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.is_queue_empty" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check if the given queue is empty (without pulling).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>queues</strong> – pilot queues object.</p></li>
-<li><p><strong>q</strong> – queue name (string).</p></li>
+<li><p><strong>queue</strong> – queue name (string).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -755,6 +867,20 @@ small or if we have already proceed enough jobs.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>True if pilot should proceed with getJob (Boolean).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.control.job.process_debug_mode">
+<span class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></span><span class="sig-name descname"><span class="pre">process_debug_mode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#process_debug_mode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.process_debug_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Handle debug mode - preprocess debug command, get the output and kill the payload in case of gdb.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>job</strong> – job object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>stdout from debug command (string).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -915,13 +1041,30 @@ Interpret and handle any server instructions arriving with the updateJob back ch
 <dl class="py function">
 <dt class="sig sig-object py" id="pilot.control.job.validate">
 <span class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></span><span class="sig-name descname"><span class="pre">validate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traces</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#validate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.validate" title="Permalink to this definition">¶</a></dt>
-<dd><p>(add description)</p>
+<dd><p>Perform validation of job.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>queues</strong> – </p></li>
-<li><p><strong>traces</strong> – </p></li>
-<li><p><strong>args</strong> – </p></li>
+<li><p><strong>queues</strong> – queues object.</p></li>
+<li><p><strong>traces</strong> – traces object.</p></li>
+<li><p><strong>args</strong> – args object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.control.job.verify_ctypes">
+<span class="sig-prename descclassname"><span class="pre">pilot.control.job.</span></span><span class="sig-name descname"><span class="pre">verify_ctypes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">queues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/job.html#verify_ctypes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.job.verify_ctypes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verify ctypes and make sure all subprocess are parented.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>queues</strong> – queues object.</p></li>
+<li><p><strong>job</strong> – job object.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1055,7 +1198,7 @@ This is only done when server updates are not wanted.</p>
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

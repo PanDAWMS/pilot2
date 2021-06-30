@@ -36,6 +36,41 @@
   <section id="module-pilot.user.atlas.jobmetrics">
 <span id="jobmetrics"></span><h1>jobmetrics<a class="headerlink" href="#module-pilot.user.atlas.jobmetrics" title="Permalink to this headline">¶</a></h1>
 <dl class="py function">
+<dt class="sig sig-object py" id="pilot.user.atlas.jobmetrics.add_analytics_data">
+<span class="sig-prename descclassname"><span class="pre">pilot.user.atlas.jobmetrics.</span></span><span class="sig-name descname"><span class="pre">add_analytics_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/jobmetrics.html#add_analytics_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.jobmetrics.add_analytics_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the memory leak+chi2 analytics data to the job metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_metrics</strong> – job metrics (string).</p></li>
+<li><p><strong>workdir</strong> – work directory (string).</p></li>
+<li><p><strong>state</strong> – job state (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated job metrics (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.user.atlas.jobmetrics.add_event_number">
+<span class="sig-prename descclassname"><span class="pre">pilot.user.atlas.jobmetrics.</span></span><span class="sig-name descname"><span class="pre">add_event_number</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/jobmetrics.html#add_event_number"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.jobmetrics.add_event_number" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract event number from file and add to job metrics if it exists</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_metrics</strong> – job metrics (string).</p></li>
+<li><p><strong>workdir</strong> – work directory (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>updated job metrics (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="pilot.user.atlas.jobmetrics.get_job_metrics">
 <span class="sig-prename descclassname"><span class="pre">pilot.user.atlas.jobmetrics.</span></span><span class="sig-name descname"><span class="pre">get_job_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/jobmetrics.html#get_job_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.jobmetrics.get_job_metrics" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a properly formatted job metrics string.
@@ -66,6 +101,28 @@ Format: nEvents=&lt;int&gt; nEventsW=&lt;int&gt; vmPeakMax=&lt;int&gt; vmPeakMea
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>job metrics (string).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.user.atlas.jobmetrics.get_number_in_string">
+<span class="sig-prename descclassname"><span class="pre">pilot.user.atlas.jobmetrics.</span></span><span class="sig-name descname"><span class="pre">get_number_in_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">line</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'\\</span> <span class="pre">done\\</span> <span class="pre">processing\\</span> <span class="pre">event\\</span> <span class="pre">\\#(\\d+)\\,'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/pilot/user/atlas/jobmetrics.html#get_number_in_string"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.user.atlas.jobmetrics.get_number_in_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract a number from the given string.</p>
+<dl class="simple">
+<dt>E.g. file eventLoopHeartBeat.txt contains</dt><dd><p>done processing event #20166959, run #276689 22807 events read so far  &lt;&lt;&lt;===</p>
+</dd>
+</dl>
+<p>This function will return 20166959 as in int.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>line</strong> – line from a file (string).</p></li>
+<li><p><strong>pattern</strong> – reg ex pattern (raw string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>extracted number (int).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -146,7 +203,7 @@ Format: nEvents=&lt;int&gt; nEventsW=&lt;int&gt; vmPeakMax=&lt;int&gt; vmPeakMea
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

@@ -5,7 +5,9 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2020-2021
+
+# Note: leave this module for now - the code might be useful for reuse
 
 import time
 
@@ -29,9 +31,6 @@ def run(args):
     :returns:
     """
 
-    # t = threading.current_thread()
-    # logger.debug('job.control is run by thread: %s' % t.name)
-
     targets = {'receive': receive, 'send': send}
     threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'args': args},
                          name=name) for name, target in list(targets.items())]  # Python 2/3
@@ -48,7 +47,7 @@ def run(args):
                 pass
             else:
                 exc_type, exc_obj, exc_trace = exc
-                logger.warning("thread \'%s\' received an exception from bucket: %s" % (thread.name, exc_obj))
+                logger.warning("thread \'%s\' received an exception from bucket: %s", thread.name, exc_obj)
 
                 # deal with the exception
                 # ..

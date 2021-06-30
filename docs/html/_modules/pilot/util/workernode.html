@@ -38,13 +38,13 @@
 <span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
 <span class="c1">#</span>
 <span class="c1"># Authors:</span>
-<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021</span>
 
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">re</span>
 
-<span class="kn">from</span> <span class="nn">pilot.util.disk</span> <span class="kn">import</span> <span class="n">disk_usage</span>
 <span class="kn">from</span> <span class="nn">pilot.info</span> <span class="kn">import</span> <span class="n">infosys</span>
+<span class="kn">from</span> <span class="nn">pilot.util.disk</span> <span class="kn">import</span> <span class="n">disk_usage</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -69,8 +69,8 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">diskpipe</span><span class="o">.</span><span class="n">close</span><span class="p">():</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">disk</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">disks</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">3</span><span class="p">])</span>
-        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught while trying to convert disk info: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught while trying to convert disk info: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">disk</span></div>
 
@@ -89,8 +89,8 @@
             <span class="k">if</span> <span class="n">mems</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;MEMTOTAL&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">mem</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">mems</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mi">1024</span>  <span class="c1"># value listed by command as kB, convert to MB</span>
-                <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught while trying to convert meminfo: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught while trying to convert meminfo: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
                 <span class="k">break</span>
             <span class="n">mems</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
 
@@ -111,8 +111,8 @@
             <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;cpu MHz&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>  <span class="c1"># Python 2/3</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">cpu</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
-                <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught while trying to convert cpuinfo: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;exception caught while trying to convert cpuinfo: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
                 <span class="k">break</span>  <span class="c1"># command info is the same for all cores, so break here</span>
 
     <span class="k">return</span> <span class="n">cpu</span></div>
@@ -147,21 +147,21 @@
     <span class="c1"># --- non Job related queue data</span>
     <span class="c1"># jobinfo provider is required to consider overwriteAGIS data coming from Job</span>
     <span class="n">_maxinputsize</span> <span class="o">=</span> <span class="n">infosys</span><span class="o">.</span><span class="n">queuedata</span><span class="o">.</span><span class="n">maxwdir</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;resolved value from global infosys.queuedata instance: infosys.queuedata.maxwdir=</span><span class="si">%s</span><span class="s2"> B&quot;</span> <span class="o">%</span> <span class="n">_maxinputsize</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;resolved value from global infosys.queuedata instance: infosys.queuedata.maxwdir=</span><span class="si">%s</span><span class="s2"> B&quot;</span><span class="p">,</span> <span class="n">_maxinputsize</span><span class="p">)</span>
     <span class="n">_maxinputsize</span> <span class="o">=</span> <span class="n">queuedata</span><span class="o">.</span><span class="n">maxwdir</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;resolved value: queuedata.maxwdir=</span><span class="si">%s</span><span class="s2"> B&quot;</span> <span class="o">%</span> <span class="n">_maxinputsize</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;resolved value: queuedata.maxwdir=</span><span class="si">%s</span><span class="s2"> B&quot;</span><span class="p">,</span> <span class="n">_maxinputsize</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">du</span> <span class="o">=</span> <span class="n">disk_usage</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">))</span>
         <span class="n">_diskspace</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">du</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">))</span>  <span class="c1"># need to convert from B to MB</span>
-    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;failed to extract disk space: </span><span class="si">%s</span><span class="s2"> (will use schedconfig default)&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;failed to extract disk space: </span><span class="si">%s</span><span class="s2"> (will use schedconfig default)&quot;</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
         <span class="n">_diskspace</span> <span class="o">=</span> <span class="n">_maxinputsize</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;available WN disk space: </span><span class="si">%d</span><span class="s2"> MB&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_diskspace</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;available WN disk space: </span><span class="si">%d</span><span class="s2"> MB&quot;</span><span class="p">,</span> <span class="n">_diskspace</span><span class="p">)</span>
 
     <span class="n">_diskspace</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">_diskspace</span><span class="p">,</span> <span class="n">_maxinputsize</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;sending disk space </span><span class="si">%d</span><span class="s2"> MB to dispatcher&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">_diskspace</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;sending disk space </span><span class="si">%d</span><span class="s2"> MB to dispatcher&quot;</span><span class="p">,</span> <span class="n">_diskspace</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">_diskspace</span></div>
 
@@ -254,13 +254,11 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">hz</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">sysconf</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sysconf_names</span><span class="p">[</span><span class="s1">&#39;SC_CLK_TCK&#39;</span><span class="p">])</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">sysconf</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sysconf_names</span><span class="p">[</span><span class="s1">&#39;SC_CLK_TCK&#39;</span><span class="p">])</span>
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
         <span class="kn">import</span> <span class="nn">traceback</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;failed to read SC_CLK_TCK - will not be able to perform CPU consumption calculation&#39;</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;SC_CLK_TCK=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">hz</span><span class="p">))</span></div>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span></div>
 </pre></div>
 
           </div>
@@ -311,7 +309,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

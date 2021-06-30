@@ -127,7 +127,7 @@ Perform stage-out as soon as a job object can be extracted from the data_out que
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pilot.control.data.create_log">
-<span class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></span><span class="sig-name descname"><span class="pre">create_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tarball_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cleanup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_looping</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#create_log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.create_log" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></span><span class="sig-name descname"><span class="pre">create_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tarball_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cleanup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_looping</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debugmode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#create_log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.create_log" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create the tarball for the job.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -139,6 +139,7 @@ Perform stage-out as soon as a job object can be extracted from the data_out que
 <li><p><strong>input_files</strong> – list of input files to remove (list).</p></li>
 <li><p><strong>output_files</strong> – list of output files to remove (list).</p></li>
 <li><p><strong>is_looping</strong> – True for looping jobs, False by default (Boolean).</p></li>
+<li><p><strong>debugmode</strong> – True if debug mode has been switched on (Boolean).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises</dt>
@@ -180,7 +181,8 @@ Perform stage-out as soon as a job object can be extracted from the data_out que
 <span class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></span><span class="sig-name descname"><span class="pre">get_input_file_dictionary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">indata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#get_input_file_dictionary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.get_input_file_dictionary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return an input file dictionary.
 Format: {‘guid’: ‘pfn’, ..}
-Normally use_turl would be set to True if direct access is used.</p>
+Normally use_turl would be set to True if direct access is used.
+Note: any environment variables in the turls will be expanded</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>indata</strong> – list of FileSpec objects.</p>
@@ -264,16 +266,6 @@ files enters the stage-out more than once.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pilot.control.data.set_xcache_log">
-<span class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></span><span class="sig-name descname"><span class="pre">set_xcache_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">line</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#set_xcache_log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.set_xcache_log" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pilot.control.data.set_xcache_proxy">
-<span class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></span><span class="sig-name descname"><span class="pre">set_xcache_proxy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">line</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remote</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#set_xcache_proxy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.set_xcache_proxy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="pilot.control.data.skip_special_files">
 <span class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></span><span class="sig-name descname"><span class="pre">skip_special_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#skip_special_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.skip_special_files" title="Permalink to this definition">¶</a></dt>
 <dd><p>Consult user defined code if any files should be skipped during stage-in.
@@ -290,7 +282,7 @@ ATLAS code will skip DBRelease files e.g. as they should already be available in
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pilot.control.data.stage_in_auto">
-<span class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></span><span class="sig-name descname"><span class="pre">stage_in_auto</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">site</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#stage_in_auto"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.stage_in_auto" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></span><span class="sig-name descname"><span class="pre">stage_in_auto</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#stage_in_auto"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.stage_in_auto" title="Permalink to this definition">¶</a></dt>
 <dd><p>Separate dummy implementation for automatic stage-in outside of pilot workflows.
 Should be merged with regular stage-in functionality later, but we need to have
 some operational experience with it first.
@@ -305,7 +297,7 @@ Many things to improve:</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pilot.control.data.stage_out_auto">
-<span class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></span><span class="sig-name descname"><span class="pre">stage_out_auto</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">site</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#stage_out_auto"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.stage_out_auto" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></span><span class="sig-name descname"><span class="pre">stage_out_auto</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#stage_out_auto"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.stage_out_auto" title="Permalink to this definition">¶</a></dt>
 <dd><p>Separate dummy implementation for automatic stage-out outside of pilot workflows.
 Should be merged with regular stage-out functionality later, but we need to have
 some operational experience with it first.</p>
@@ -326,9 +318,42 @@ some operational experience with it first.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pilot.control.data.xcache_proxy">
-<span class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></span><span class="sig-name descname"><span class="pre">xcache_proxy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#xcache_proxy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.xcache_proxy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="pilot.control.data.write_output">
+<span class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></span><span class="sig-name descname"><span class="pre">write_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#write_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.write_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write command output to file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> – file name (string).</p></li>
+<li><p><strong>output</strong> – command stdout/stderr (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pilot.control.data.write_utility_output">
+<span class="sig-prename descclassname"><span class="pre">pilot.control.data.</span></span><span class="sig-name descname"><span class="pre">write_utility_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stdout</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/pilot/control/data.html#write_utility_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pilot.control.data.write_utility_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the utility command output to stdout, stderr files to the job.workdir for the current step.
+-&gt; &lt;step&gt;_stdout.txt, &lt;step&gt;_stderr.txt
+Example of step: xcache.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>workdir</strong> – job workdir (string).</p></li>
+<li><p><strong>step</strong> – utility step (string).</p></li>
+<li><p><strong>stdout</strong> – command stdout (string).</p></li>
+<li><p><strong>stderr</strong> – command stderr (string).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
 
 </section>
 
@@ -404,7 +429,7 @@ some operational experience with it first.</p>
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

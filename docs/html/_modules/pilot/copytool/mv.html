@@ -38,7 +38,7 @@
 <span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
 <span class="c1">#</span>
 <span class="c1"># Authors:</span>
-<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019</span>
+<span class="c1"># - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021</span>
 <span class="c1"># - Tobias Wegner, tobias.wegner@cern.ch, 2018</span>
 <span class="c1"># - David Cameron, david.cameron@cern.ch, 2018-2019</span>
 
@@ -52,6 +52,7 @@
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 <span class="n">require_replicas</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># indicate if given copytool requires input replicas to be resolved</span>
+<span class="n">check_availablespace</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># indicate whether space check should be applied before stage-in transfers using given copytool</span>
 
 
 <div class="viewcode-block" id="create_output_list"><a class="viewcode-back" href="../../../components/copytool/mv.html#pilot.copytool.mv.create_output_list">[docs]</a><span class="k">def</span> <span class="nf">create_output_list</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">init_dir</span><span class="p">,</span> <span class="n">ddmconf</span><span class="p">):</span>
@@ -80,12 +81,12 @@
             <span class="c1"># resolve token value from fspec.ddmendpoint</span>
             <span class="n">token</span> <span class="o">=</span> <span class="n">ddmconf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">)</span><span class="o">.</span><span class="n">token</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">token</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No space token info for </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No space token info for </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">ddmendpoint</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">arcturl</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;((:\d+)/)&#39;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;\2;autodir=no;spacetoken=</span><span class="si">%s</span><span class="s1">/&#39;</span> <span class="o">%</span> <span class="n">token</span><span class="p">,</span> <span class="n">arcturl</span><span class="p">)</span>
             <span class="n">arcturl</span> <span class="o">+=</span> <span class="s1">&#39;:checksumtype=</span><span class="si">%s</span><span class="s1">:checksumvalue=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">checksumtype</span><span class="p">,</span> <span class="n">checksum</span><span class="p">)</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Adding to output.list: </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">arcturl</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Adding to output.list: </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">arcturl</span><span class="p">)</span>
         <span class="c1"># Write output.list</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">init_dir</span><span class="p">,</span> <span class="s1">&#39;output.list&#39;</span><span class="p">),</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">fspec</span><span class="o">.</span><span class="n">lfn</span><span class="p">,</span> <span class="n">arcturl</span><span class="p">))</span></div>
@@ -156,7 +157,7 @@
         <span class="k">raise</span> <span class="n">StageOutFailure</span><span class="p">(</span><span class="n">stdout</span><span class="p">)</span>
 
     <span class="c1"># Create output list for ARC CE if necessary</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;init_dir for output.list=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;workdir&#39;</span><span class="p">)))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;init_dir for output.list=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;workdir&#39;</span><span class="p">)))</span>
     <span class="n">output_dir</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;output_dir&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">output_dir</span><span class="p">:</span>
         <span class="n">create_output_list</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;workdir&#39;</span><span class="p">)),</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ddmconf&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
@@ -200,11 +201,11 @@
         <span class="c1"># resolve canonical path</span>
         <span class="n">source</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;transferring file </span><span class="si">%s</span><span class="s2"> from </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">destination</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;transferring file </span><span class="si">%s</span><span class="s2"> from </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">destination</span><span class="p">)</span>
 
         <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span> <span class="o">=</span> <span class="n">copy_method</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">destination</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">exit_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;transfer failed: exit code = </span><span class="si">%d</span><span class="s2">, stdout = </span><span class="si">%s</span><span class="s2">, stderr = </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;transfer failed: exit code = </span><span class="si">%d</span><span class="s2">, stdout = </span><span class="si">%s</span><span class="s2">, stderr = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">exit_code</span><span class="p">,</span> <span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">)</span>
             <span class="n">fspec</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;failed&#39;</span>
             <span class="k">if</span> <span class="n">fspec</span><span class="o">.</span><span class="n">filetype</span> <span class="o">==</span> <span class="s1">&#39;input&#39;</span><span class="p">:</span>
                 <span class="n">fspec</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="n">ErrorCodes</span><span class="o">.</span><span class="n">STAGEINFAILED</span>
@@ -317,7 +318,7 @@
       &copy;2017, Paul Nilsson, Mario Lassnig, Daniil Drizhuk, ....
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.1</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.0.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>
