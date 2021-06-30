@@ -1098,7 +1098,7 @@ class StageOutClient(StagingClient):
             self.require_protocols(files, copytool, activity, local_dir=output_dir)
 
         if not copytool.is_valid_for_copy_out(files):
-            self.logger.warning('Input is not valid for transfers using copytool=%s' % copytool)
+            self.logger.warning('Input is not valid for transfers using copytool=%s', copytool)
             self.logger.debug('Input: %s', files)
             raise PilotException('Invalid input for transfer operation')
 

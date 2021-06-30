@@ -154,7 +154,7 @@ def copy_out(files, **kwargs):
         (bucket, remote_path) = reobj.groups()
 
     for fspec in files:
-        logger.info('Going to process fspec.turl=%s' % fspec.turl)
+        logger.info('Going to process fspec.turl=%s', fspec.turl)
 
         logfiles = []
         lfn = fspec.lfn.strip(' ')
