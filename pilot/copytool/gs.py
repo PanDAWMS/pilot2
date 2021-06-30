@@ -57,7 +57,7 @@ def resolve_surl(fspec, protocol, ddmconf, **kwargs):
 
     try:
         pandaqueue = infosys.pandaqueue
-    except:
+    except Exception:
         pandaqueue = ""
     if pandaqueue is None:
         pandaqueue = ""
