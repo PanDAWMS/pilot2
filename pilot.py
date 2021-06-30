@@ -10,6 +10,7 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
 
 from __future__ import print_function  # Python 2 (2to3 complains about this)
+from __future__ import absolute_import
 
 import argparse
 import logging
@@ -68,7 +69,7 @@ def main():
         infosys.init(args.queue)
         # check if queue is ACTIVE
         if infosys.queuedata.state != 'ACTIVE':
-            logger.critical('specified queue is NOT ACTIVE: %s -- aborting' % infosys.queuedata.name)
+            logger.critical('specified queue is NOT ACTIVE: %s -- aborting', infosys.queuedata.name)
             return errors.PANDAQUEUENOTACTIVE
     except PilotException as error:
         logger.fatal(error)
@@ -81,14 +82,14 @@ def main():
     environ['PILOT_SITENAME'] = infosys.queuedata.resource  #args.site  # TODO: replace with singleton
 
     # set requested workflow
-    logger.info('pilot arguments: %s' % str(args))
+    logger.info('pilot arguments: %s', str(args))
     workflow = __import__('pilot.workflow.%s' % args.workflow, globals(), locals(), [args.workflow], 0)  # Python 3, -1 -> 0
 
     # execute workflow
     try:
         exit_code = workflow.run(args)
     except Exception as e:
-        logger.fatal('main pilot function caught exception: %s' % e)
+        logger.fatal('main pilot function caught exception: %s', e)
         exit_code = None
 
     return exit_code
@@ -99,62 +100,6 @@ class Args:
     Dummy namespace class used to contain pilot arguments.
     """
     pass
-
-
-# rename module to pilot2 to avoid conflict in import with pilot directory
-def import_module(**kwargs):
-    """
-    This function allows for importing the pilot code.
-
-    :param kwargs: pilot options (dictionary).
-    :return: pilot error code (integer).
-    """
-
-    argument_dictionary = {'-a': kwargs.get('workdir', ''),
-                           '-d': kwargs.get('debug', None),
-                           '-w': kwargs.get('workflow', 'generic'),
-                           '-l': kwargs.get('lifetime', '3600'),
-                           '-q': kwargs.get('queue'),  # required
-                           '-r': kwargs.get('resource'),  # required
-                           '-s': kwargs.get('site'),  # required
-                           '-j': kwargs.get('job_label', 'ptest'),  # change default later to 'managed'
-                           '-i': kwargs.get('version_tag', 'PR'),
-                           '-t': kwargs.get('verify_proxy', True),
-                           '-z': kwargs.get('update_server', True),
-                           '--cacert': kwargs.get('cacert', None),
-                           '--capath': kwargs.get('capath'),
-                           '--url': kwargs.get('url', ''),
-                           '-p': kwargs.get('port', '25443'),
-                           '--country-group': kwargs.get('country_group', ''),
-                           '--working-group': kwargs.get('working_group', ''),
-                           '--allow-other-country': kwargs.get('allow_other_country', 'False'),
-                           '--allow-same-user': kwargs.get('allow_same_user', 'True'),
-                           '--pilot-user': kwargs.get('pilot_user', 'generic'),
-                           '--input-dir': kwargs.get('input_dir', ''),
-                           '--output-dir': kwargs.get('output_dir', ''),
-                           '--hpc-resource': kwargs.get('hpc_resource', ''),
-                           '--harvester-workdir': kwargs.get('harvester_workdir', ''),
-                           '--harvester-datadir': kwargs.get('harvester_datadir', ''),
-                           '--harvester-eventstatusdump': kwargs.get('harvester_eventstatusdump', ''),
-                           '--harvester-workerattributes': kwargs.get('harvester_workerattributes', ''),
-                           '--harvester-submitmode': kwargs.get('harvester_submitmode', ''),
-                           '--resource-type': kwargs.get('resource_type', '')
-                           }
-
-    args = Args()
-    parser = argparse.ArgumentParser()
-    try:
-        _items = list(argument_dictionary.items())  # Python 3
-    except Exception:
-        _items = argument_dictionary.iteritems()  # Python 2
-    for key, value in _items:
-        print(key, value)
-        parser.add_argument(key)
-        parser.parse_args(args=[key, value], namespace=args)  # convert back int and bool strings to int and bool??
-
-    # call main pilot function
-
-    return 0
 
 
 def str2bool(v):
@@ -379,6 +324,11 @@ def get_args():
                             dest='jobtype',
                             default='',
                             help='Job type (managed, user)')
+    arg_parser.add_argument('--use-rucio-traces',
+                            dest='use_rucio_traces',
+                            type=str2bool,
+                            default=True,
+                            help='Use rucio traces')
 
     # HPC options
     arg_parser.add_argument('--hpc-resource',
@@ -413,10 +363,10 @@ def create_main_work_dir(args):
         try:
             # create the main PanDA Pilot work directory
             mkdirs(mainworkdir)
-        except Exception as e:
+        except PilotException as error:
             # print to stderr since logging has not been established yet
-            print('failed to create workdir at %s -- aborting: %s' % (mainworkdir, e), file=sys.stderr)
-            exit_code = shell_exit_code(e._errorCode)
+            print('failed to create workdir at %s -- aborting: %s' % (mainworkdir, error), file=sys.stderr)
+            exit_code = shell_exit_code(error._errorCode)
     else:
         mainworkdir = getcwd()
 
@@ -467,8 +417,14 @@ def set_environment_variables(args, mainworkdir):
     # set the (HPC) resource name (if set in options)
     environ['PILOT_RESOURCE_NAME'] = args.hpc_resource
 
+    # allow for the possibility of turning off rucio traces
+    environ['PILOT_USE_RUCIO_TRACES'] = str(args.use_rucio_traces)
+
     # event service executor type
     environ['PILOT_ES_EXECUTOR_TYPE'] = args.executor_type
+
+    if args.output_dir:
+        environ['PILOT_OUTPUT_DIR'] = args.output_dir
 
     # keep track of the server urls
     _port = ":%s" % args.port
@@ -495,9 +451,9 @@ def wrap_up(initdir, mainworkdir, args):
         try:
             rmtree(mainworkdir)
         except Exception as e:
-            logging.warning("failed to remove %s: %s" % (mainworkdir, e))
+            logging.warning("failed to remove %s: %s", mainworkdir, e)
         else:
-            logging.info("removed %s" % mainworkdir)
+            logging.info("removed %s", mainworkdir)
 
     # in Harvester mode, create a kill_worker file that will instruct Harvester that the pilot has finished
     if args.harvester:
@@ -509,15 +465,15 @@ def wrap_up(initdir, mainworkdir, args):
     except Exception:
         exit_code = trace
     else:
-        logging.info('traces error code: %d' % exit_code)
+        logging.info('traces error code: %d', exit_code)
         if trace.pilot['nr_jobs'] <= 1:
             if exit_code != 0:
-                logging.info('an exit code was already set: %d (will be converted to a standard shell code)' % exit_code)
+                logging.info('an exit code was already set: %d (will be converted to a standard shell code)', exit_code)
         elif trace.pilot['nr_jobs'] > 0:
             if trace.pilot['nr_jobs'] == 1:
-                logging.getLogger(__name__).info('pilot has finished (%d job was processed)' % trace.pilot['nr_jobs'])
+                logging.getLogger(__name__).info('pilot has finished (%d job was processed)', trace.pilot['nr_jobs'])
             else:
-                logging.getLogger(__name__).info('pilot has finished (%d jobs were processed)' % trace.pilot['nr_jobs'])
+                logging.getLogger(__name__).info('pilot has finished (%d jobs were processed)', trace.pilot['nr_jobs'])
             exit_code = SUCCESS
         elif trace.pilot['state'] == FAILURE:
             logging.critical('pilot workflow failure -- aborting')
@@ -579,7 +535,7 @@ if __name__ == '__main__':
     set_environment_variables(args, mainworkdir)
 
     # setup and establish standard logging
-    establish_logging(args)
+    establish_logging(debug=args.debug, nopilotlog=args.nopilotlog)
 
     # execute main function
     trace = main()

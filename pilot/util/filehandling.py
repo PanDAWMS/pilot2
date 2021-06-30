@@ -58,8 +58,8 @@ def mkdirs(workdir, chmod=0o770):  # Python 2/3
         os.makedirs(workdir)
         if chmod:
             os.chmod(workdir, chmod)
-    except Exception as e:
-        raise MKDirFailure(e)
+    except Exception as error:
+        raise MKDirFailure(error)
 
 
 def rmdirs(path):
@@ -74,8 +74,8 @@ def rmdirs(path):
 
     try:
         rmtree(path)
-    except OSError as e:
-        logger.warning("failed to remove directories %s: %s" % (path, e))
+    except OSError as error:
+        logger.warning("failed to remove directories %s: %s", path, error)
     else:
         status = True
 
@@ -122,17 +122,17 @@ def write_file(path, contents, mute=True, mode='w', unique=False):
     if f:
         try:
             f.write(contents)
-        except IOError as e:
-            raise FileHandlingFailure(e)
+        except IOError as error:
+            raise FileHandlingFailure(error)
         else:
             status = True
         f.close()
 
     if not mute:
         if 'w' in mode:
-            logger.info('created file: %s' % path)
+            logger.info('created file: %s', path)
         if 'a' in mode:
-            logger.info('appended file: %s' % path)
+            logger.info('appended file: %s', path)
 
     return status
 
@@ -151,8 +151,8 @@ def open_file(filename, mode):
     f = None
     try:
         f = open(filename, mode)
-    except IOError as e:
-        raise FileHandlingFailure(e)
+    except IOError as error:
+        raise FileHandlingFailure(error)
 
     return f
 
@@ -329,8 +329,8 @@ def read_list(filename):
     try:
         with open(filename, 'r') as filehandle:
             _list = load(filehandle)
-    except IOError as e:
-        logger.warning('failed to read %s: %s' % (filename, e))
+    except IOError as error:
+        logger.warning('failed to read %s: %s', filename, error)
 
     return convert(_list)
 
@@ -349,9 +349,9 @@ def read_json(filename):
     if f:
         try:
             dictionary = load(f)
-        except Exception as e:
-            logger.warning('exception caught: %s' % e)
-            #raise FileHandlingFailure(str(e))
+        except Exception as error:
+            logger.warning('exception caught: %s', error)
+            #raise FileHandlingFailure(str(error))
         else:
             f.close()
 
@@ -359,8 +359,8 @@ def read_json(filename):
             if dictionary != {}:
                 try:
                     dictionary = convert(dictionary)
-                except Exception as e:
-                    raise ConversionFailure(e)
+                except Exception as error:
+                    raise ConversionFailure(error)
 
     return dictionary
 
@@ -383,8 +383,8 @@ def write_json(filename, data, sort_keys=True, indent=4, separators=(',', ': '))
     try:
         with open(filename, 'w') as fh:
             dumpjson(data, fh, sort_keys=sort_keys, indent=indent, separators=separators)
-    except IOError as e:
-        raise FileHandlingFailure(e)
+    except IOError as error:
+        raise FileHandlingFailure(error)
     else:
         status = True
 
@@ -434,8 +434,8 @@ def remove(path):
 
     try:
         os.remove(path)
-    except OSError as e:
-        logger.warning("failed to remove file: %s (%s, %s)" % (path, e.errno, e.strerror))
+    except OSError as error:
+        logger.warning("failed to remove file: %s (%s, %s)", path, error.errno, error.strerror)
         return -1
     return 0
 
@@ -449,8 +449,8 @@ def remove_dir_tree(path):
 
     try:
         rmtree(path)
-    except OSError as e:
-        logger.warning("failed to remove directory: %s (%s, %s)" % (path, e.errno, e.strerror))
+    except OSError as error:
+        logger.warning("failed to remove directory: %s (%s, %s)", path, error.errno, error.strerror)
         return -1
     return 0
 
@@ -466,7 +466,7 @@ def remove_files(workdir, files):
 
     ec = 0
     if type(files) != list:
-        logger.warning('files parameter not a list: %s' % str(type(list)))
+        logger.warning('files parameter not a list: %s', str(type(list)))
         ec = -1
     else:
         for f in files:
@@ -524,6 +524,28 @@ def tar_files(wkdir, excludedfiles, logfile_name, attempt=0):
     return 0
 
 
+def move(path1, path2):
+    """
+    Move a file from path1 to path2.
+
+    :param path1: source path (string).
+    :param path2: destination path2 (string).
+    """
+
+    if not os.path.exists(path1):
+        logger.warning('file copy failure: path does not exist: %s', path1)
+        raise NoSuchFile("File does not exist: %s" % path1)
+
+    try:
+        import shutil
+        shutil.move(path1, path2)
+    except IOError as error:
+        logger.warning("exception caught during file move: %s", error)
+        raise FileHandlingFailure(error)
+    else:
+        logger.info("moved %s to %s", path1, path2)
+
+
 def copy(path1, path2):
     """
     Copy path1 to path2.
@@ -535,16 +557,16 @@ def copy(path1, path2):
     """
 
     if not os.path.exists(path1):
-        logger.warning('file copy failure: path does not exist: %s' % path1)
+        logger.warning('file copy failure: path does not exist: %s', path1)
         raise NoSuchFile("File does not exist: %s" % path1)
 
     try:
         copy2(path1, path2)
-    except IOError as e:
-        logger.warning("exception caught during file copy: %s" % e)
-        raise FileHandlingFailure(e)
+    except IOError as error:
+        logger.warning("exception caught during file copy: %s", error)
+        raise FileHandlingFailure(error)
     else:
-        logger.info("copied %s to %s" % (path1, path2))
+        logger.info("copied %s to %s", path1, path2)
 
 
 def find_executable(name):
@@ -574,8 +596,8 @@ def get_directory_size(directory="."):
         try:
             # convert to int and B
             size = int(stdout.split()[0]) * 1024
-        except Exception as e:
-            logger.warning('exception caught while trying convert dirsize: %s' % e)
+        except Exception as error:
+            logger.warning('exception caught while trying convert dirsize: %s', error)
 
     return size
 
@@ -593,13 +615,13 @@ def add_to_total_size(path, total_size):
         # Get the file size
         fsize = get_local_file_size(path)
         if fsize:
-            logger.info("size of file %s: %d B" % (path, fsize))
+            logger.info("size of file %s: %d B", path, fsize)
             try:
                 total_size += long(fsize)  # Python 2  # noqa: F821
             except Exception:
                 total_size += int(fsize)  # Python 3 (note order in try statement)
     else:
-        logger.warning("skipping file %s since it is not present" % path)
+        logger.warning("skipping file %s since it is not present", path)
 
     return total_size
 
@@ -617,10 +639,10 @@ def get_local_file_size(filename):
     if os.path.exists(filename):
         try:
             file_size = os.path.getsize(filename)
-        except Exception as e:
-            logger.warning("failed to get file size: %s" % e)
+        except Exception as error:
+            logger.warning("failed to get file size: %s", error)
     else:
-        logger.warning("local file does not exist: %s" % filename)
+        logger.warning("local file does not exist: %s", filename)
 
     return file_size
 
@@ -661,8 +683,8 @@ def get_table_from_file(filename, header=None, separator="\t", convert_to_float=
 
     try:
         f = open_file(filename, 'r')
-    except Exception as e:
-        logger.warning("failed to open file: %s, %s" % (filename, e))
+    except Exception as error:
+        logger.warning("failed to open file: %s, %s", filename, error)
     else:
         firstline = True
         for line in f:
@@ -682,8 +704,8 @@ def get_table_from_file(filename, header=None, separator="\t", convert_to_float=
                 if convert_to_float:
                     try:
                         field = float(field)
-                    except Exception as e:
-                        logger.warning("failed to convert %s to float: %s (aborting)" % (field, e))
+                    except Exception as error:
+                        logger.warning("failed to convert %s to float: %s (aborting)", field, error)
                         return None
                 tabledict[key].append(field)
                 i += 1
@@ -884,7 +906,7 @@ def verify_file_list(list_of_files):
 
     diff = diff_lists(list_of_files, filtered_list)
     if diff:
-        logger.debug('found %d file(s) that do not exist (e.g. %s)' % (len(diff), diff[0]))
+        logger.debug('found %d file(s) that do not exist (e.g. %s)', len(diff), diff[0])
 
     return filtered_list
 
@@ -905,8 +927,8 @@ def find_latest_modified_file(list_of_files):
     try:
         latest_file = max(list_of_files, key=os.path.getmtime)
         mtime = int(os.path.getmtime(latest_file))
-    except Exception as e:
-        logger.warning("int conversion failed for mod time: %s" % e)
+    except Exception as error:
+        logger.warning("int conversion failed for mod time: %s", error)
         latest_file = ""
         mtime = None
 
@@ -925,17 +947,24 @@ def dump(path, cmd="cat"):
     if os.path.exists(path) or cmd == "echo":
         _cmd = "%s %s" % (cmd, path)
         exit_code, stdout, stderr = execute(_cmd)
-        logger.info("%s:\n%s" % (_cmd, stdout + stderr))
+        logger.info("%s:\n%s", _cmd, stdout + stderr)
     else:
-        logger.info("path %s does not exist" % path)
+        logger.info("path %s does not exist", path)
 
 
-def establish_logging(args, filename=config.Pilot.pilotlog):
+def establish_logging(debug=True, nopilotlog=False, filename=config.Pilot.pilotlog, loglevel=0):
     """
     Setup and establish logging.
 
-    :param args: pilot arguments object.
-    :param filename: name of log file.
+    Option loglevel can be used to decide which (predetermined) logging format to use.
+    Example:
+      loglevel=0: '%(asctime)s | %(levelname)-8s | %(name)-32s | %(funcName)-25s | %(message)s'
+      loglevel=1: 'ts=%(asctime)s level=%(levelname)-8s event=%(name)-32s.%(funcName)-25s msg="%(message)s"'
+
+    :param debug: debug mode (Boolean),
+    :param nopilotlog: True when pilot log is not known (Boolean).
+    :param filename: name of log file (string).
+    :param loglevel: selector for logging level (int).
     :return:
     """
 
@@ -944,8 +973,8 @@ def establish_logging(args, filename=config.Pilot.pilotlog):
     _logger.propagate = False
 
     console = logging.StreamHandler(sys.stdout)
-    if args.debug:
-        format_str = '%(asctime)s | %(levelname)-8s | %(threadName)-19s | %(name)-32s | %(funcName)-25s | %(message)s'
+    if debug:
+        format_str = '%(asctime)s | %(levelname)-8s | %(name)-32s | %(funcName)-25s | %(message)s'
         level = logging.DEBUG
     else:
         format_str = '%(asctime)s | %(levelname)-8s | %(message)s'
@@ -953,7 +982,7 @@ def establish_logging(args, filename=config.Pilot.pilotlog):
     #rank, maxrank = get_ranks_info()
     #if rank is not None:
     #    format_str = 'Rank {0} |'.format(rank) + format_str
-    if args.nopilotlog:
+    if nopilotlog:
         logging.basicConfig(level=level, format=format_str, filemode='w')
     else:
         logging.basicConfig(filename=filename, level=level, format=format_str, filemode='w')
@@ -978,7 +1007,7 @@ def remove_core_dumps(workdir):
     coredumps = coredumps1 + coredumps2
     if coredumps:
         for coredump in coredumps:
-            logger.info("removing core dump: %s" % str(coredump))
+            logger.info("removing core dump: %s", str(coredump))
             remove(coredump)
         found = True
 
@@ -1049,14 +1078,14 @@ def copy_pilot_source(workdir):
     diagnostics = ""
     srcdir = os.path.join(os.environ.get('PILOT_SOURCE_DIR', '.'), 'pilot2')
     try:
-        logger.debug('copy %s to %s' % (srcdir, workdir))
+        logger.debug('copy %s to %s', srcdir, workdir)
         cmd = 'cp -r %s/* %s' % (srcdir, workdir)
         exit_code, stdout, stderr = execute(cmd)
         if exit_code != 0:
             diagnostics = 'file copy failed: %d, %s' % (exit_code, stdout)
             logger.warning(diagnostics)
-    except Exception as e:
-        diagnostics = 'exception caught when copying pilot2 source: %s' % e
+    except Exception as error:
+        diagnostics = 'exception caught when copying pilot2 source: %s' % error
         logger.warning(diagnostics)
 
     return diagnostics
@@ -1072,7 +1101,44 @@ def create_symlink(from_path='', to_path=''):
 
     try:
         os.symlink(from_path, to_path)
-    except Exception as e:
-        logger.warning('failed to create symlink from %s to %s: %s' % (from_path, to_path, e))
+    except Exception as error:
+        logger.warning('failed to create symlink from %s to %s: %s', from_path, to_path, error)
     else:
-        logger.debug('created symlink from %s to %s' % (from_path, to_path))
+        logger.debug('created symlink from %s to %s', from_path, to_path)
+
+
+def locate_file(pattern):
+    """
+    Locate a file defined by the pattern.
+
+    Example:
+        pattern = os.path.join(os.getcwd(), '**/core.123')
+        -> /Users/Paul/Development/python/tt/core.123
+
+    :param pattern: pattern name (string).
+    :return: path (string).
+    """
+
+    path = None
+    for fname in glob(pattern):
+        if os.path.isfile(fname):
+            path = fname
+
+    return path
+
+
+def find_last_line(filename):
+    """
+    Find the last line in a (not too large) file.
+
+    :param filename: file name, full path (string).
+    :return: last line (string).
+    """
+
+    last_line = ""
+    with open(filename) as f:
+        for line in f:
+            pass
+        last_line = line
+
+    return last_line

@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Wen Guan, wen.guan@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2021
 
 
 import logging
@@ -30,11 +31,11 @@ class PluginFactory(object):
 
         class_name = confs['class']
         if class_name is None:
-            logger.error("[class] is not defined in confs: %s" % confs)
+            logger.error("[class] is not defined in confs: %s", confs)
             return None
 
         if class_name not in self.classMap:
-            logger.info("Trying to import %s" % class_name)
+            logger.info("Trying to import %s", class_name)
             components = class_name.split('.')
             mod = __import__('.'.join(components[:-1]))
             for comp in components[1:]:
@@ -48,7 +49,7 @@ class PluginFactory(object):
             args[key] = confs[key]
 
         cls = self.classMap[class_name]
-        logger.info("Importing %s with args: %s" % (cls, args))
+        logger.info("Importing %s with args: %s", cls, args)
         impl = cls(**args)
 
         return impl

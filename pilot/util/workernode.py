@@ -5,13 +5,13 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021
 
 import os
 import re
 
-from pilot.util.disk import disk_usage
 from pilot.info import infosys
+from pilot.util.disk import disk_usage
 
 import logging
 logger = logging.getLogger(__name__)
@@ -36,8 +36,8 @@ def get_local_disk_space(path):
     if not diskpipe.close():
         try:
             disk = float(disks.splitlines()[1].split()[3])
-        except ValueError as e:
-            logger.warning('exception caught while trying to convert disk info: %s' % e)
+        except ValueError as error:
+            logger.warning('exception caught while trying to convert disk info: %s', error)
 
     return disk
 
@@ -56,8 +56,8 @@ def get_meminfo():
             if mems.upper().find("MEMTOTAL") != -1:
                 try:
                     mem = float(mems.split()[1]) / 1024  # value listed by command as kB, convert to MB
-                except ValueError as e:
-                    logger.warning('exception caught while trying to convert meminfo: %s' % e)
+                except ValueError as error:
+                    logger.warning('exception caught while trying to convert meminfo: %s', error)
                 break
             mems = fd.readline()
 
@@ -78,8 +78,8 @@ def get_cpuinfo():
             if line.find("cpu MHz") != -1:  # Python 2/3
                 try:
                     cpu = float(line.split(":")[1])
-                except ValueError as e:
-                    logger.warning('exception caught while trying to convert cpuinfo: %s' % e)
+                except ValueError as error:
+                    logger.warning('exception caught while trying to convert cpuinfo: %s', error)
                 break  # command info is the same for all cores, so break here
 
     return cpu
@@ -114,21 +114,21 @@ def get_disk_space(queuedata):
     # --- non Job related queue data
     # jobinfo provider is required to consider overwriteAGIS data coming from Job
     _maxinputsize = infosys.queuedata.maxwdir
-    logger.debug("resolved value from global infosys.queuedata instance: infosys.queuedata.maxwdir=%s B" % _maxinputsize)
+    logger.debug("resolved value from global infosys.queuedata instance: infosys.queuedata.maxwdir=%s B", _maxinputsize)
     _maxinputsize = queuedata.maxwdir
-    logger.debug("resolved value: queuedata.maxwdir=%s B" % _maxinputsize)
+    logger.debug("resolved value: queuedata.maxwdir=%s B", _maxinputsize)
 
     try:
         du = disk_usage(os.path.abspath("."))
         _diskspace = int(du[2] / (1024 * 1024))  # need to convert from B to MB
-    except ValueError as e:
-        logger.warning("failed to extract disk space: %s (will use schedconfig default)" % e)
+    except ValueError as error:
+        logger.warning("failed to extract disk space: %s (will use schedconfig default)", error)
         _diskspace = _maxinputsize
     else:
-        logger.info("available WN disk space: %d MB" % (_diskspace))
+        logger.info("available WN disk space: %d MB", _diskspace)
 
     _diskspace = min(_diskspace, _maxinputsize)
-    logger.info("sending disk space %d MB to dispatcher" % (_diskspace))
+    logger.info("sending disk space %d MB to dispatcher", _diskspace)
 
     return _diskspace
 
@@ -221,10 +221,8 @@ def check_hz():
     """
 
     try:
-        hz = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
+        _ = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
     except Exception:
         import traceback
         logger.fatal('failed to read SC_CLK_TCK - will not be able to perform CPU consumption calculation')
         logger.warning(traceback.format_exc())
-    else:
-        logger.debug('SC_CLK_TCK=%s' % str(hz))

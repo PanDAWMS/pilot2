@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017-2018
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021
 
 # Reimplemented by Alexey Anisenkov
 
@@ -42,28 +42,28 @@ def _resolve_checksum_option(setup, **kwargs):
     if setup:
         cmd = "source %s; %s" % (setup, cmd)
 
-    logger.info("Execute command (%s) to check xrdcp client version" % cmd)
+    logger.info("Execute command (%s) to check xrdcp client version", cmd)
 
     rcode, stdout, stderr = execute(cmd, **kwargs)
-    logger.info("return code: %s" % rcode)
-    logger.info("return output: %s" % (stdout + stderr))
+    logger.info("return code: %s", rcode)
+    logger.info("return output: %s", stdout + stderr)
 
     cmd = "%s -h" % copy_command
     if setup:
         cmd = "source %s; %s" % (setup, cmd)
 
-    logger.info("Execute command (%s) to decide which option should be used to calc/verify file checksum.." % cmd)
+    logger.info("Execute command (%s) to decide which option should be used to calc/verify file checksum..", cmd)
 
     rcode, stdout, stderr = execute(cmd, **kwargs)
     output = stdout + stderr
-    logger.info("return code: %s" % rcode)
-    logger.debug("return output: %s" % output)
+    logger.info("return code: %s", rcode)
+    logger.debug("return output: %s", output)
 
     coption = ""
     checksum_type = 'adler32'  ## consider only adler32 for now
 
     if rcode:
-        logger.error('FAILED to execute command=%s: %s' % (cmd, output))
+        logger.error('FAILED to execute command=%s: %s', cmd, output)
     else:
         if "--cksum" in output:
             coption = "--cksum %s:print" % checksum_type
@@ -73,7 +73,7 @@ def _resolve_checksum_option(setup, **kwargs):
             coption = "-md5"
 
     if coption:
-        logger.info("Use %s option to get the checksum for %s command" % (coption, copy_command))
+        logger.info("Use %s option to get the checksum for %s command", coption, copy_command)
 
     return coption
 
@@ -96,7 +96,7 @@ def _stagefile(coption, source, destination, filesize, is_stagein, setup=None, *
     #logger.info("Executing command: %s, timeout=%s" % (cmd, timeout))
 
     rcode, stdout, stderr = execute(cmd, **kwargs)
-    logger.info('rcode=%d, stdout=%s, stderr=%s' % (rcode, stdout, stderr))
+    logger.info('rcode=%d, stdout=%s, stderr=%s', rcode, stdout, stderr)
 
     if rcode:  ## error occurred
         error = resolve_common_transfer_errors(stdout + stderr, is_stagein=is_stagein)
@@ -138,7 +138,8 @@ def copy_in(files, **kwargs):
     coption = _resolve_checksum_option(setup, **kwargs)
     trace_report = kwargs.get('trace_report')
 
-    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', None)
+    # note, env vars might be unknown inside middleware contrainers, if so get the value already in the trace report
+    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', trace_report.get_value('localSite'))
     for fspec in files:
         # update the trace report
         localsite = localsite if localsite else fspec.ddmendpoint
@@ -243,7 +244,7 @@ def get_file_info_from_output(output):
         return None, None, None
 
     if not ("xrootd" in output or "XRootD" in output or "adler32" in output):
-        logger.warning("WARNING: Failed to extract checksum: Unexpected output: %s" % output)
+        logger.warning("WARNING: Failed to extract checksum: Unexpected output: %s", output)
         return None, None, None
 
     pattern = r"(?P<type>md5|adler32):\ (?P<checksum>[a-zA-Z0-9]+)\ \S+\ (?P<filesize>[0-9]+)"  # Python 3 (added r)
@@ -258,10 +259,10 @@ def get_file_info_from_output(output):
         if filesize:
             try:
                 filesize = int(filesize)
-            except ValueError as e:
-                logger.warning('failed to convert filesize to int: %s' % e)
+            except ValueError as error:
+                logger.warning('failed to convert filesize to int: %s', error)
                 filesize = None
     else:
-        logger.warning("WARNING: Checksum/file size info not found in output: failed to match pattern=%s in output=%s" % (pattern, output))
+        logger.warning("WARNING: Checksum/file size info not found in output: failed to match pattern=%s in output=%s", pattern, output)
 
     return filesize, checksum, checksum_type

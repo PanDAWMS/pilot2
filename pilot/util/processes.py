@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2021
 
 import os
 import time
@@ -47,8 +47,8 @@ def find_processes_in_group(cpids, pid):
             try:
                 thispid = int(lines[i].split()[0])
                 thisppid = int(lines[i].split()[1])
-            except Exception as e:
-                logger.warning('exception caught: %s' % e)
+            except Exception as error:
+                logger.warning('exception caught: %s', error)
             if thisppid == pid:
                 find_processes_in_group(cpids, thispid)
 
@@ -84,7 +84,7 @@ def get_process_commands(euid, pids):
     exit_code, stdout, stderr = execute(cmd, mute=True)
 
     if exit_code != 0 or stdout == '':
-        logger.warning('ps command failed: %d, \"%s\", \"%s\"' % (exit_code, stdout, stderr))
+        logger.warning('ps command failed: %d, \"%s\", \"%s\"', exit_code, stdout, stderr)
     else:
         # extract the relevant processes
         p_commands = stdout.split('\n')
@@ -153,13 +153,13 @@ def kill_processes(pid):
             return
 
         children.reverse()
-        logger.info("process IDs to be killed: %s (in reverse order)" % str(children))
+        logger.info("process IDs to be killed: %s (in reverse order)", str(children))
 
         # find which commands are still running
         try:
             cmds = get_process_commands(os.geteuid(), children)
-        except Exception as e:
-            logger.warning("get_process_commands() threw an exception: %s" % e)
+        except Exception as error:
+            logger.warning("get_process_commands() threw an exception: %s", error)
         else:
             if len(cmds) <= 1:
                 logger.warning("found no corresponding commands to process id(s)")
@@ -177,6 +177,8 @@ def kill_processes(pid):
                     kill_process(i)
 
     # kill any remaining orphan processes
+    # note: this should no longer be necessary since ctypes has made sure all subprocesses are parented
+    # if orphan process killing is not desired, set env var PILOT_NOKILL
     kill_orphans()
 
 
@@ -193,13 +195,13 @@ def kill_child_processes(pid):
 
     # reverse the process order so that the athena process is killed first (otherwise the stdout will be truncated)
     children.reverse()
-    logger.info("process IDs to be killed: %s (in reverse order)" % str(children))
+    logger.info("process IDs to be killed: %s (in reverse order)", str(children))
 
     # find which commands are still running
     try:
         cmds = get_process_commands(os.geteuid(), children)
-    except Exception as e:
-        logger.warning("get_process_commands() threw an exception: %s" % e)
+    except Exception as error:
+        logger.warning("get_process_commands() threw an exception: %s", error)
     else:
         if len(cmds) <= 1:
             logger.warning("found no corresponding commands to process id(s)")
@@ -229,26 +231,26 @@ def kill_process_group(pgrp):
     _sleep = True
 
     # kill the process gracefully
-    logger.info("killing group process %d" % pgrp)
+    logger.info("killing group process %d", pgrp)
     try:
         os.killpg(pgrp, signal.SIGTERM)
-    except Exception as e:
-        logger.warning("exception thrown when killing child group process under SIGTERM: %s" % e)
+    except Exception as error:
+        logger.warning("exception thrown when killing child group process under SIGTERM: %s", error)
         _sleep = False
     else:
-        logger.info("SIGTERM sent to process group %d" % pgrp)
+        logger.info("SIGTERM sent to process group %d", pgrp)
 
     if _sleep:
         _t = 30
-        logger.info("sleeping %d s to allow processes to exit" % _t)
+        logger.info("sleeping %d s to allow processes to exit", _t)
         time.sleep(_t)
 
     try:
         os.killpg(pgrp, signal.SIGKILL)
-    except Exception as e:
-        logger.warning("exception thrown when killing child group process with SIGKILL: %s" % e)
+    except Exception as error:
+        logger.warning("exception thrown when killing child group process with SIGKILL: %s", error)
     else:
-        logger.info("SIGKILL sent to process group %d" % pgrp)
+        logger.info("SIGKILL sent to process group %d", pgrp)
         status = True
 
     return status
@@ -268,7 +270,7 @@ def kill_process(pid):
     kill(pid, signal.SIGTERM)
 
     _t = 10
-    logger.info("sleeping %d s to allow process to exit" % _t)
+    logger.info("sleeping %d s to allow process to exit", _t)
     time.sleep(_t)
 
     # now do a hard kill just in case some processes haven't gone away
@@ -289,10 +291,10 @@ def kill(pid, sig):
     status = False
     try:
         os.kill(pid, sig)
-    except Exception as e:
-        logger.warning("exception thrown when killing process %d with signal=%d: %s" % (pid, sig, e))
+    except Exception as error:
+        logger.warning("exception thrown when killing process %d with signal=%d: %s", pid, sig, error)
     else:
-        logger.info("killed process %d with signal=%d" % (pid, sig))
+        logger.info("killed process %d with signal=%d", pid, sig)
         status = True
 
     return status
@@ -311,12 +313,12 @@ def get_number_of_child_processes(pid):
     n = 0
     try:
         find_processes_in_group(children, pid)
-    except Exception as e:
-        logger.warning("exception caught in find_processes_in_group: %s" % e)
+    except Exception as error:
+        logger.warning("exception caught in find_processes_in_group: %s", error)
     else:
         if pid:
             n = len(children)
-            logger.info("number of running child processes to parent process %d: %d" % (pid, n))
+            logger.info("number of running child processes to parent process %d: %d", pid, n)
         else:
             logger.debug("pid not yet set")
     return n
@@ -333,16 +335,16 @@ def killpg(pid, sig, args):
 
     try:
         os.killpg(int(pid), sig)
-    except Exception as e:
-        logger.warning("failed to execute killpg(): %s" % e)
+    except Exception as error:
+        logger.warning("failed to execute killpg(): %s", error)
         cmd = 'kill -%d %s' % (sig, pid)
         exit_code, rs, stderr = execute(cmd)
         if exit_code != 0:
             logger.warning(rs)
         else:
-            logger.info("killed orphaned process %s (%s)" % (pid, args))
+            logger.info("killed orphaned process %s (%s)", pid, args)
     else:
-        logger.info("killed orphaned process group %s (%s)" % (pid, args))
+        logger.info("killed orphaned process group %s (%s)", pid, args)
 
 
 def get_pilot_pid_from_processes(_processes, pattern):
@@ -362,8 +364,8 @@ def get_pilot_pid_from_processes(_processes, pattern):
             args = ids.group(3)
             try:
                 pid = int(pid)
-            except Exception as e:
-                logger.warning('failed to convert pid to int: %s' % e)
+            except Exception as error:
+                logger.warning('failed to convert pid to int: %s', error)
                 continue
             if 'pilot.py' in args and 'python' in args:
                 pilot_pid = pid
@@ -403,30 +405,29 @@ def kill_orphans():
             args = ids.group(3)
             try:
                 pid = int(pid)
-            except Exception as e:
-                logger.warning('failed to convert pid to int: %s' % e)
+            except Exception as error:
+                logger.warning('failed to convert pid to int: %s', error)
                 continue
             if 'cvmfs2' in args:
-                logger.info("ignoring possible orphan process running cvmfs2: pid=%s, ppid=%s, args=\'%s\'" %
-                            (pid, ppid, args))
+                logger.info("ignoring possible orphan process running cvmfs2: pid=%s, ppid=%s, args=\'%s\'", pid, ppid, args)
             elif 'pilots_starter.py' in args or 'runpilot2-wrapper.sh' in args:
-                logger.info("ignoring pilot launcher: pid=%s, ppid=%s, args='%s'" % (pid, ppid, args))
+                logger.info("ignoring pilot launcher: pid=%s, ppid=%s, args='%s'", pid, ppid, args)
             elif ppid == '1':
                 count += 1
-                logger.info("found orphan process: pid=%s, ppid=%s, args='%s'" % (pid, ppid, args))
+                logger.info("found orphan process: pid=%s, ppid=%s, args='%s'", pid, ppid, args)
                 if 'bash' in args or ('python' in args and 'pilot.py' in args):
                     logger.info("will not kill bash process")
                 else:
                     killpg(pid, signal.SIGTERM, args)
                     _t = 10
-                    logger.info("sleeping %d s to allow processes to exit" % _t)
+                    logger.info("sleeping %d s to allow processes to exit", _t)
                     time.sleep(_t)
                     killpg(pid, signal.SIGKILL, args)
 
     if count == 0:
         logger.info("did not find any orphan processes")
     else:
-        logger.info("found %d orphan process(es)" % count)
+        logger.info("found %d orphan process(es)", count)
 
 
 def get_max_memory_usage_from_cgroups():
@@ -451,19 +452,19 @@ def get_max_memory_usage_from_cgroups():
             if ":memory:" in out:
                 pos = out.find('/')
                 path = out[pos:]
-                logger.info("extracted path = %s" % path)
+                logger.info("extracted path = %s", path)
 
                 pre = get_cgroups_base_path()
                 if pre != "":
                     path = pre + os.path.join(path, "memory.max_usage_in_bytes")
-                    logger.info("path to CGROUPS memory info: %s" % path)
+                    logger.info("path to CGROUPS memory info: %s", path)
                     max_memory = read_file(path)
                 else:
                     logger.info("CGROUPS base path could not be extracted - not a CGROUPS site")
             else:
-                logger.warning("invalid format: %s (expected ..:memory:[path])" % out)
+                logger.warning("invalid format: %s (expected ..:memory:[path])", out)
     else:
-        logger.info("path %s does not exist (not a CGROUPS site)" % path)
+        logger.info("path %s does not exist (not a CGROUPS site)", path)
 
     return max_memory
 
@@ -516,7 +517,7 @@ def get_instant_cpu_consumption_time(pid):
 
     hz = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
     if type(hz) != int:
-        logger.warning('unknown SC_CLK_TCK: %s' % str(hz))
+        logger.warning('unknown SC_CLK_TCK: %s', str(hz))
         return 0.0
 
     if pid and hz and hz > 0:
@@ -584,21 +585,21 @@ def cleanup(job, args):
     # make sure the workdir is deleted
     if args.cleanup:
         if remove_dir_tree(job.workdir):
-            logger.info('removed %s' % job.workdir)
+            logger.info('removed %s', job.workdir)
 
         if os.path.exists(job.workdir):
-            logger.warning('work directory still exists: %s' % job.workdir)
+            logger.warning('work directory still exists: %s', job.workdir)
         else:
-            logger.debug('work directory was removed: %s' % job.workdir)
+            logger.debug('work directory was removed: %s', job.workdir)
     else:
-        logger.info('workdir not removed %s' % job.workdir)
+        logger.info('workdir not removed %s', job.workdir)
 
     # collect any zombie processes
     job.collect_zombies(tn=10)
     logger.info("collected zombie processes")
 
     if job.pid:
-        logger.info("will now attempt to kill all subprocesses of pid=%d" % job.pid)
+        logger.info("will now attempt to kill all subprocesses of pid=%d", job.pid)
         kill_processes(job.pid)
     else:
         logger.warning('cannot kill any subprocesses since job.pid is not set')
@@ -628,3 +629,130 @@ def threads_aborted(abort_at=2):
         aborted = True
 
     return aborted
+
+
+def convert_ps_to_dict(output, pattern=r'(\d+) (\d+) (\d+) (.+)'):
+    """
+    Convert output from a ps command to a dictionary.
+
+    Example: ps axo pid,ppid,pgid,cmd
+      PID  PPID  PGID COMMAND
+      22091  6672 22091 bash
+      32581 22091 32581 ps something;sdfsdfds/athena.py ddfg
+      -> dictionary = { 'PID': [22091, 32581], 'PPID': [22091, 6672], .. , 'COMMAND': ['ps ..', 'bash']}
+
+    :param output: ps stdout (string).
+    :param pattern: regex pattern matching the ps output (raw string).
+    :return: dictionary.
+    """
+
+    dictionary = {}
+    first_line = []  # e.g. PID PPID PGID COMMAND
+
+    for line in output.split('\n'):
+        try:
+            # remove leading and trailing spaces
+            line = line.strip()
+            # remove multiple spaces inside the line
+            _l = re.sub(' +', ' ', line)
+
+            if first_line == []:
+                _l = [_f for _f in _l.split(' ') if _f]
+                first_line = _l
+                for i in range(len(_l)):
+                    dictionary[_l[i]] = []
+            else:  # e.g. 22091 6672 22091 bash
+                match = re.search(pattern, _l)
+                if match:
+                    for i in range(len(first_line)):
+                        try:
+                            var = int(match.group(i + 1))
+                        except Exception:
+                            var = match.group(i + 1)
+                        dictionary[first_line[i]].append(var)
+
+        except Exception as error:
+            print("unexpected format of utility output: %s", error)
+
+    return dictionary
+
+
+def get_trimmed_dictionary(keys, dictionary):
+    """
+    Return a sub-dictionary with only the given keys.
+
+    :param keys: keys to keep (list).
+    :param dictionary: full dictionary.
+    :return: trimmed dictionary.
+    """
+
+    subdictionary = {}
+    for key in keys:
+        if key in dictionary:
+            subdictionary[key] = dictionary[key]
+
+    return subdictionary
+
+
+def find_cmd_pids(cmd, ps_dictionary):
+    """
+    Find all pids for the given command.
+    Example. cmd = 'athena.py' -> pids = [1234, 2267] (in case there are two pilots running on the WN).
+
+    :param cmd: command (string).
+    :param ps_dictionary: converted ps output (dictionary).
+    """
+
+    pids = []
+    i = -1
+    for _cmd in ps_dictionary.get('COMMAND'):
+        i += 1
+        if cmd in _cmd:
+            pids.append(ps_dictionary.get('PID')[i])
+    return pids
+
+
+def find_pid(pandaid, ps_dictionary):
+    """
+    Find the process id for the command that contains 'export PandaID=%d'.
+
+    :param pandaid: PanDA ID (string).
+    :param ps_dictionaryL ps output dictionary.
+    :return: pid (int).
+    """
+
+    pid = -1
+    i = -1
+    pandaid_cmd = 'export PandaID=%s' % pandaid
+    for _cmd in ps_dictionary.get('COMMAND'):
+        i += 1
+        if pandaid_cmd in _cmd:
+            pid = ps_dictionary.get('PID')[i]
+            break
+
+    return pid
+
+
+def is_child(pid, pandaid_pid, dictionary):
+    """
+    Is the given pid a child process of the pandaid_pid?
+    Proceed recursively until the parent pandaid_pid has been found, or return False if it fails to find it.
+    """
+
+    try:
+        # where are we at in the PID list?
+        index = dictionary.get('PID').index(pid)
+    except ValueError:
+        # not in the list
+        return False
+    else:
+        # get the corresponding ppid
+        ppid = dictionary.get('PPID')[index]
+
+        print(index, pid, ppid, pandaid_pid)
+        # is the current parent the same as the pandaid_pid? if yes, we are done
+        if ppid == pandaid_pid:
+            return True
+        else:
+            # try another pid
+            return is_child(ppid, pandaid_pid, dictionary)

@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021
 # - Mario Lassnig, mario.lassnig@cern.ch, 2020
 
 import logging
@@ -61,8 +61,8 @@ def verify_catalog_checksum(fspec, path):
         checksum_local = calculate_checksum(path, algorithm=checksum_type)
         if checksum_type == 'ad32':
             checksum_type = 'adler32'
-        logger.info('checksum (catalog): %s (type: %s)' % (checksum_catalog, checksum_type))
-        logger.info('checksum (local): %s' % checksum_local)
+        logger.info('checksum (catalog): %s (type: %s)', checksum_catalog, checksum_type)
+        logger.info('checksum (local): %s', checksum_local)
         if checksum_local and checksum_local != '' and checksum_local != checksum_catalog:
             diagnostics = 'checksum verification failed for LFN=%s: checksum (catalog)=%s != checksum (local)=%s' % \
                           (fspec.lfn, checksum_catalog, checksum_local)

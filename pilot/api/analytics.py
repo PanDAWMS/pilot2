@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2021
 
 from .services import Services
 from pilot.common.exception import NotDefined, NotSameLength, UnknownException
@@ -146,21 +146,20 @@ class Analytics(Services):
                 y = y[:-2]
 
             if (len(x) > 7 and len(y) > 7) and len(x) == len(y):
-                logger.info('fitting %s vs %s' % (y_name, x_name))
+                logger.info('fitting %s vs %s', y_name, x_name)
                 try:
                     fit = self.fit(x, y)
                     _slope = self.slope()
                 except Exception as e:
-                    logger.warning('failed to fit data, x=%s, y=%s: %s' % (str(x), str(y), e))
+                    logger.warning('failed to fit data, x=%s, y=%s: %s', str(x), str(y), e)
                 else:
                     if _slope:
                         slope = float_to_rounded_string(fit.slope(), precision=precision)
                         chi2 = float_to_rounded_string(fit.chi2(), precision=0)  # decimals are not needed for chi2
                         if slope != "":
-                            logger.info('current memory leak: %s B/s (using %d data points, chi2=%s)' %
-                                        (slope, len(x), chi2))
+                            logger.info('current memory leak: %s B/s (using %d data points, chi2=%s)', slope, len(x), chi2)
             else:
-                logger.warning('wrong length of table data, x=%s, y=%s (must be same and length>=4)' % (str(x), str(y)))
+                logger.warning('wrong length of table data, x=%s, y=%s (must be same and length>=4)', str(x), str(y))
 
         return {"slope": slope, "chi2": chi2}
 
@@ -182,8 +181,8 @@ class Analytics(Services):
                 y2_name = y_name.split('+')[1]
                 y1_value = table.get(y1_name, [])
                 y2_value = table.get(y2_name, [])
-            except Exception as e:
-                logger.warning('exception caught: %s' % e)
+            except Exception as error:
+                logger.warning('exception caught: %s', error)
                 x = []
                 y = []
             else:
@@ -238,7 +237,7 @@ class Fit(object):
             self.set_intersect()
             self.set_chi2()
         else:
-            logger.warning("\'%s\' model is not implemented" % self._model)
+            logger.warning("\'%s\' model is not implemented", self._model)
             raise NotImplementedError()
 
     def fit(self):

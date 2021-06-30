@@ -34,6 +34,7 @@ def remove_unwanted_files(workdir, files):
     _files = []
     for _file in files:
         if not (workdir == _file or
+                "prmon" in _file or
                 "pilotlog" in _file or
                 ".lib.tgz" in _file or
                 ".py" in _file or

@@ -102,6 +102,13 @@ class TraceReport(dict):
             exit_code, stdout, stderr = execute(cmd)
             self['uuid'] = stdout.replace('-', '')
 
+    def get_value(self, key):
+        """
+
+        """
+
+        return self.get(key, None)
+
     def verify_trace(self):
         """
         Verify the trace consistency.
@@ -132,6 +139,11 @@ class TraceReport(dict):
 
         :return: Boolean.
         """
+
+        # only send trace if it is actually required (can be turned off with pilot option)
+        if environ.get('PILOT_USE_RUCIO_TRACES', 'True') == 'False':
+            logger.debug('rucio trace does not need to be sent')
+            return True
 
         url = config.Rucio.url
         logger.info("tracing server: %s" % url)
