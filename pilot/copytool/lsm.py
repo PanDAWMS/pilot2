@@ -7,7 +7,7 @@
 # Authors:
 # - Pavlo Svirin, pavlo.svirin@cern.ch, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2018
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2021
 
 import os
 import logging
@@ -75,7 +75,9 @@ def copy_in(files, **kwargs):
     copysetup = get_copysetup(copytools, 'lsm')
     trace_report = kwargs.get('trace_report')
     #allow_direct_access = kwargs.get('allow_direct_access')
-    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', None)
+
+    # note, env vars might be unknown inside middleware contrainers, if so get the value already in the trace report
+    localsite = os.environ.get('RUCIO_LOCAL_SITE_ID', trace_report.get_value('localSite'))
 
     for fspec in files:
         # update the trace report
@@ -99,17 +101,16 @@ def copy_in(files, **kwargs):
         source = fspec.turl
         destination = os.path.join(dst, fspec.lfn)
 
-        logger.info("transferring file %s from %s to %s" % (fspec.lfn, source, destination))
+        logger.info("transferring file %s from %s to %s", fspec.lfn, source, destination)
 
         exit_code, stdout, stderr = move(source, destination, dst_in=True, copysetup=copysetup)
 
         if exit_code != 0:
-            logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
+            logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s", exit_code, stdout, stderr)
 
             error = resolve_common_transfer_errors(stderr, is_stagein=True)
             fspec.status = 'failed'
             fspec.status_code = error.get('rcode')
-            logger.warning('error=%d' % error.get('rcode'))
             trace_report.update(clientState=error.get('state') or 'STAGEIN_ATTEMPT_FAILED',
                                 stateReason=error.get('error'), timeEnd=time())
             trace_report.send()
@@ -186,7 +187,7 @@ def copy_out(files, **kwargs):
         except Exception:
             opts = " ".join(["%s %s" % (k, v) for (k, v) in list(opts.items())])  # Python 3
 
-        logger.info("transferring file %s from %s to %s" % (fspec.lfn, source, destination))
+        logger.info("transferring file %s from %s to %s", fspec.lfn, source, destination)
 
         nretries = 1  # input parameter to function?
         for retry in range(nretries):
@@ -246,7 +247,7 @@ def move_all_files_in(files, nretries=1):
     stderr = ""
 
     for entry in files:  # entry = {'name':<filename>, 'source':<dir>, 'destination':<dir>}
-        logger.info("transferring file %s from %s to %s" % (entry['name'], entry['source'], entry['destination']))
+        logger.info("transferring file %s from %s to %s", entry['name'], entry['source'], entry['destination'])
 
         source = entry['source'] + '/' + entry['name']
         destination = os.path.join(entry['destination'], entry['name'])
@@ -255,7 +256,7 @@ def move_all_files_in(files, nretries=1):
 
             if exit_code != 0:
                 if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or (retry + 1) == nretries:
-                    logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
+                    logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s", exit_code, stdout, stderr)
                     return exit_code, stdout, stderr
             else:  # all successful
                 break
@@ -276,7 +277,7 @@ def move_all_files_out(files, nretries=1):
     stderr = ""
 
     for entry in files:  # entry = {'name':<filename>, 'source':<dir>, 'destination':<dir>}
-        logger.info("transferring file %s from %s to %s" % (entry['name'], entry['source'], entry['destination']))
+        logger.info("transferring file %s from %s to %s", entry['name'], entry['source'], entry['destination'])
 
         destination = entry['destination'] + '/' + entry['name']
         source = os.path.join(entry['source'], entry['name'])
@@ -285,7 +286,7 @@ def move_all_files_out(files, nretries=1):
 
             if exit_code != 0:
                 if ((exit_code != errno.ETIMEDOUT) and (exit_code != errno.ETIME)) or (retry + 1) == nretries:
-                    logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s" % (exit_code, stdout, stderr))
+                    logger.warning("transfer failed: exit code = %d, stdout = %s, stderr = %s", exit_code, stdout, stderr)
                     return exit_code, stdout, stderr
             else:  # all successful
                 break
@@ -321,16 +322,16 @@ def move(source, destination, dst_in=True, copysetup="", options=None):
 
     try:
         exit_code, stdout, stderr = execute(cmd, usecontainer=False, copytool=True)  #, timeout=get_timeout(fspec.filesize))
-    except Exception as e:
+    except Exception as error:
         if dst_in:
             exit_code = ErrorCodes.STAGEINFAILED
         else:
             exit_code = ErrorCodes.STAGEOUTFAILED
-        stdout = 'exception caught: e' % e
+        stdout = 'exception caught: e' % error
         stderr = ''
         logger.warning(stdout)
 
-    logger.info('exit_code=%d, stdout=%s, stderr=%s' % (exit_code, stdout, stderr))
+    logger.info('exit_code=%d, stdout=%s, stderr=%s', exit_code, stdout, stderr)
     return exit_code, stdout, stderr
 
 

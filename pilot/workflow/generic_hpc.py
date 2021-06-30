@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2021
 # - Danila Oleynik danila.oleynik@cern.ch, 2018
 
 import functools
@@ -48,9 +48,9 @@ def interrupt(args, signum, frame):
     """
 
     try:
-        logger.info('caught signal: %s' % [v for v, k in signal.__dict__.iteritems() if k == signum][0])  # Python 2
+        logger.info('caught signal: %s', [v for v, k in signal.__dict__.iteritems() if k == signum][0])  # Python 2
     except Exception:
-        logger.info('caught signal: %s' % [v for v, k in list(signal.__dict__.items()) if k == signum][0])  # Python 3
+        logger.info('caught signal: %s', [v for v, k in list(signal.__dict__.items()) if k == signum][0])  # Python 3
 
     args.graceful_stop.set()
 
@@ -212,11 +212,11 @@ def run(args):
         logger.debug("Final report: {0}".format(work_report))
         add_to_pilot_timing(job.jobid, PILOT_POST_FINAL_UPDATE, time.time(), args)
 
-    except Exception as e:
+    except Exception as error:
         work_report["jobStatus"] = "failed"
-        work_report["exitMsg"] = str(e)
+        work_report["exitMsg"] = str(error)
         publish_work_report(work_report, worker_attributes_file)
-        logging.exception('exception caught:')
+        logging.exception('exception caught: %s', error)
         traces.pilot['state'] = FAILURE
 
     return traces

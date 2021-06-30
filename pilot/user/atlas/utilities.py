@@ -286,7 +286,7 @@ def get_pid_for_jobid(ps, jobid):
     pid = None
 
     for line in ps.split('\n'):
-        if jobid in line:
+        if jobid in line and 'xrootd' not in line:
             # extract pid
             _pid = search(r'(\d+) ', line)
             try:

@@ -30,7 +30,7 @@ from time import sleep
 
 from .basedata import BaseData
 from .filespec import FileSpec
-from pilot.util.auxiliary import get_object_size
+from pilot.util.auxiliary import get_object_size, get_key_value
 from pilot.util.constants import LOG_TRANSFER_NOT_DONE
 from pilot.util.filehandling import get_guid, get_valid_path_from_list
 from pilot.util.timing import get_elapsed_real_time
@@ -89,12 +89,13 @@ class JobData(BaseData):
     neventsw = 0                   # number of events written
     dbtime = None                  #
     dbdata = None                  #
-    resimevents = 0                # ReSim events from job report (ATLAS)
+    resimevents = None             # ReSim events from job report (ATLAS)
     payload = ""                   # payload name
     utilities = {}                 # utility processes { <name>: [<process handle>, number of launches, command string], .. }
     pid = None                     # payload pid
     pgrp = None                    # payload process group
     sizes = {}                     # job object sizes { timestamp: size, .. }
+    currentsize = 0                # current job object size
     command = ""                   # full payload command (set for container jobs)
     setup = ""                     # full payload setup (needed by postprocess command)
     zombies = []                   # list of zombie process ids
@@ -118,7 +119,8 @@ class JobData(BaseData):
     attemptnr = 0                  # job attempt number
     destinationdblock = ""         ## to be moved to FileSpec (job.outdata)
     datasetin = ""                 ## TO BE DEPRECATED: moved to FileSpec (job.indata)
-    debug = False                  #
+    debug = False                  # debug mode, when True, pilot will send debug info back to the server
+    debug_command = ''             # debug command (can be defined on the task side)
     produserid = ""                # the user DN (added to trace report)
     jobdefinitionid = ""           # the job definition id (added to trace report)
     infilesguids = ""              #
@@ -199,7 +201,7 @@ class JobData(BaseData):
             # prepend IMAGE_BASE to imagename if necessary (for testing purposes)
             image_base = os.environ.get('IMAGE_BASE', '')
             if not image_base and 'IMAGE_BASE' in infosys.queuedata.catchall:
-                image_base = self.get_key_value(infosys.queuedata.catchall, key='IMAGE_BASE')
+                image_base = get_key_value(infosys.queuedata.catchall, key='IMAGE_BASE')
             if image_base:
                 paths = [os.path.join(image_base, os.path.basename(self.imagename)),
                          os.path.join(image_base, self.imagename)]
@@ -208,19 +210,6 @@ class JobData(BaseData):
                     self.imagename = local_path
             #if image_base and not os.path.isabs(self.imagename) and not self.imagename.startswith('docker'):
             #    self.imagename = os.path.join(image_base, self.imagename)
-
-    def get_key_value(self, catchall, key='SOMEKEY'):
-        """
-        Return the value corresponding to key in catchall.
-        :param catchall: catchall free string.
-        :param key: key name (string).
-        :return: value (string).
-        """
-
-        # ignore any non-key-value pairs that might be present in the catchall string
-        s = dict(s.split('=', 1) for s in catchall.split() if '=' in s)
-
-        return s.get(key)
 
     def prepare_infiles(self, data):
         """
@@ -273,7 +262,7 @@ class JobData(BaseData):
                     idat[key] = getattr(self.infosys.queuedata, key)
 
             finfo = FileSpec(filetype='input', **idat)
-            logger.info('added file %s' % lfn)
+            logger.info('added file \'%s\' with accessmode \'%s\'' % (lfn, accessmode))
             ret.append(finfo)
 
         return ret
@@ -610,7 +599,7 @@ class JobData(BaseData):
         :return: updated job parameters (string).
         """
 
-        #value += ' --athenaopts "HITtoRDO:--nprocs=$ATHENA_CORE_NUMBER" someblah'
+        #   value += ' --athenaopts "HITtoRDO:--nprocs=$ATHENA_CORE_NUMBER" someblah'
         logger.info('cleaning jobparams: %s' % value)
 
         # user specific pre-filtering
@@ -985,7 +974,12 @@ class JobData(BaseData):
         :return: size (int).
         """
 
-        return get_object_size(self)
+        # protect against the case where the object changes size during calculation (rare)
+        try:
+            self.currentsize = get_object_size(self)
+        except Exception:
+            pass
+        return self.currentsize
 
     def collect_zombies(self, tn=None):
         """

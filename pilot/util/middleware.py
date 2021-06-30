@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2020-2021
 
 from os import environ, path, getcwd  #, chmod
 
@@ -20,12 +20,55 @@ logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
 
+def containerise_general_command(job, container_options, label='command', container_type='container'):
+    """
+    Containerise a general command by execution in a script that can be run in a container.
+
+    :param job: job object.
+    :param label: label (string).
+    :param container_options: container options from queuedata (string).
+    :param container_type: optional 'container/bash'
+    :raises PilotException: for general failures.
+    :return:
+    """
+
+    cwd = getcwd()
+
+    if container_type == 'container':
+        # add bits and pieces needed to run the cmd in a container
+        pilot_user = environ.get('PILOT_USER', 'generic').lower()
+        user = __import__('pilot.user.%s.container' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+        try:
+            cmd = user.create_middleware_container_command(job.workdir, job.debug_command, container_options, label=label, proxy=False)
+        except PilotException as e:
+            raise e
+    else:
+        logger.warning('not yet implemented')
+        raise PilotException
+
+    try:
+        logger.info('*** executing %s (logging will be redirected) ***', label)
+        exit_code, stdout, stderr = execute(cmd, job=job, usecontainer=False)
+    except Exception as exc:
+        logger.info('*** %s has failed ***', label)
+        logger.warning('exception caught: %s', exc)
+    else:
+        if exit_code == 0:
+            logger.info('*** %s has finished ***', label)
+        else:
+            logger.info('*** %s has failed ***', label)
+        logger.debug('%s script returned exit_code=%d', label, exit_code)
+
+
 def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite, container_options, external_dir,
                             label='stage-in', container_type='container'):
     """
     Containerise the middleware by performing stage-in/out steps in a script that in turn can be run in a container.
+
     Note: a container will only be used for option container_type='container'. If this is 'bash', then stage-in/out
     will still be done by a script, but not containerised.
+
+    Note: this function is tailor made for stage-in/out.
 
     :param job: job object.
     :param xdata: list of FileSpec objects.
@@ -37,9 +80,9 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
     :param external_dir: input or output files directory (string).
     :param label: optional 'stage-in/out' (String).
     :param container_type: optional 'container/bash'
-    :return:
     :raises StageInFailure: for stage-in failures
     :raises StageOutFailure: for stage-out failures
+    :return:
     """
 
     cwd = getcwd()
@@ -61,30 +104,28 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
         except PilotException as e:
             raise e
     else:
-        logger.warning('%s will not be done in a container (but it will be done by a script)' % label)
+        logger.warning('%s will not be done in a container (but it will be done by a script)', label)
 
     try:
-        logger.info('*** executing %s (logging will be redirected) ***' % label)
+        logger.info('*** executing %s (logging will be redirected) ***', label)
         exit_code, stdout, stderr = execute(cmd, job=job, usecontainer=False)
-    except Exception as e:
-        logger.info('*** %s has failed ***' % label)
-        logger.warning('exception caught: %s' % e)
+    except Exception as exc:
+        logger.info('*** %s has failed ***', label)
+        logger.warning('exception caught: %s', exc)
     else:
         if exit_code == 0:
-            logger.info('*** %s has finished ***' % label)
+            logger.info('*** %s has finished ***', label)
         else:
-            logger.info('*** %s has failed ***' % label)
-        logger.debug('%s script returned exit_code=%d' % (label, exit_code))
+            logger.info('*** %s has failed ***', label)
+        logger.debug('%s script returned exit_code=%d', label, exit_code)
 
         # write stdout+stderr to files
         try:
             _stdout_name, _stderr_name = get_logfile_names(label)
             write_file(path.join(job.workdir, _stdout_name), stdout, mute=False)
             write_file(path.join(job.workdir, _stderr_name), stderr, mute=False)
-            logger.debug('stage-in/out stdout=\n%s' % stdout)
-            logger.debug('stage-in/out stderr=\n%s' % stderr)
-        except PilotException as e:
-            msg = 'exception caught: %s' % e
+        except PilotException as exc:
+            msg = 'exception caught: %s' % exc
             if label == 'stage-in':
                 raise StageInFailure(msg)
             else:
@@ -93,8 +134,8 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
     # handle errors, file statuses, etc (the stage-in/out scripts write errors and file status to a json file)
     try:
         handle_updated_job_object(job, xdata, label=label)
-    except PilotException as e:
-        raise e
+    except PilotException as exc:
+        raise exc
 
 
 def get_script_path(script):
@@ -106,8 +147,6 @@ def get_script_path(script):
     """
 
     srcdir = environ.get('PILOT_SOURCE_DIR', '.')
-    logger.debug('PILOT_SOURCE_DIR=%s' % srcdir)
-
     _path = path.join(srcdir, 'pilot/scripts')
     if not path.exists(_path):
         _path = path.join(srcdir, 'pilot2')
@@ -122,6 +161,8 @@ def get_script_path(script):
 def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, external_dir, label='stage-in', container_type='container'):
     """
     Get the middleware container execution command.
+
+    Note: this function is tailor made for stage-in/out.
 
     :param job: job object.
     :param xdata: list of FileSpec objects.
@@ -145,8 +186,8 @@ def get_command(job, xdata, queue, script, eventtype, localsite, remotesite, ext
         # write file data to file
         try:
             status = write_json(path.join(job.workdir, config.Container.stagein_replica_dictionary), filedata_dictionary)
-        except Exception as e:
-            diagnostics = 'exception caught in get_command(): %s' % e
+        except Exception as exc:
+            diagnostics = 'exception caught in get_command(): %s' % exc
             logger.warning(diagnostics)
             raise PilotException(diagnostics)
         else:
@@ -238,8 +279,8 @@ def handle_updated_job_object(job, xdata, label='stage-in'):
                     fspec.turl = file_dictionary[fspec.lfn][3]
                     fspec.checksum['adler32'] = file_dictionary[fspec.lfn][4]
                     fspec.filesize = file_dictionary[fspec.lfn][5]
-            except Exception as e:
-                msg = "exception caught while reading file dictionary: %s" % e
+            except Exception as exc:
+                msg = "exception caught while reading file dictionary: %s" % exc
                 logger.warning(msg)
                 if label == 'stage-in':
                     raise StageInFailure(msg)
@@ -314,8 +355,8 @@ def get_filedata(data):
                                           'istar': fspec.is_tar,
                                           'accessmode': fspec.accessmode,
                                           'storagetoken': fspec.storage_token}
-        except Exception as e:
-            logger.warning('exception caught in get_filedata(): %s' % e)
+        except Exception as exc:
+            logger.warning('exception caught in get_filedata(): %s', exc)
 
     return file_dictionary
 
@@ -376,19 +417,4 @@ def use_middleware_script(container_type):
     :return: Boolean (True if middleware should be containerised).
     """
 
-    # see definition in atlas/container.py, but also see useful code below (in case middleware is available locally)
-    #:param cmd: middleware command, used to determine if the container should be used or not (string).
-    #usecontainer = False
-    #if not config.Container.middleware_container:
-    #    logger.info('container usage for middleware is not allowed by pilot config')
-    #else:
-    #    # if the middleware is available locally, do not use container
-    #    if find_executable(cmd) == "":
-    #        usecontainer = True
-    #        logger.info('command %s is not available locally, will attempt to use container' % cmd)
-    #    else:
-    #        logger.info('command %s is available locally, no need to use container' % cmd)
-
-    # FOR TESTING
-    #return True if config.Container.middleware_container_stagein_script else False
     return True if container_type == 'container' or container_type == 'bash' else False

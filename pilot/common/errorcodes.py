@@ -147,6 +147,7 @@ class ErrorCodes:
     XRDCPERROR = 1362
     KILLPAYLOAD = 1363  # note, not a failure but a kill instruction from Raythena
     MISSINGCREDENTIALS = 1364
+    NOCTYPES = 1365
 
     _error_messages = {
         GENERALERROR: "General pilot error, consult batch log",
@@ -272,7 +273,8 @@ class ErrorCodes:
         REMOTEFILECOULDNOTBEOPENED: "Remote file could not be opened",
         XRDCPERROR: "Xrdcp was unable to open file",
         KILLPAYLOAD: "Raythena has decided to kill payload",
-        MISSINGCREDENTIALS: "Unable to locate credentials for S3 transfer"
+        MISSINGCREDENTIALS: "Unable to locate credentials for S3 transfer",
+        NOCTYPES: "Python module ctypes not available on worker node"
     }
 
     put_error_codes = [1135, 1136, 1137, 1141, 1152, 1181]
@@ -386,6 +388,7 @@ class ErrorCodes:
         :return: pilot error code (int)
         """
 
+        ec = 0
         if exit_code == 251 and "Not mounting requested bind point" in stderr:
             ec = self.SINGULARITYBINDPOINTFAILURE
         elif exit_code == 255 and "No more available loop devices" in stderr:
@@ -394,16 +397,18 @@ class ErrorCodes:
             ec = self.SINGULARITYIMAGEMOUNTFAILURE
         elif exit_code == 255 and "Operation not permitted" in stderr:
             ec = self.SINGULARITYGENERALFAILURE
-        elif exit_code == 64 and "Singularity is not installed" in stderr:
+        elif "Singularity is not installed" in stderr:  # exit code should be 64 but not always?
             ec = self.SINGULARITYNOTINSTALLED
         elif exit_code == 64 and "cannot create directory" in stderr:
             ec = self.MKDIR
         elif exit_code == -1:
             ec = self.UNKNOWNTRFFAILURE
-        else:
+        #else:
             # do not assign a pilot error code for unidentified transform error, return 0
-            ec = 0
+            # ec = 0
 
+        if not ec:
+            ec = exit_code
         return ec
 
     def extract_stderr_error(self, stderr):

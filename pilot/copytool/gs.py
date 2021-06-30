@@ -6,6 +6,7 @@
 #
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2021
+# - Shuwei
 
 import os
 import logging
@@ -73,11 +74,11 @@ def resolve_surl(fspec, protocol, ddmconf, **kwargs):
     #      http_access = rprotocols["http_access"]
     #      os.environ['GTAG'] = http_access + os.path.join(remote_path, config.Pilot.pilotlog)
     #      logger.debug('http_access=%s' % http_access)
-    # except Exception as e:
+    # except Exception:
     #   logger.warning("Failed in get 'http_access' in ddm.rprotocols")
 
     surl = protocol.get('endpoint', '') + remote_path
-    logger.info('For GCS bucket, set surl=%s' % surl)
+    logger.info('For GCS bucket, set surl=%s', surl)
 
     # example:
     #   protocol = {u'path': u'/atlas-eventservice', u'endpoint': u's3://s3.cern.ch:443/', u'flavour': u'AWS-S3-SSL', u'id': 175}
@@ -97,7 +98,7 @@ def copy_in(files, **kwargs):
 
         dst = fspec.workdir or kwargs.get('workdir') or '.'
         path = os.path.join(dst, fspec.lfn)
-        logger.info('downloading surl=%s to local file %s' % (fspec.surl, path))
+        logger.info('downloading surl=%s to local file %s', fspec.surl, path)
         status, diagnostics = download_file(path, fspec.surl, object_name=fspec.lfn)
 
         if not status:  ## an error occurred
@@ -131,8 +132,8 @@ def download_file(path, surl, object_name=None):
         target = pathlib.Path(object_name)
         with target.open(mode="wb") as downloaded_file:
             client.download_blob_to_file(surl, downloaded_file)
-    except Exception as e:
-        diagnostics = 'exception caught in gs client: %s' % e
+    except Exception as error:
+        diagnostics = 'exception caught in gs client: %s' % error
         logger.critical(diagnostics)
         return False, diagnostics
 
@@ -150,7 +151,7 @@ def copy_out(files, **kwargs):
     workdir = kwargs.pop('workdir')
 
     for fspec in files:
-        logger.info('Going to process fspec.turl=%s' % fspec.turl)
+        logger.info('Going to process fspec.turl=%s', fspec.turl)
 
         import re
         # bucket = re.sub(r'gs://(.*?)/.*', r'\1', fspec.turl)
@@ -164,7 +165,7 @@ def copy_out(files, **kwargs):
             path = os.path.join(workdir, logfile)
             if os.path.exists(path):
                 object_name = os.path.join(remote_path, logfile)
-                logger.info('uploading %s to bucket=%s using object name=%s' % (path, bucket, object_name))
+                logger.info('uploading %s to bucket=%s using object name=%s', path, bucket, object_name)
                 status, diagnostics = upload_file(path, bucket, object_name=object_name)
 
                 if not status:  ## an error occurred
@@ -204,15 +205,15 @@ def upload_file(file_name, bucket, object_name=None):
     try:
         client = storage.Client()
         gs_bucket = client.get_bucket(bucket)
-        logger.info('uploading a file to bucket=%s in full path=%s' % (bucket, object_name))
+        logger.info('uploading a file to bucket=%s in full path=%s', bucket, object_name)
         blob = gs_bucket.blob(object_name)
         blob.upload_from_filename(filename=file_name)
         if file_name.endswith(config.Pilot.pilotlog):
             url_pilotlog = blob.public_url
             os.environ['GTAG'] = url_pilotlog
-            logger.debug("Set envvar GTAG with the pilotLot URL=%s" % url_pilotlog)
-    except Exception as e:
-        diagnostics = 'exception caught in gs client: %s' % e
+            logger.debug("Set envvar GTAG with the pilotLot URL=%s", url_pilotlog)
+    except Exception as error:
+        diagnostics = 'exception caught in gs client: %s' % error
         logger.critical(diagnostics)
         return False, diagnostics
 

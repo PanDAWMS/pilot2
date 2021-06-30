@@ -8,7 +8,7 @@
 # - Mario Lassnig, mario.lassnig@cern.ch, 2016-2017
 # - Daniel Drizhuk, d.drizhuk@gmail.com, 2017
 # - Tobias Wegner, tobias.wegner@cern.ch, 2017
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021
 # - Wen Guan, wen.guan@cern.ch, 2017-2018
 
 import os
@@ -22,7 +22,7 @@ except Exception:
 
 from pilot.control.payloads import generic, eventservice, eventservicemerge
 from pilot.control.job import send_state
-from pilot.util.auxiliary import set_pilot_state, show_memory_usage
+from pilot.util.auxiliary import set_pilot_state
 from pilot.util.processes import get_cpu_consumption_time
 from pilot.util.config import config
 from pilot.util.filehandling import read_file, remove_core_dumps, get_guid
@@ -64,7 +64,7 @@ def control(queues, traces, args):
                 pass
             else:
                 exc_type, exc_obj, exc_trace = exc
-                logger.warning("thread \'%s\' received an exception from bucket: %s" % (thread.name, exc_obj))
+                logger.warning("thread \'%s\' received an exception from bucket: %s", thread.name, exc_obj)
 
                 # deal with the exception
                 # ..
@@ -146,8 +146,8 @@ def _validate_payload(job):
     user = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
     try:
         status = user.validate(job)
-    except Exception as e:
-        logger.fatal('failed to execute user validate() function: %s' % e)
+    except Exception as error:
+        logger.fatal('failed to execute user validate() function: %s', error)
         status = False
 
     return status
@@ -203,7 +203,7 @@ def execute_payloads(queues, traces, args):  # noqa: C901
             peek = [s_job for s_job in q_snapshot if job.jobid == s_job.jobid]
             if len(peek) == 0:
                 put_in_queue(job, queues.validated_payloads)
-                for i in range(10):  # Python 3
+                for _ in range(10):  # Python 3
                     if args.graceful_stop.is_set():
                         break
                     time.sleep(1)
@@ -213,13 +213,13 @@ def execute_payloads(queues, traces, args):  # noqa: C901
             #queues.monitored_payloads.put(job)
             put_in_queue(job, queues.monitored_payloads)
 
-            logger.info('job %s added to monitored payloads queue' % job.jobid)
+            logger.info('job %s added to monitored payloads queue', job.jobid)
 
             try:
                 out = open(os.path.join(job.workdir, config.Payload.payloadstdout), 'wb')
                 err = open(os.path.join(job.workdir, config.Payload.payloadstderr), 'wb')
-            except Exception as e:
-                logger.warning('failed to open payload stdout/err: %s' % e)
+            except Exception as error:
+                logger.warning('failed to open payload stdout/err: %s', error)
                 out = None
                 err = None
             send_state(job, args, 'starting')
@@ -230,9 +230,7 @@ def execute_payloads(queues, traces, args):  # noqa: C901
                 break
 
             payload_executor = get_payload_executor(args, job, out, err, traces)
-            logger.info("Got payload executor: %s" % payload_executor)
-
-            show_memory_usage()
+            logger.info("will use payload executor: %s", payload_executor)
 
             # run the payload and measure the execution time
             job.t0 = os.times()
@@ -252,13 +250,13 @@ def execute_payloads(queues, traces, args):  # noqa: C901
                                   0)  # Python 2/3
                 try:
                     user.update_output_for_hpo(job)
-                except Exception as e:
-                    logger.warning('exception caught by update_output_for_hpo(): %s' % e)
+                except Exception as error:
+                    logger.warning('exception caught by update_output_for_hpo(): %s', error)
                 else:
                     for dat in job.outdata:
                         if not dat.guid:
                             dat.guid = get_guid()
-                            logger.warning('guid not set: generated guid=%s for lfn=%s' % (dat.guid, dat.lfn))
+                            logger.warning('guid not set: generated guid=%s for lfn=%s', dat.guid, dat.lfn)
 
             #if traces.pilot['nr_jobs'] == 1:
             #    logger.debug('faking job failure in first multi-job')
@@ -275,8 +273,8 @@ def execute_payloads(queues, traces, args):  # noqa: C901
             user = __import__('pilot.user.%s.diagnose' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
             try:
                 exit_code_interpret = user.interpret(job)
-            except Exception as e:
-                logger.warning('exception caught: %s' % e)
+            except Exception as error:
+                logger.warning('exception caught: %s', error)
                 #exit_code_interpret = -1
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.INTERNALPILOTPROBLEM)
 
@@ -298,8 +296,8 @@ def execute_payloads(queues, traces, args):  # noqa: C901
 
         except queue.Empty:
             continue
-        except Exception as e:
-            logger.fatal('execute payloads caught an exception (cannot recover): %s, %s' % (e, traceback.format_exc()))
+        except Exception as error:
+            logger.fatal('execute payloads caught an exception (cannot recover): %s, %s', error, traceback.format_exc())
             if job:
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.PAYLOADEXECUTIONEXCEPTION)
                 #queues.failed_payloads.put(job)
@@ -329,8 +327,7 @@ def set_cpu_consumption_time(job):
     job.cpuconsumptiontime = int(round(cpuconsumptiontime))
     job.cpuconsumptionunit = "s"
     job.cpuconversionfactor = 1.0
-    logger.info('CPU consumption time: %f %s (rounded to %d %s)' %
-                (cpuconsumptiontime, job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconsumptionunit))
+    logger.info('CPU consumption time: %f %s (rounded to %d %s)', cpuconsumptiontime, job.cpuconsumptionunit, job.cpuconsumptiontime, job.cpuconsumptionunit)
 
 
 def perform_initial_payload_error_analysis(job, exit_code):
@@ -343,40 +340,51 @@ def perform_initial_payload_error_analysis(job, exit_code):
     :return:
     """
 
+    # look for singularity errors (the exit code can be zero in this case)
+    stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
+    if stderr:
+        exit_code = errors.resolve_transform_error(exit_code, stderr)
+
     if exit_code != 0:
         msg = ""
-        ec = 0
-        logger.warning('main payload execution returned non-zero exit code: %d' % exit_code)
-        stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
+        logger.warning('main payload execution returned non-zero exit code: %d', exit_code)
         if stderr != "":
             msg = errors.extract_stderr_error(stderr)
             if msg == "":
                 # look for warning messages instead (might not be fatal so do not set UNRECOGNIZEDTRFSTDERR)
                 msg = errors.extract_stderr_warning(stderr)
-                fatal = False
-            else:
-                fatal = True
-            if msg != "":
-                logger.warning("extracted message from stderr:\n%s" % msg)
-                ec = set_error_code_from_stderr(msg, fatal)
+            #    fatal = False
+            #else:
+            #    fatal = True
+            #if msg != "":  # redundant since resolve_transform_error is used above
+            #    logger.warning("extracted message from stderr:\n%s", msg)
+            #    exit_code = set_error_code_from_stderr(msg, fatal)
 
-        if not ec:
-            ec = errors.resolve_transform_error(exit_code, stderr)
-        if ec != 0:
+        if msg:
+            msg = errors.format_diagnostics(exit_code, msg)
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code, msg=msg)
+
+        '''
+        if exit_code != 0:
             if msg:
-                msg = errors.format_diagnostics(ec, msg)
-            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(ec, msg=msg)
+                msg = errors.format_diagnostics(exit_code, msg)
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code, msg=msg)
         else:
             if job.piloterrorcodes:
-                logger.warning('error code(s) already set: %s' % str(job.piloterrorcodes))
+                logger.warning('error code(s) already set: %s', str(job.piloterrorcodes))
             else:
                 # check if core dumps exist, if so remove them and return True
-                if remove_core_dumps(job.workdir):
+                if remove_core_dumps(job.workdir) and not job.debug:
                     job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.COREDUMP)
                 else:
                     logger.warning('initial error analysis did not resolve the issue (and core dumps were not found)')
+        '''
     else:
-        logger.info('main payload execution returned zero exit code, but will check it more carefully')
+        logger.info('main payload execution returned zero exit code')
+
+    # check if core dumps exist, if so remove them and return True
+    if remove_core_dumps(job.workdir) and not job.debug:
+        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.COREDUMP)
 
 
 def set_error_code_from_stderr(msg, fatal):
@@ -389,24 +397,24 @@ def set_error_code_from_stderr(msg, fatal):
     :return: error code (int).
     """
 
-    if "Failed invoking the NEWUSER namespace runtime" in msg:
-        ec = errors.SINGULARITYNEWUSERNAMESPACE
-    elif "Failed to create user namespace" in msg:
-        ec = errors.SINGULARITYFAILEDUSERNAMESPACE
-    elif "command not found" in msg:
-        ec = errors.TRANSFORMNOTFOUND
-    elif "SL5 is unsupported" in msg:
-        ec = errors.UNSUPPORTEDSL5OS
-    elif "resource temporarily unavailable" in msg:
-        ec = errors.SINGULARITYRESOURCEUNAVAILABLE
-    elif "unrecognized arguments" in msg:
-        ec = errors.UNRECOGNIZEDTRFARGUMENTS
-    elif fatal:
-        ec = errors.UNRECOGNIZEDTRFSTDERR
-    else:
-        ec = 0
+    exit_code = 0
+    error_map = {errors.SINGULARITYNEWUSERNAMESPACE: "Failed invoking the NEWUSER namespace runtime",
+                 errors.SINGULARITYFAILEDUSERNAMESPACE: "Failed to create user namespace",
+                 errors.SINGULARITYRESOURCEUNAVAILABLE: "resource temporarily unavailable",
+                 errors.SINGULARITYNOTINSTALLED: "Singularity is not installed",
+                 errors.TRANSFORMNOTFOUND: "command not found",
+                 errors.UNSUPPORTEDSL5OS: "SL5 is unsupported",
+                 errors.UNRECOGNIZEDTRFARGUMENTS: "unrecognized arguments"}
 
-    return ec
+    for key, value in error_map.items():
+        if value in msg:
+            exit_code = key
+            break
+
+    if fatal and not exit_code:
+        exit_code = errors.UNRECOGNIZEDTRFSTDERR
+
+    return exit_code
 
 
 def validate_post(queues, traces, args):

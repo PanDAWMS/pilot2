@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2021
 
 import subprocess
 from os import environ, getcwd, setpgrp  #, getpgid  #setsid
@@ -42,8 +42,8 @@ def execute(executable, **kwargs):
     mute = kwargs.get('mute', False)
     mode = kwargs.get('mode', 'bash')
     cwd = kwargs.get('cwd', getcwd())
-    stdout = kwargs.get('stdout', subprocess.PIPE)
-    stderr = kwargs.get('stderr', subprocess.PIPE)
+    stdout_name = kwargs.get('stdout', subprocess.PIPE)
+    stderr_name = kwargs.get('stderr', subprocess.PIPE)
     usecontainer = kwargs.get('usecontainer', False)
     returnproc = kwargs.get('returnproc', False)
     job = kwargs.get('job')
@@ -72,7 +72,7 @@ def execute(executable, **kwargs):
                 secret_key = sub_cmd.split('S3_SECRET_KEY=')[1]
                 secret_key = 'S3_SECRET_KEY=' + secret_key
                 executable_readable = executable_readable.replace(secret_key, 'S3_SECRET_KEY=********')
-        logger.info('executing command: %s' % executable_readable)
+        logger.info('executing command: %s', executable_readable)
 
     if mode == 'python':
         exe = ['/usr/bin/python'] + executable.split()
@@ -80,27 +80,33 @@ def execute(executable, **kwargs):
         exe = ['/bin/bash', '-c', executable]
 
     # try: intercept exception such as OSError -> report e.g. error.RESOURCEUNAVAILABLE: "Resource temporarily unavailable"
-    process = subprocess.Popen(exe,
-                               bufsize=-1,
-                               stdout=stdout,
-                               stderr=stderr,
-                               cwd=cwd,
-                               preexec_fn=setpgrp)  #setsid)
+    if is_python3():  # Python 3
+        process = subprocess.Popen(exe,
+                                   bufsize=-1,
+                                   stdout=stdout_name,
+                                   stderr=stderr_name,
+                                   cwd=cwd,
+                                   preexec_fn=setpgrp,
+                                   encoding='utf-8',
+                                   errors='replace')
+    else:
+        process = subprocess.Popen(exe,
+                                   bufsize=-1,
+                                   stdout=stdout_name,
+                                   stderr=stderr_name,
+                                   cwd=cwd,
+                                   preexec_fn=setpgrp)
     if returnproc:
         return process
     else:
         stdout, stderr = process.communicate()
         exit_code = process.poll()
 
-        # for Python 3, convert from byte-like object to str
-        if is_python3():
-            stdout = stdout.decode('utf-8')
-            stderr = stderr.decode('utf-8')
         # remove any added \n
         if stdout and stdout.endswith('\n'):
             stdout = stdout[:-1]
 
-        return exit_code, stdout, stderr
+    return exit_code, stdout, stderr
 
 
 def containerise_executable(executable, **kwargs):
@@ -128,8 +134,8 @@ def containerise_executable(executable, **kwargs):
             diagnostics = ""
             try:
                 executable = container.wrapper(executable, **kwargs)
-            except Exception as e:
-                diagnostics = 'failed to execute wrapper function: %s' % e
+            except Exception as exc:
+                diagnostics = 'failed to execute wrapper function: %s' % exc
                 logger.fatal(diagnostics)
             else:
                 if executable == "":

@@ -16,7 +16,7 @@ import traceback
 from pilot.common.errorcodes import ErrorCodes
 from pilot.eventservice.esprocess.esprocess import ESProcess
 from pilot.info.filespec import FileSpec
-from pilot.util.filehandling import calculate_checksum
+from pilot.util.filehandling import calculate_checksum, move
 
 from .baseexecutor import BaseExecutor
 
@@ -62,6 +62,21 @@ class RaythenaExecutor(BaseExecutor):
         file_spec = FileSpec(filetype='output', **file_data)
         return file_spec
 
+    def move_output(self, pfn):
+        """
+        Move output file from given PFN path to PILOT_OUTPUT_DIR if set.
+
+        :param pfn: physical file name (string).
+        :return:
+        """
+
+        outputdir = os.environ.get('PILOT_OUTPUT_DIR', None)
+        if outputdir:
+            try:
+                move(pfn, outputdir)
+            except Exception as e:
+                logger.warning('failed to move output: %s' % e)
+
     def update_finished_event_ranges(self, out_messagess):
         """
         Update finished event ranges
@@ -81,6 +96,10 @@ class RaythenaExecutor(BaseExecutor):
             for checksum_key in fspec.checksum:
                 event_range_status[checksum_key] = fspec.checksum[checksum_key]
             event_ranges.append(event_range_status)
+
+            # move the output to a common area if necessary
+            self.move_output(out_msg['output'])
+
         event_ranges_status = {"esOutput": {"numEvents": len(event_ranges)}, "eventRanges": event_ranges}
         event_range_message = {'version': 1, 'eventRanges': json.dumps([event_ranges_status])}
         self.update_events(event_range_message)
