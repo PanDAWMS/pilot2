@@ -480,6 +480,12 @@ def check_payload_stdout(job):
         # add the primary stdout file to the fileList
         file_list.append(os.path.join(job.workdir, _stdout))
 
+    tmp_list = glob(os.path.join(job.workdir, 'workDir/tmp.stdout.*'))
+    if tmp_list:
+        file_list += tmp_list
+    logger.debug('file list=%s' % str(file_list))
+
+
     # now loop over all files and check each individually (any large enough file will fail the job)
     for filename in file_list:
 

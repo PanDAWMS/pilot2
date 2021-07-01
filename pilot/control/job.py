@@ -1376,9 +1376,14 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, max_ge
     #timefloor = 600
     currenttime = time.time()
 
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    common = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+    is_timefloor = common.allow_timefloor(submitmode)
+    if not is_timefloor:
+        timefloor = 0
+
     # should the proxy be verified?
     if verify_proxy:
-        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         # is the proxy still valid?

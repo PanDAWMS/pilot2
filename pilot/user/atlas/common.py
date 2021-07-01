@@ -2725,3 +2725,13 @@ def process_debug_command(debug_command, pandaid):
             debug_command = ''
 
     return debug_command
+
+
+def allow_timefloor(submitmode):
+    """
+    Should the timefloor mechanism (multi-jobs) be allowed for the given submit mode?
+
+    :param submitmode: submit mode (string).
+    """
+
+    return True
