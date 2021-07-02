@@ -11,7 +11,7 @@ import time
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.info import JobData
-from pilot.util.auxiliary import set_pilot_state
+from pilot.util.auxiliary import set_pilot_state, is_string
 
 import logging
 logger = logging.getLogger(__name__)
@@ -106,6 +106,8 @@ def abort_jobs_in_queues(queues, sig):
         _q = getattr(queues, q)
         jobs = list(_q.queue)
         for job in jobs:
+            if is_string(job):  # this will be the case for the completed_jobids queue
+                continue
             if job not in jobs_list:
                 jobs_list.append(job)
 

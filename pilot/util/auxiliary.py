@@ -658,3 +658,22 @@ def get_key_value(catchall, key='SOMEKEY'):
     _dic = dict(_str.split('=', 1) for _str in catchall.split() if '=' in _str)
 
     return _dic.get(key)
+
+
+def is_string(obj):
+    """
+    Determine if the passed object is a string or not.
+
+    :param obj: object (object type).
+    :return: True if obj is a string (Boolean).
+    """
+
+    value = False
+    try:
+        if isinstance(obj, basestring):  # Python 2 # noqa: F821
+            value = True
+    except NameError:
+        if isinstance(obj, str):  # Python 3
+            value = True
+
+    return value
