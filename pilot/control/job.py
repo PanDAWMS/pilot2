@@ -1511,7 +1511,7 @@ def get_job_definition_from_file(path, harvester):
             # logger.debug('%s:\n\n%s\n\n', path, response)
             try:
                 from urlparse import parse_qsl  # Python 2
-            except Exception:
+            except ModuleNotFoundError:
                 from urllib.parse import parse_qsl  # Python 3
             datalist = parse_qsl(response, keep_blank_values=True)
 
