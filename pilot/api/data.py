@@ -19,7 +19,7 @@ import time
 
 try:
     from functools import reduce  # Python 3
-except Exception:
+except ModuleNotFoundError:
     pass
 
 from pilot.info import infosys
