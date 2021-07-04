@@ -21,7 +21,7 @@ import logging
 
 try:
     import Queue as queue  # noqa: N813
-except Exception:
+except ModuleNotFoundError:
     import queue  # Python 3
 
 from json import dumps  #, loads
@@ -1107,7 +1107,7 @@ def verify_ctypes(queues, job):
 
     try:
         import ctypes
-    except Exception as error:
+    except ModuleNotFoundError as error:
         diagnostics = 'ctypes python module could not be imported: %s' % error
         logger.warning(diagnostics)
         #job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOCTYPES, msg=diagnostics)
