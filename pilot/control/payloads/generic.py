@@ -464,7 +464,10 @@ class Executor(object):
                     breaker = True
                     logger.info('breaking -- sending SIGTERM pid=%s', proc.pid)
                     os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-                    # proc.terminate()
+                    break
+                exit_code = proc.poll()
+                if exit_code:
+                    logger.debug('fast exit')
                     break
                 time.sleep(1)
             if breaker:
