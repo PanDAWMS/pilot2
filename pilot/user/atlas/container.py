@@ -14,7 +14,7 @@ import re
 # for user container test: import urllib
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import PilotException
+from pilot.common.exception import PilotException, FileHandlingFailure
 from pilot.user.atlas.setup import get_asetup, get_file_system_root_path
 from pilot.user.atlas.proxy import verify_proxy
 from pilot.info import InfoService, infosys
@@ -52,8 +52,8 @@ def get_payload_proxy(proxy_outfile_name, voms_role='atlas'):
 
         proxy_contents = res['userProxy']
 
-    except Exception as e:
-        logger.error("Get proxy from panda server failed: %s, %s" % (e, traceback.format_exc()))
+    except Exception as error:
+        logger.error("Get proxy from panda server failed: %s, %s" % (error, traceback.format_exc()))
         return False
 
     res = False
@@ -63,8 +63,8 @@ def get_payload_proxy(proxy_outfile_name, voms_role='atlas'):
         f = os.open(proxy_outfile_name, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         os.close(f)
         res = write_file(proxy_outfile_name, proxy_contents, mute=False)  # returns True on success
-    except Exception as e:
-        logger.error("Exception when try to save proxy to the file '%s': %s, %s" % (proxy_outfile_name, e, traceback.format_exc()))
+    except (IOError, OSError, FileHandlingFailure) as error:
+        logger.error("Exception when try to save proxy to the file '%s': %s, %s" % (proxy_outfile_name, error, traceback.format_exc()))
 
     return res
 
@@ -695,8 +695,8 @@ def create_release_setup(cmd, atlas_setup, full_atlas_setup, release, imagename,
     logger.debug('command to be written to release setup file:\n\n%s:\n\n%s\n' % (release_setup_name, content))
     try:
         write_file(os.path.join(workdir, os.path.basename(release_setup_name)), content, mute=False)
-    except Exception as e:
-        logger.warning('exception caught: %s' % e)
+    except FileHandlingFailure as error:
+        logger.warning('exception caught: %s' % error)
 
     # reset cmd in case release_setup.sh does not exist in unpacked image (only for those containers)
     if imagename and release and release != 'NULL':
