@@ -204,8 +204,8 @@ def get_middleware_type():
                 t = name.split(':')
                 if mw == t[0]:
                     middleware_type = t[1]
-        except Exception as e:
-            logger.warning("failed to parse the container name: %s, %s" % (container_type, e))
+        except Exception as error:
+            logger.warning("failed to parse the container name: %s, %s" % (container_type, error))
     else:
         # logger.warning("container middleware type not specified in queuedata")
         # no middleware type was specified, assume that middleware is present on worker node
@@ -237,8 +237,8 @@ def extract_atlas_setup(asetup, swrelease):
         #   source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
         cleaned_atlas_setup = asetup.replace(atlas_setup, '')
         atlas_setup = atlas_setup.replace('source ', '')
-    except Exception as e:
-        logger.debug('exception caught while extracting asetup command: %s' % e)
+    except AttributeError as error:
+        logger.debug('exception caught while extracting asetup command: %s' % error)
         atlas_setup = ''
         cleaned_atlas_setup = ''
 
@@ -269,8 +269,8 @@ def extract_full_atlas_setup(cmd, atlas_setup):
             else:
                 updated_cmds.append(subcmd)
         updated_cmd = ';'.join(updated_cmds)
-    except Exception as e:
-        logger.warning('exception caught while extracting full atlas setup: %s' % e)
+    except AttributeError as error:
+        logger.warning('exception caught while extracting full atlas setup: %s' % error)
         updated_cmd = cmd
     logger.debug('updated payload setup command: %s' % updated_cmd)
 
@@ -295,8 +295,8 @@ def update_alrb_setup(cmd, use_release_setup):
                 updated_cmds.append('export ALRB_CONT_SETUPFILE="/srv/%s"' % config.Container.release_setup)
             updated_cmds.append(subcmd)
         updated_cmd = ';'.join(updated_cmds)
-    except Exception as e:
-        logger.warning('exception caught while extracting full atlas setup: %s' % e)
+    except AttributeError as error:
+        logger.warning('exception caught while extracting full atlas setup: %s' % error)
         updated_cmd = cmd
     logger.debug('updated ALRB command: %s' % updated_cmd)
 
