@@ -109,7 +109,7 @@ def update_job_data(job):
     pass
 
 
-def remove_redundant_files(workdir, outputfiles=[], islooping=False):
+def remove_redundant_files(workdir, outputfiles=[], islooping=False, debugmode=False):
     """
     Remove redundant files and directories prior to creating the log file.
 

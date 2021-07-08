@@ -1974,8 +1974,7 @@ def remove_redundant_files(workdir, outputfiles=None, islooping=False, debugmode
 
     :param workdir: working directory (string).
     :param outputfiles: list of protected output files (list).
-    :param islooping: looping job variable to make sure workDir
-    is not removed in case of looping (boolean).
+    :param islooping: looping job variable to make sure workDir is not removed in case of looping (Boolean).
     :param debugmode: True if debug mode has been switched on (Boolean).
     :return:
     """
