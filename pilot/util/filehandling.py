@@ -437,6 +437,9 @@ def remove(path):
     except OSError as error:
         logger.warning("failed to remove file: %s (%s, %s)", path, error.errno, error.strerror)
         return -1
+    else:
+        logger.debug('removed %s', path)
+
     return 0
 
 
