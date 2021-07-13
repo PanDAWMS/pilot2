@@ -10,7 +10,8 @@
 try:
     # import dask
     import dask_kubernetes
-except ModuleNotFoundError:
+#except ModuleNotFoundError:  # Python 3
+except Exception:
     pass
 
 #from pilot.common.exception import NotDefined, NotSameLength, UnknownException

@@ -21,7 +21,8 @@ import logging
 
 try:
     import Queue as queue  # noqa: N813
-except ModuleNotFoundError:
+#except ModuleNotFoundError:  # Python 3
+except Exception:
     import queue  # Python 3
 
 from json import dumps  #, loads
@@ -1107,7 +1108,8 @@ def verify_ctypes(queues, job):
 
     try:
         import ctypes
-    except ModuleNotFoundError as error:
+    # except ModuleNotFoundError as error:  # Python 3
+    except Exception as error:
         diagnostics = 'ctypes python module could not be imported: %s' % error
         logger.warning(diagnostics)
         #job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.NOCTYPES, msg=diagnostics)
@@ -1511,7 +1513,8 @@ def get_job_definition_from_file(path, harvester):
             # logger.debug('%s:\n\n%s\n\n', path, response)
             try:
                 from urlparse import parse_qsl  # Python 2
-            except ModuleNotFoundError:
+            # except ModuleNotFoundError:  # Python 3
+            except Exception:
                 from urllib.parse import parse_qsl  # Python 3
             datalist = parse_qsl(response, keep_blank_values=True)
 
