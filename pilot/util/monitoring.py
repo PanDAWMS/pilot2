@@ -485,7 +485,6 @@ def check_payload_stdout(job):
         file_list += tmp_list
     logger.debug('file list=%s' % str(file_list))
 
-
     # now loop over all files and check each individually (any large enough file will fail the job)
     for filename in file_list:
 
