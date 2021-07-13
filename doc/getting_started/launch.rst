@@ -19,7 +19,7 @@ called like:
     ./pilot.py -d -q <QUEUE_NAME>
 
 The ``QUEUE_NAME`` correspond to the ATLAS PandaQueue as defined in `AGIS`_. This will launch the default ``generic``
-workflow with lifetime default lifetime of 10 seconds.
+workflow with a default lifetime of 10 seconds.
 
 .. _AGIS: http://atlas-agis.cern.ch/agis/
 
