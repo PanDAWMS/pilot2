@@ -26,6 +26,3 @@ help:
 %: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-github:
-	@make html
-	@cp -a _build/html ../docs
