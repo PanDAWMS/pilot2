@@ -7,12 +7,12 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2021
 
-try:
-    # import dask
-    import dask_kubernetes
-#except ModuleNotFoundError:  # Python 3
-except Exception:
-    pass
+#try:
+#    # import dask
+#    import dask_kubernetes
+##except ModuleNotFoundError:  # Python 3
+#except Exception:
+#    pass
 
 # from pilot.util.container import execute
 # from pilot.util.filehandling import establish_logging, write_file
