@@ -612,7 +612,7 @@ class Executor(object):
                 # run the post-process command even if there was no main payload
                 if os.environ.get('HARVESTER_HOROVOD', '') != '':
                     logger.info('No need to execute any main payload')
-                    exit_code = self.run_utility_after_payload_finished(True, UTILITY_AFTER_PAYLOAD_FINISHED2)
+                    exit_code = self.run_utility_after_payload_finished(exit_code, True, UTILITY_AFTER_PAYLOAD_FINISHED2)
                     self.post_payload(self.__job)
                 else:
                     break
@@ -663,7 +663,7 @@ class Executor(object):
                     exit_code = -1
 
                 for order in [UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_AFTER_PAYLOAD_FINISHED2]:
-                    exit_code = self.run_utility_after_payload_finished(state, order)
+                    exit_code = self.run_utility_after_payload_finished(exit_code, state, order)
 
                 self.post_payload(self.__job)
 
@@ -680,19 +680,20 @@ class Executor(object):
 
         return exit_code
 
-    def run_utility_after_payload_finished(self, state, order):
+    def run_utility_after_payload_finished(self, exit_code, state, order):
         """
         Run utility command after the main payload has finished.
         In horovod mode, select the corresponding post-process. Otherwise, select different post-process (e.g. Xcache).
 
         The order constant can be UTILITY_AFTER_PAYLOAD_FINISHED, UTILITY_AFTER_PAYLOAD_FINISHED2
 
+        :param exit_code: transform exit code (int).
         :param state: payload state; finished/failed (string).
         :param order: constant used for utility selection (constant).
         :return: exit code (int).
         """
 
-        exit_code = 0
+        _exit_code = 0
         try:
             cmd_after_payload, label = self.utility_after_payload_finished(self.__job, order)
         except Exception as error:
@@ -701,7 +702,7 @@ class Executor(object):
             if cmd_after_payload and self.__job.postprocess and state != 'failed':
                 cmd_after_payload = self.__job.setup + cmd_after_payload
                 logger.info("\n\npostprocess execution command:\n\n%s\n", cmd_after_payload)
-                exit_code = self.execute_utility_command(cmd_after_payload, self.__job, label)
+                _exit_code = self.execute_utility_command(cmd_after_payload, self.__job, label)
             elif cmd_after_payload:
                 logger.info("\n\npostprocess execution command:\n\n%s\n", cmd_after_payload)
 
@@ -711,13 +712,16 @@ class Executor(object):
                 #    logger.debug('[before xcache kill] stdout=%s', _stdout)
                 #    logger.debug('[before xcache kill] stderr=%s', _stderr)
 
-                exit_code = self.execute_utility_command(cmd_after_payload, self.__job, label)
+                _exit_code = self.execute_utility_command(cmd_after_payload, self.__job, label)
 
                 # xcache debug
                 #if 'xcache' in cmd_after_payload:
                 #    _exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
                 #    logger.debug('[after xcache kill] stdout=%s', _stdout)
                 #    logger.debug('[after xcache kill] stderr=%s', _stderr)
+
+        if _exit_code and not exit_code:
+            exit_code = _exit_code
 
         return exit_code
 
