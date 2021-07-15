@@ -383,8 +383,9 @@ def perform_initial_payload_error_analysis(job, exit_code):
         logger.info('main payload execution returned zero exit code')
 
     # check if core dumps exist, if so remove them and return True
-    if remove_core_dumps(job.workdir) and not job.debug:
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.COREDUMP)
+    if not job.debug:  # do not shorten these if-statements
+        if remove_core_dumps(job.workdir):
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.COREDUMP)
 
 
 def set_error_code_from_stderr(msg, fatal):
