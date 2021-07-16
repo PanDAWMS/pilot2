@@ -340,6 +340,9 @@ def perform_initial_payload_error_analysis(job, exit_code):
     :return:
     """
 
+    if exit_code != 0:
+        logger.warning('main payload execution returned non-zero exit code: %d', exit_code)
+
     # look for singularity errors (the exit code can be zero in this case)
     stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
     if stderr:
@@ -347,7 +350,6 @@ def perform_initial_payload_error_analysis(job, exit_code):
 
     if exit_code != 0:
         msg = ""
-        logger.warning('main payload execution returned non-zero exit code: %d', exit_code)
         if stderr != "":
             msg = errors.extract_stderr_error(stderr)
             if msg == "":
@@ -362,6 +364,7 @@ def perform_initial_payload_error_analysis(job, exit_code):
 
         if msg:
             msg = errors.format_diagnostics(exit_code, msg)
+
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code, msg=msg)
 
         '''

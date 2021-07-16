@@ -403,12 +403,9 @@ class ErrorCodes:
             ec = self.MKDIR
         elif exit_code == -1:
             ec = self.UNKNOWNTRFFAILURE
-        #else:
-            # do not assign a pilot error code for unidentified transform error, return 0
-            # ec = 0
+        else:
+            ec = self.PAYLOADEXECUTIONFAILURE
 
-        if not ec:
-            ec = exit_code
         return ec
 
     def extract_stderr_error(self, stderr):
