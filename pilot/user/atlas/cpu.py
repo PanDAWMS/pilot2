@@ -96,7 +96,7 @@ def set_core_counts(job):
         # sort is redundant; uniq removes any duplicate lines; wc -l gives the final count
         # awk is added to get the pgrp list only and then grep -x makes sure that false positives are removed, e.g. 1546280
         cmd = "ps axo pgid,psr | sort | grep %d | uniq | awk '{print $1}' | grep -x %d | wc -l" % (job.pgrp, job.pgrp)
-        exit_code, stdout, stderr = execute(cmd, mute=True)
+        _, stdout, _ = execute(cmd, mute=True)
         logger.debug('%s: %s', cmd, stdout)
         try:
             job.actualcorecount = int(stdout)
