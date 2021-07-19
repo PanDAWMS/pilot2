@@ -1001,8 +1001,8 @@ def get_latest_log_tail(files):
         # now get the tail of the found log file and protect against potentially large tails
         stdout_tail = latest_file + "\n" + tail(latest_file)
         stdout_tail = stdout_tail[-2048:]
-    except Exception as error:
-        logger.warning('failed to get payload stdout tail: %s', error)
+    except OSError as exc:
+        logger.warning('failed to get payload stdout tail: %s', exc)
 
     return stdout_tail
 

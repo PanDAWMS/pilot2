@@ -64,16 +64,16 @@ def interpret(job):
     # extract special information, e.g. number of events
     try:
         extract_special_information(job)
-    except PilotException as error:
-        logger.error('PilotException caught while extracting special job information: %s' % error)
-        exit_code = error.get_error_code()
+    except PilotException as exc:
+        logger.error('PilotException caught while extracting special job information: %s' % exc)
+        exit_code = exc.get_error_code()
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code)
 
     # interpret the exit info from the payload
     try:
         interpret_payload_exit_info(job)
-    except Exception as error:
-        logger.warning('exception caught while interpreting payload exit info: %s', error)
+    except Exception as exc:
+        logger.warning('exception caught while interpreting payload exit info: %s', exc)
 
     return exit_code
 
@@ -252,8 +252,8 @@ def extract_special_information(job):
     # get the DB info from the jobReport
     try:
         find_db_info(job)
-    except Exception as e:
-        logger.warning('detected problem with parsing job report (in find_db_info()): %s' % e)
+    except Exception as exc:
+        logger.warning('detected problem with parsing job report (in find_db_info()): %s' % exc)
 
 
 def find_number_of_events(job):
@@ -300,8 +300,8 @@ def find_number_of_events_in_jobreport(job):
 
     try:
         work_attributes = parse_jobreport_data(job.metadata)
-    except Exception as e:
-        logger.warning('exception caught while parsing job report: %s' % e)
+    except Exception as exc:
+        logger.warning('exception caught while parsing job report: %s' % exc)
         return
 
     if 'nEvents' in work_attributes:
@@ -309,8 +309,8 @@ def find_number_of_events_in_jobreport(job):
             n_events = work_attributes.get('nEvents')
             if n_events:
                 job.nevents = int(n_events)
-        except ValueError as e:
-            logger.warning('failed to convert number of events to int: %s' % e)
+        except ValueError as exc:
+            logger.warning('failed to convert number of events to int: %s' % exc)
 
 
 def find_number_of_events_in_xml(job):
@@ -324,8 +324,8 @@ def find_number_of_events_in_xml(job):
 
     try:
         metadata = get_metadata_from_xml(job.workdir)
-    except Exception as e:
-        msg = "Exception caught while interpreting XML: %s" % e
+    except Exception as exc:
+        msg = "Exception caught while interpreting XML: %s" % exc
         raise BadXML(msg)
 
     if metadata:
@@ -394,8 +394,8 @@ def find_most_recent_and_oldest_summary_files(file_list):
             # get the modification time
             try:
                 st_mtime = os.path.getmtime(summary_file)
-            except Exception as e:  # Python 2/3
-                logger.warning("could not read modification time of file %s: %s" % (summary_file, e))
+            except OSError as exc:  # Python 2/3
+                logger.warning("could not read modification time of file %s: %s" % (summary_file, exc))
             else:
                 if st_mtime > recent_time:
                     recent_time = st_mtime
@@ -406,8 +406,12 @@ def find_most_recent_and_oldest_summary_files(file_list):
     else:
         oldest_summary_file = file_list[0]
         recent_summary_file = oldest_summary_file
-        oldest_time = os.path.getmtime(oldest_summary_file)
-        recent_time = oldest_time
+        try:
+            oldest_time = os.path.getmtime(oldest_summary_file)
+        except OSError as exc:  # Python 2/3
+            logger.warning("could not read modification time of file %s: %s" % (oldest_summary_file, exc))
+        else:
+            recent_time = oldest_time
 
     return recent_summary_file, recent_time, oldest_summary_file, oldest_time
 
@@ -433,13 +437,13 @@ def get_number_of_events_from_summary_file(oldest_summary_file):
                 if "Events Read:" in line:
                     try:
                         n1 = int(re.match(r'Events Read\: *(\d+)', line).group(1))  # Python 3 (added r)
-                    except ValueError as e:
-                        logger.warning('failed to convert number of read events to int: %s' % e)
+                    except ValueError as exc:
+                        logger.warning('failed to convert number of read events to int: %s' % exc)
                 if "Events Written:" in line:
                     try:
                         n2 = int(re.match(r'Events Written\: *(\d+)', line).group(1))  # Python 3 (added r)
-                    except ValueError as e:
-                        logger.warning('failed to convert number of written events to int: %s' % e)
+                    except ValueError as exc:
+                        logger.warning('failed to convert number of written events to int: %s' % exc)
                 if n1 > 0 and n2 > 0:
                     break
         else:
@@ -463,14 +467,14 @@ def find_db_info(job):
     if '__db_time' in work_attributes:
         try:
             job.dbtime = int(work_attributes.get('__db_time'))
-        except ValueError as e:
-            logger.warning('failed to convert dbtime to int: %s' % e)
+        except ValueError as exc:
+            logger.warning('failed to convert dbtime to int: %s' % exc)
         logger.info('dbtime (total): %d' % job.dbtime)
     if '__db_data' in work_attributes:
         try:
             job.dbdata = work_attributes.get('__db_data')
-        except ValueError as e:
-            logger.warning('failed to convert dbdata to int: %s' % e)
+        except ValueError as exc:
+            logger.warning('failed to convert dbdata to int: %s' % exc)
         logger.info('dbdata (total): %d' % job.dbdata)
 
 
@@ -541,8 +545,8 @@ def process_metadata_from_xml(job):
             metadata = None
             try:
                 metadata = get_metadata_from_xml(job.workdir)
-            except Exception as e:
-                msg = "Exception caught while interpreting XML: %s (ignoring it, but guids must now be generated)" % e
+            except Exception as exc:
+                msg = "Exception caught while interpreting XML: %s (ignoring it, but guids must now be generated)" % exc
                 logger.warning(msg)
             if metadata:
                 dat.guid = get_guid_from_xml(metadata, dat.lfn)
@@ -583,16 +587,16 @@ def process_job_report(job):
             # compulsory fields
             try:
                 job.exitcode = job.metadata['exitCode']
-            except Exception as e:
-                logger.warning('could not find compulsory payload exitCode in job report: %s (will be set to 0)' % e)
+            except Exception as exc:
+                logger.warning('could not find compulsory payload exitCode in job report: %s (will be set to 0)' % exc)
                 job.exitcode = 0
             else:
                 logger.info('extracted exit code from job report: %d' % job.exitcode)
             try:
                 job.exitmsg = job.metadata['exitMsg']
-            except Exception as e:
+            except Exception as exc:
                 logger.warning('could not find compulsory payload exitMsg in job report: %s '
-                               '(will be set to empty string)' % e)
+                               '(will be set to empty string)' % exc)
                 job.exitmsg = ""
             else:
                 # assign special payload error code
@@ -639,14 +643,14 @@ def get_job_report_errors(job_report_dictionary):
     if 'executor' in job_report_dictionary:
         try:
             error_details = job_report_dictionary['executor'][0]['logfileReport']['details']['ERROR']
-        except Exception as e:
-            logger.warning("WARNING: aborting jobReport scan: %s" % e)
+        except Exception as exc:
+            logger.warning("WARNING: aborting jobReport scan: %s" % exc)
         else:
             try:
                 for m in error_details:
                     job_report_errors.append(m['message'])
-            except Exception as e:
-                logger.warning("did not get a list object: %s" % e)
+            except Exception as exc:
+                logger.warning("did not get a list object: %s" % exc)
     else:
         logger.warning("jobReport does not have the executor key (aborting)")
 
