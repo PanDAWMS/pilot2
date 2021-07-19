@@ -119,8 +119,8 @@ def create_setup_file(version, path):
     status = False
 
     # get the DBRelease directory
-    dir = get_dbrelease_dir()
-    if dir != "" and version != "":
+    _dir = get_dbrelease_dir()
+    if _dir != "" and version != "":
         # create the python code string to be written to file
         txt = "import os\n"
         txt += "os.environ['DBRELEASE'] = '%s'\n" % version
@@ -137,7 +137,7 @@ def create_setup_file(version, path):
             logger.info("Created setup file with the following content:.................................\n%s", txt)
             logger.info("...............................................................................")
     else:
-        logger.warning('failed to create %s for DBRelease version=%s and directory=%s', path, version, d)
+        logger.warning('failed to create %s for DBRelease version=%s and directory=%s', path, version, _dir)
 
     return status
 
