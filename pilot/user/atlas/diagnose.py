@@ -144,7 +144,7 @@ def is_out_of_memory(job):
             logger.info('looking for out-of-memory errors in %s', os.path.basename(path))
             if os.path.getsize(path) > 0:
                 matched_lines = grep(files[path], path)
-                if len(matched_lines) > 0:
+                if matched_lines:
                     logger.warning("identified an out of memory error in %s %s:", job.payload, os.path.basename(path))
                     for line in matched_lines:
                         logger.info(line)
@@ -198,10 +198,7 @@ def is_installation_error(job):
     stdout = os.path.join(job.workdir, config.Payload.payloadstdout)
     _tail = tail(stdout)
     res_tmp = _tail[:1024]
-    if res_tmp[0:3] == "sh:" and 'setup.sh' in res_tmp and 'No such file or directory' in res_tmp:
-        return True
-    else:
-        return False
+    return res_tmp[0:3] == "sh:" and 'setup.sh' in res_tmp and 'No such file or directory' in res_tmp
 
 
 def is_atlassetup_error(job):
@@ -215,11 +212,7 @@ def is_atlassetup_error(job):
     stdout = os.path.join(job.workdir, config.Payload.payloadstdout)
     _tail = tail(stdout)
     res_tmp = _tail[:2048]
-    if "AtlasSetup(FATAL): Fatal exception" in res_tmp:
-        logger.warning('AtlasSetup FATAL failure detected')
-        return True
-    else:
-        return False
+    return "AtlasSetup(FATAL): Fatal exception" in res_tmp
 
 
 def is_nfssqlite_locking_problem(job):
@@ -271,7 +264,7 @@ def find_number_of_events(job):
     logger.info('looking for number of processed events (source #1: jobReport.json)')
     find_number_of_events_in_jobreport(job)
     if job.nevents > 0:
-        logger.info('found %d processed events' % job.nevents)
+        logger.info('found %d processed events', job.nevents)
         return
 
     logger.info('looking for number of processed events (source #2: metadata.xml)')
@@ -281,12 +274,12 @@ def find_number_of_events(job):
         return
 
     logger.info('looking for number of processed events (source #3: athena summary file(s)')
-    n1, n2 = process_athena_summary(job)
-    if n1 > 0:
-        job.nevents = n1
+    nev1, nev2 = process_athena_summary(job)
+    if nev1 > 0:
+        job.nevents = nev1
         logger.info('found %d processed (read) events', job.nevents)
-    if n2 > 0:
-        job.neventsw = n2
+    if nev2 > 0:
+        job.neventsw = nev2
         logger.info('found %d processed (written) events', job.neventsw)
 
 
@@ -424,27 +417,27 @@ def get_number_of_events_from_summary_file(oldest_summary_file):
     :return: number of read events (int), number of written events (int).
     """
 
-    n1 = 0
-    n2 = 0
+    nev1 = 0
+    nev2 = 0
 
-    f = open_file(oldest_summary_file, 'r')
-    if f:
-        lines = f.readlines()
-        f.close()
+    _file = open_file(oldest_summary_file, 'r')
+    if _file:
+        lines = _file.readlines()
+        _file.close()
 
         if len(lines) > 0:
             for line in lines:
                 if "Events Read:" in line:
                     try:
-                        n1 = int(re.match(r'Events Read\: *(\d+)', line).group(1))  # Python 3 (added r)
+                        nev1 = int(re.match(r'Events Read\: *(\d+)', line).group(1))  # Python 3 (added r)
                     except ValueError as exc:
                         logger.warning('failed to convert number of read events to int: %s', exc)
                 if "Events Written:" in line:
                     try:
-                        n2 = int(re.match(r'Events Written\: *(\d+)', line).group(1))  # Python 3 (added r)
+                        nev2 = int(re.match(r'Events Written\: *(\d+)', line).group(1))  # Python 3 (added r)
                     except ValueError as exc:
                         logger.warning('failed to convert number of written events to int: %s', exc)
-                if n1 > 0 and n2 > 0:
+                if nev1 > 0 and nev2 > 0:
                     break
         else:
             logger.warning('failed to get number of events from empty summary file')
@@ -452,7 +445,7 @@ def get_number_of_events_from_summary_file(oldest_summary_file):
     # Get the errors from the most recent summary file
     # ...
 
-    return n1, n2
+    return nev1, nev2
 
 
 def find_db_info(job):
