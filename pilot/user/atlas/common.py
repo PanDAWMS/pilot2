@@ -2637,7 +2637,10 @@ def update_server(job):
 
 def preprocess_debug_command(job):
     """
+    Pre-process the debug command in debug mode.
 
+    :param job: Job object.
+    :return:
     """
 
     # Should the pilot do the setup or does jobPars already contain the information?
