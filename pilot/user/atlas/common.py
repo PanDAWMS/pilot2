@@ -1454,6 +1454,10 @@ def get_outfiles_records(subfiles):
 
 
 class DictQuery(dict):
+    """
+    Helper class for parsing job report.
+    """
+
     def get(self, path, dst_dict, dst_key):
         keys = path.split("/")
         if len(keys) == 0:
@@ -1920,6 +1924,12 @@ def cleanup_broken_links(workdir):
 
 
 def list_work_dir(workdir):
+    """
+    Execute ls -lF for the given directory and dump to log.
+
+    :param workdir: directory name (string).
+    """
+
     cmd = 'ls -lF %s' % workdir
     _, stdout, stderr = execute(cmd)
     logger.debug('%s:\n' % stdout + stderr)
