@@ -928,8 +928,8 @@ def create_middleware_container_command(workdir, cmd, container_options, label='
 
     try:
         status = write_file(os.path.join(workdir, script_name), content)
-    except PilotException as e:
-        raise e
+    except PilotException as exc:
+        raise exc
     else:
         if status:
             # generate the final container command
