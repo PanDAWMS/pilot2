@@ -345,8 +345,7 @@ def perform_initial_payload_error_analysis(job, exit_code):
 
     # look for singularity errors (the exit code can be zero in this case)
     stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
-    if stderr:
-        exit_code = errors.resolve_transform_error(exit_code, stderr)
+    exit_code = errors.resolve_transform_error(exit_code, stderr)
 
     if exit_code != 0:
         msg = ""
