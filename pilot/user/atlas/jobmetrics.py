@@ -7,6 +7,10 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018-2021
 
+import os
+import re
+import logging
+
 from pilot.api import analytics
 from pilot.util.jobmetrics import get_job_metrics_entry
 from pilot.util.filehandling import find_last_line
@@ -15,9 +19,6 @@ from .cpu import get_core_count
 from .common import get_db_info, get_resimevents
 from .utilities import get_memory_monitor_output_filename
 
-import os
-import re
-import logging
 logger = logging.getLogger(__name__)
 
 
