@@ -425,7 +425,7 @@ def get_number_of_events_from_summary_file(oldest_summary_file):
         lines = _file.readlines()
         _file.close()
 
-        if len(lines) > 0:
+        if lines:
             for line in lines:
                 if "Events Read:" in line:
                     try:
@@ -505,7 +505,7 @@ def extract_tarball_url(_tail):
     if "https://" in _tail or "http://" in _tail:
         pattern = r"(https?\:\/\/.+)"
         found = re.findall(pattern, _tail)
-        if len(found) > 0:
+        if found:
             tarball_url = found[0]
 
     return tarball_url
@@ -580,14 +580,14 @@ def process_job_report(job):
             # compulsory fields
             try:
                 job.exitcode = job.metadata['exitCode']
-            except Exception as exc:
+            except KeyError as exc:
                 logger.warning('could not find compulsory payload exitCode in job report: %s (will be set to 0)', exc)
                 job.exitcode = 0
             else:
                 logger.info('extracted exit code from job report: %d', job.exitcode)
             try:
                 job.exitmsg = job.metadata['exitMsg']
-            except Exception as exc:
+            except KeyError as exc:
                 logger.warning('could not find compulsory payload exitMsg in job report: %s '
                                '(will be set to empty string)', exc)
                 job.exitmsg = ""
@@ -639,7 +639,7 @@ def get_job_report_errors(job_report_dictionary):
         except (KeyError, TypeError, IndexError) as exc:
             logger.warning("WARNING: aborting jobReport scan: %s", exc)
         else:
-            if type(error_details) == list:
+            if isinstance(error_details, list):
                 for msg in error_details:
                     job_report_errors.append(msg['message'])
             else:
