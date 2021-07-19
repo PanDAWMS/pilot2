@@ -66,7 +66,7 @@ def get_job_metrics_string(job):
 
         try:
             zero = long(0)  # Python 2 # noqa: F821
-        except Exception:
+        except NameError:
             zero = 0  # Python 3
 
         if max_space > zero:
@@ -186,7 +186,7 @@ def get_number_in_string(line, pattern=r'\ done\ processing\ event\ \#(\d+)\,'):
     if match:
         try:
             event_number = int(match.group(1))
-        except Exception:
+        except (TypeError, ValueError):
             pass
 
     return event_number
