@@ -60,8 +60,8 @@ def get_payload_proxy(proxy_outfile_name, voms_role='atlas'):
     try:
         # pre-create empty proxy file with secure permissions. Prepare it for write_file() which can not
         # set file permission mode, it will writes to the existing file with correct permissions.
-        f = os.open(proxy_outfile_name, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        os.close(f)
+        _file = os.open(proxy_outfile_name, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        os.close(_file)
         res = write_file(proxy_outfile_name, proxy_contents, mute=False)  # returns True on success
     except (IOError, OSError, FileHandlingFailure) as exc:
         logger.error("Exception when try to save proxy to the file '%s': %s, %s",
@@ -145,10 +145,10 @@ def extract_platform_and_os(platform):
     """
 
     pattern = r"([A-Za-z0-9_-]+)-.+-.+"
-    a = re.findall(re.compile(pattern), platform)
+    found = re.findall(re.compile(pattern), platform)
 
-    if len(a) > 0:
-        ret = a[0]
+    if found:
+        ret = found[0]
     else:
         logger.warning("could not extract architecture and OS substring using pattern=%s from platform=%s"
                        "(will use %s for image name)", pattern, platform, platform)
@@ -197,15 +197,15 @@ def get_middleware_type():
     middleware_type = ""
     container_type = infosys.queuedata.container_type
 
-    mw = 'middleware'
-    if container_type and container_type != "" and mw in container_type:
+    middleware = 'middleware'
+    if container_type and container_type != "" and middleware in container_type:
         try:
             container_names = container_type.split(';')
             for name in container_names:
                 t = name.split(':')
-                if mw == t[0]:
+                if middleware == t[0]:
                     middleware_type = t[1]
-        except Exception as exc:
+        except IndexError as exc:
             logger.warning("failed to parse the container name: %s, %s", container_type, exc)
     else:
         # logger.warning("container middleware type not specified in queuedata")
