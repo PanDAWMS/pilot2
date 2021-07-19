@@ -10,6 +10,7 @@
 import json
 import os
 import re
+import logging
 from glob import glob
 
 from pilot.common.errorcodes import ErrorCodes
@@ -22,9 +23,7 @@ from pilot.util.workernode import get_local_disk_space
 from .common import update_job_data, parse_jobreport_data
 from .metadata import get_metadata_from_xml, get_total_number_of_events, get_guid_from_xml
 
-import logging
 logger = logging.getLogger(__name__)
-
 errors = ErrorCodes()
 
 
