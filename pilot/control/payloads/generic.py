@@ -443,10 +443,11 @@ class Executor(object):
 
     def wait_graceful(self, args, proc):
         """
-        (add description)
-        :param args:
-        :param proc:
-        :return:
+        Wait for payload process to finish.
+
+        :param args: Pilot arguments object.
+        :param proc: Process id (int).
+        :return: exit code (int).
         """
 
         breaker = False
@@ -467,7 +468,6 @@ class Executor(object):
                     break
                 exit_code = proc.poll()
                 if exit_code:
-                    logger.debug('fast exit')
                     break
                 time.sleep(1)
             if breaker:
