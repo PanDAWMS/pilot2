@@ -12,6 +12,8 @@ import os
 import pipes
 import re
 import logging
+import traceback
+
 # for user container test: import urllib
 
 from pilot.common.errorcodes import ErrorCodes
@@ -22,10 +24,7 @@ from pilot.info import InfoService, infosys
 from pilot.util.auxiliary import is_python3
 from pilot.util.config import config
 from pilot.util.filehandling import write_file
-
-# imports for get_payload_proxy()
 from pilot.util import https
-import traceback
 
 logger = logging.getLogger(__name__)
 errors = ErrorCodes()
@@ -202,9 +201,9 @@ def get_middleware_type():
         try:
             container_names = container_type.split(';')
             for name in container_names:
-                t = name.split(':')
-                if middleware == t[0]:
-                    middleware_type = t[1]
+                _split = name.split(':')
+                if middleware == _split[0]:
+                    middleware_type = _split[1]
         except IndexError as exc:
             logger.warning("failed to parse the container name: %s, %s", container_type, exc)
     else:
@@ -515,7 +514,8 @@ def alrb_wrapper(cmd, workdir, job=None):
         try:
             write_file(os.path.join(job.workdir, container_script), cmd, mute=False)
             os.chmod(os.path.join(job.workdir, container_script), 0o755)  # Python 2/3
-        except Exception as exc:
+        # except (FileHandlingFailure, FileNotFoundError) as exc:  # Python 3
+        except (FileHandlingFailure, OSError) as exc:  # Python 2/3
             logger.warning('exception caught: %s', exc)
             return ""
 
@@ -628,10 +628,10 @@ def get_full_asetup(cmd, atlas_setup):
     :return: full atlas setup (string).
     """
 
-    nr = cmd.find(atlas_setup)
-    cmd = cmd[nr:]  # remove everything before 'source $AtlasSetup/..'
-    nr = cmd.find(';')
-    cmd = cmd[:nr + 1]  # remove everything after the first ;, but include the trailing ;
+    pos = cmd.find(atlas_setup)
+    cmd = cmd[pos:]  # remove everything before 'source $AtlasSetup/..'
+    pos = cmd.find(';')
+    cmd = cmd[:pos + 1]  # remove everything after the first ;, but include the trailing ;
 
     return cmd
 
@@ -792,7 +792,7 @@ def remove_container_string(job_params):
 
     # extract the container path
     found = re.findall(compiled_pattern, job_params)
-    container_path = found[0] if len(found) > 0 else ""
+    container_path = found[0] if found else ""
 
     # Remove the pattern and update the job parameters
     job_params = re.sub(pattern, ' ', job_params)
@@ -874,8 +874,8 @@ def create_root_container_command(workdir, cmd):
 
     try:
         status = write_file(os.path.join(workdir, script_name), content)
-    except PilotException as e:
-        raise e
+    except PilotException as exc:
+        raise exc
     else:
         if status:
             # generate the final container command
