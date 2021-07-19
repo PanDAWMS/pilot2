@@ -403,7 +403,7 @@ class ErrorCodes:
             ec = self.MKDIR
         elif exit_code == -1:
             ec = self.UNKNOWNTRFFAILURE
-        else:
+        elif exit_code != 0:
             ec = self.PAYLOADEXECUTIONFAILURE
 
         return ec
