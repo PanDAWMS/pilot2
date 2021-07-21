@@ -5,16 +5,16 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2018-2021
+
+import logging
 
 from .utilities import get_memory_values
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import set_pilot_state
 from pilot.util.processes import kill_processes
 
-import logging
 logger = logging.getLogger(__name__)
-
 errors = ErrorCodes()
 
 

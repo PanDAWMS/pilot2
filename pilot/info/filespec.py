@@ -16,6 +16,7 @@ The main reasons for such incapsulation are to
 :author: Alexey Anisenkov
 :date: April 2018
 """
+import os.path
 
 from .basedata import BaseData
 
@@ -131,14 +132,13 @@ class FileSpec(BaseData):
             Could be customized by child object
             :return: None
         """
+
         if self.lfn.startswith("zip://"):
             self.lfn = self.lfn.replace("zip://", "")
             self.is_tar = True
-
-        # temp hardcoding for CYFRONET direct access testing
-        #from os import environ
-        #if 'CYFRONET' in environ.get('PILOT_SITENAME', ''):
-        #    self.direct_access_lan = True
+        elif self.lfn.startswith("gs://"):
+            self.surl = self.lfn
+            self.lfn = os.path.basename(self.lfn)
 
     def is_directaccess(self, ensure_replica=True, allowed_replica_schemas=None):
         """
