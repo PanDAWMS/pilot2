@@ -21,6 +21,7 @@ import logging
 
 try:
     import Queue as queue  # noqa: N813
+#except ModuleNotFoundError:  # Python 3
 except Exception:
     import queue  # Python 3
 
@@ -1000,8 +1001,8 @@ def get_latest_log_tail(files):
         # now get the tail of the found log file and protect against potentially large tails
         stdout_tail = latest_file + "\n" + tail(latest_file)
         stdout_tail = stdout_tail[-2048:]
-    except Exception as error:
-        logger.warning('failed to get payload stdout tail: %s', error)
+    except OSError as exc:
+        logger.warning('failed to get payload stdout tail: %s', exc)
 
     return stdout_tail
 
@@ -1107,6 +1108,7 @@ def verify_ctypes(queues, job):
 
     try:
         import ctypes
+    # except ModuleNotFoundError as error:  # Python 3
     except Exception as error:
         diagnostics = 'ctypes python module could not be imported: %s' % error
         logger.warning(diagnostics)
@@ -1376,9 +1378,13 @@ def proceed_with_getjob(timefloor, starttime, jobnumber, getjob_requests, max_ge
     #timefloor = 600
     currenttime = time.time()
 
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    common = __import__('pilot.user.%s.common' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+    if not common.allow_timefloor(submitmode):
+        timefloor = 0
+
     # should the proxy be verified?
     if verify_proxy:
-        pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
         userproxy = __import__('pilot.user.%s.proxy' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
 
         # is the proxy still valid?
@@ -1507,6 +1513,7 @@ def get_job_definition_from_file(path, harvester):
             # logger.debug('%s:\n\n%s\n\n', path, response)
             try:
                 from urlparse import parse_qsl  # Python 2
+            # except ModuleNotFoundError:  # Python 3
             except Exception:
                 from urllib.parse import parse_qsl  # Python 3
             datalist = parse_qsl(response, keep_blank_values=True)

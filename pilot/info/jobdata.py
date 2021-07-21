@@ -203,6 +203,7 @@ class JobData(BaseData):
             if not image_base and 'IMAGE_BASE' in infosys.queuedata.catchall:
                 image_base = get_key_value(infosys.queuedata.catchall, key='IMAGE_BASE')
             if image_base:
+                os.environ['ALRB_CONT_UNPACKEDDIR'] = image_base
                 paths = [os.path.join(image_base, os.path.basename(self.imagename)),
                          os.path.join(image_base, self.imagename)]
                 local_path = get_valid_path_from_list(paths)

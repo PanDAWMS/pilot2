@@ -11,22 +11,21 @@
 import os
 import pipes
 import re
+import logging
+import traceback
+
 # for user container test: import urllib
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import PilotException
+from pilot.common.exception import PilotException, FileHandlingFailure
 from pilot.user.atlas.setup import get_asetup, get_file_system_root_path
 from pilot.user.atlas.proxy import verify_proxy
 from pilot.info import InfoService, infosys
 from pilot.util.auxiliary import is_python3
 from pilot.util.config import config
 from pilot.util.filehandling import write_file
-
-# imports for get_payload_proxy()
 from pilot.util import https
-import traceback
 
-import logging
 logger = logging.getLogger(__name__)
 errors = ErrorCodes()
 
@@ -43,28 +42,29 @@ def get_payload_proxy(proxy_outfile_name, voms_role='atlas'):
         res = https.request('{pandaserver}/server/panda/getProxy'.format(pandaserver=url), data={'role': voms_role})
 
         if res is None:
-            logger.error("Unable to get proxy with role '%s' from panda server" % voms_role)
+            logger.error("Unable to get proxy with role '%s' from panda server", voms_role)
             return False
 
         if res['StatusCode'] != 0:
-            logger.error("When get proxy with role '%s' panda server returned: %s" % (voms_role, res['errorDialog']))
+            logger.error("When get proxy with role '%s' panda server returned: %s", voms_role, res['errorDialog'])
             return False
 
         proxy_contents = res['userProxy']
 
-    except Exception as e:
-        logger.error("Get proxy from panda server failed: %s, %s" % (e, traceback.format_exc()))
+    except Exception as exc:
+        logger.error("Get proxy from panda server failed: %s, %s", exc, traceback.format_exc())
         return False
 
     res = False
     try:
         # pre-create empty proxy file with secure permissions. Prepare it for write_file() which can not
         # set file permission mode, it will writes to the existing file with correct permissions.
-        f = os.open(proxy_outfile_name, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        os.close(f)
+        _file = os.open(proxy_outfile_name, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        os.close(_file)
         res = write_file(proxy_outfile_name, proxy_contents, mute=False)  # returns True on success
-    except Exception as e:
-        logger.error("Exception when try to save proxy to the file '%s': %s, %s" % (proxy_outfile_name, e, traceback.format_exc()))
+    except (IOError, OSError, FileHandlingFailure) as exc:
+        logger.error("Exception when try to save proxy to the file '%s': %s, %s",
+                     proxy_outfile_name, exc, traceback.format_exc())
 
     return res
 
@@ -95,7 +95,7 @@ def do_use_container(**kwargs):
             container_name = queuedata.container_type.get("pilot")
             if container_name:
                 use_container = True
-                logger.debug('container_name == \'%s\' -> use_container = True' % container_name)
+                logger.debug('container_name == \'%s\' -> use_container = True', container_name)
             else:
                 logger.debug('else -> use_container = False')
     elif copytool:
@@ -144,13 +144,13 @@ def extract_platform_and_os(platform):
     """
 
     pattern = r"([A-Za-z0-9_-]+)-.+-.+"
-    a = re.findall(re.compile(pattern), platform)
+    found = re.findall(re.compile(pattern), platform)
 
-    if len(a) > 0:
-        ret = a[0]
+    if found:
+        ret = found[0]
     else:
         logger.warning("could not extract architecture and OS substring using pattern=%s from platform=%s"
-                       "(will use %s for image name)" % (pattern, platform, platform))
+                       "(will use %s for image name)", pattern, platform, platform)
         ret = platform
 
     return ret
@@ -166,7 +166,7 @@ def get_grid_image_for_singularity(platform):
 
     if not platform or platform == "":
         platform = "x86_64-slc6"
-        logger.warning("using default platform=%s (cmtconfig not set)" % (platform))
+        logger.warning("using default platform=%s (cmtconfig not set)", platform)
 
     arch_and_os = extract_platform_and_os(platform)
     image = arch_and_os + ".img"
@@ -174,10 +174,10 @@ def get_grid_image_for_singularity(platform):
     path = os.path.join(_path, image)
     if not os.path.exists(path):
         image = 'x86_64-centos7.img'
-        logger.warning('path does not exist: %s (trying with image %s instead)' % (path, image))
+        logger.warning('path does not exist: %s (trying with image %s instead)', path, image)
         path = os.path.join(_path, image)
         if not os.path.exists(path):
-            logger.warning('path does not exist either: %s' % path)
+            logger.warning('path does not exist either: %s', path)
             path = ""
 
     return path
@@ -196,16 +196,16 @@ def get_middleware_type():
     middleware_type = ""
     container_type = infosys.queuedata.container_type
 
-    mw = 'middleware'
-    if container_type and container_type != "" and mw in container_type:
+    middleware = 'middleware'
+    if container_type and container_type != "" and middleware in container_type:
         try:
             container_names = container_type.split(';')
             for name in container_names:
-                t = name.split(':')
-                if mw == t[0]:
-                    middleware_type = t[1]
-        except Exception as e:
-            logger.warning("failed to parse the container name: %s, %s" % (container_type, e))
+                _split = name.split(':')
+                if middleware == _split[0]:
+                    middleware_type = _split[1]
+        except IndexError as exc:
+            logger.warning("failed to parse the container name: %s, %s", container_type, exc)
     else:
         # logger.warning("container middleware type not specified in queuedata")
         # no middleware type was specified, assume that middleware is present on worker node
@@ -237,8 +237,8 @@ def extract_atlas_setup(asetup, swrelease):
         #   source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
         cleaned_atlas_setup = asetup.replace(atlas_setup, '')
         atlas_setup = atlas_setup.replace('source ', '')
-    except Exception as e:
-        logger.debug('exception caught while extracting asetup command: %s' % e)
+    except AttributeError as exc:
+        logger.debug('exception caught while extracting asetup command: %s', exc)
         atlas_setup = ''
         cleaned_atlas_setup = ''
 
@@ -269,10 +269,10 @@ def extract_full_atlas_setup(cmd, atlas_setup):
             else:
                 updated_cmds.append(subcmd)
         updated_cmd = ';'.join(updated_cmds)
-    except Exception as e:
-        logger.warning('exception caught while extracting full atlas setup: %s' % e)
+    except AttributeError as exc:
+        logger.warning('exception caught while extracting full atlas setup: %s', exc)
         updated_cmd = cmd
-    logger.debug('updated payload setup command: %s' % updated_cmd)
+    logger.debug('updated payload setup command: %s', updated_cmd)
 
     return extracted_asetup, updated_cmd
 
@@ -295,10 +295,10 @@ def update_alrb_setup(cmd, use_release_setup):
                 updated_cmds.append('export ALRB_CONT_SETUPFILE="/srv/%s"' % config.Container.release_setup)
             updated_cmds.append(subcmd)
         updated_cmd = ';'.join(updated_cmds)
-    except Exception as e:
-        logger.warning('exception caught while extracting full atlas setup: %s' % e)
+    except AttributeError as exc:
+        logger.warning('exception caught while extracting full atlas setup: %s', exc)
         updated_cmd = cmd
-    logger.debug('updated ALRB command: %s' % updated_cmd)
+    logger.debug('updated ALRB command: %s', updated_cmd)
 
     return updated_cmd
 
@@ -449,21 +449,16 @@ def alrb_wrapper(cmd, workdir, job=None):
     queuedata = job.infosys.queuedata
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
     if container_name:
-        logger.debug('cmd 1=%s' % cmd)
         # first get the full setup, which should be removed from cmd (or ALRB setup won't work)
         _asetup = get_asetup()
         # get_asetup()
         # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh
         #     --quiet;source $AtlasSetup/scripts/asetup.sh
-        logger.debug('_asetup: %s' % _asetup)
         # atlas_setup = $AtlasSetup/scripts/asetup.sh
         # clean_asetup = export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source
         #                   ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
         atlas_setup, clean_asetup = extract_atlas_setup(_asetup, job.swrelease)
-        logger.debug('atlas_setup=%s' % atlas_setup)
-        logger.debug('clean_asetup=%s' % clean_asetup)
         full_atlas_setup = get_full_asetup(cmd, 'source ' + atlas_setup) if atlas_setup and clean_asetup else ''
-        logger.debug('full_atlas_setup=%s' % full_atlas_setup)
 
         # do not include 'clean_asetup' in the container script
         if clean_asetup and full_atlas_setup:
@@ -472,7 +467,6 @@ def alrb_wrapper(cmd, workdir, job=None):
             if job.imagename:
                 cmd = cmd.replace(full_atlas_setup, '')
 
-        logger.debug('cmd 2=%s' % cmd)
         # get_asetup(asetup=False)
         # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh --quiet;
 
@@ -482,7 +476,6 @@ def alrb_wrapper(cmd, workdir, job=None):
         # -> export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
         # get_asetup(alrb=True, add_if=True)
         # -> if [ -z "$ATLAS_LOCAL_ROOT_BASE" ]; then export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase; fi;
-        logger.debug('initial alrb_setup: %s' % alrb_setup)
 
         # add user proxy if necessary (actually it should also be removed from cmd)
         exit_code, diagnostics, alrb_setup, cmd = update_for_user_proxy(alrb_setup, cmd, is_analysis=job.is_analysis())
@@ -496,12 +489,10 @@ def alrb_wrapper(cmd, workdir, job=None):
         # it is used to identify the pid for the process to be tracked by the memory monitor
         if 'export PandaID' not in alrb_setup:
             alrb_setup += "export PandaID=%s;" % job.jobid
-        logger.debug('alrb_setup=%s' % alrb_setup)
 
         # add TMPDIR
         cmd = "export TMPDIR=/srv;export GFORTRAN_TMPDIR=/srv;" + cmd
         cmd = cmd.replace(';;', ';')
-        logger.debug('cmd = %s' % cmd)
 
         # get the proper release setup script name, and create the script if necessary
         release_setup, cmd = create_release_setup(cmd, atlas_setup, full_atlas_setup, job.swrelease, job.imagename,
@@ -515,16 +506,17 @@ def alrb_wrapper(cmd, workdir, job=None):
         # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
         if job.preprocess and job.containeroptions:
             cmd = replace_last_command(cmd, job.containeroptions.get('containerExec'))
-            logger.debug('updated cmd with containerExec: %s' % cmd)
+            logger.debug('updated cmd with containerExec: %s', cmd)
 
         # write the full payload command to a script file
         container_script = config.Container.container_script
-        logger.debug('command to be written to container script file:\n\n%s:\n\n%s\n' % (container_script, cmd))
+        logger.debug('command to be written to container script file:\n\n%s:\n\n%s\n', container_script, cmd)
         try:
             write_file(os.path.join(job.workdir, container_script), cmd, mute=False)
             os.chmod(os.path.join(job.workdir, container_script), 0o755)  # Python 2/3
-        except Exception as e:
-            logger.warning('exception caught: %s' % e)
+        # except (FileHandlingFailure, FileNotFoundError) as exc:  # Python 3
+        except (FileHandlingFailure, OSError) as exc:  # Python 2/3
+            logger.warning('exception caught: %s', exc)
             return ""
 
         # also store the command string in the job object
@@ -537,9 +529,9 @@ def alrb_wrapper(cmd, workdir, job=None):
         execargs = job.containeroptions.get('execArgs', None)
         if execargs:
             cmd += ' ' + execargs
-        logger.debug('\n\nfinal command:\n\n%s\n' % cmd)
+        logger.debug('\n\nfinal command:\n\n%s\n', cmd)
     else:
-        logger.warning('container name not defined in AGIS')
+        logger.warning('container name not defined in CRIC')
 
     return cmd
 
@@ -561,12 +553,12 @@ def is_release_setup(script, imagename):
             script = script[1:]
         exists = True if os.path.exists(os.path.join(imagename, script)) else False
         if exists:
-            logger.info('%s is present in %s' % (script, imagename))
+            logger.info('%s is present in %s', script, imagename)
         else:
-            logger.warning('%s is not present in %s - setup has failed' % (script, imagename))
+            logger.warning('%s is not present in %s - setup has failed', script, imagename)
     else:
         exists = True
-        logger.info('%s is assumed to be present in %s' % (script, imagename))
+        logger.info('%s is assumed to be present in %s', script, imagename)
     return exists
 
 
@@ -593,7 +585,7 @@ def add_asetup(job, alrb_setup, is_cvmfs, release_setup, container_script, conta
         elif container_path != "":
             alrb_setup += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % container_path
         else:
-            logger.warning('failed to extract container path from %s' % job.jobparams)
+            logger.warning('failed to extract container path from %s', job.jobparams)
             alrb_setup = ""
         if alrb_setup and not is_cvmfs:
             alrb_setup += ' -d'
@@ -616,7 +608,7 @@ def add_asetup(job, alrb_setup, is_cvmfs, release_setup, container_script, conta
 
     # correct full payload command in case preprocess command are used (ie replace trf with setupATLAS -c ..)
     #if job.preprocess and job.containeroptions:
-    #    logger.debug('will update cmd=%s' % cmd)
+    #    logger.debug('will update cmd=%s', cmd)
     #    cmd = replace_last_command(cmd, 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c $thePlatform')
     #    logger.debug('updated cmd with containerImage')
 
@@ -636,10 +628,10 @@ def get_full_asetup(cmd, atlas_setup):
     :return: full atlas setup (string).
     """
 
-    nr = cmd.find(atlas_setup)
-    cmd = cmd[nr:]  # remove everything before 'source $AtlasSetup/..'
-    nr = cmd.find(';')
-    cmd = cmd[:nr + 1]  # remove everything after the first ;, but include the trailing ;
+    pos = cmd.find(atlas_setup)
+    cmd = cmd[pos:]  # remove everything before 'source $AtlasSetup/..'
+    pos = cmd.find(';')
+    cmd = cmd[:pos + 1]  # remove everything after the first ;, but include the trailing ;
 
     return cmd
 
@@ -692,11 +684,11 @@ def create_release_setup(cmd, atlas_setup, full_atlas_setup, release, imagename,
             content = full_atlas_setup
 
     content += '\nreturn $?'
-    logger.debug('command to be written to release setup file:\n\n%s:\n\n%s\n' % (release_setup_name, content))
+    logger.debug('command to be written to release setup file:\n\n%s:\n\n%s\n', release_setup_name, content)
     try:
         write_file(os.path.join(workdir, os.path.basename(release_setup_name)), content, mute=False)
-    except Exception as e:
-        logger.warning('exception caught: %s' % e)
+    except FileHandlingFailure as exc:
+        logger.warning('exception caught: %s', exc)
 
     # reset cmd in case release_setup.sh does not exist in unpacked image (only for those containers)
     if imagename and release and release != 'NULL':
@@ -740,11 +732,11 @@ def create_release_setup_old(cmd, atlas_setup, full_atlas_setup, release, imagen
         if not content:
             logger.debug(
                 'will create an empty (almost) release setup file since asetup could not be extracted from command')
-        logger.debug('command to be written to release setup file:\n\n%s:\n\n%s\n' % (release_setup_name, content))
+        logger.debug('command to be written to release setup file:\n\n%s:\n\n%s\n', release_setup_name, content)
         try:
             write_file(os.path.join(workdir, release_setup_name), content, mute=False)
-        except Exception as e:
-            logger.warning('exception caught: %s' % e)
+        except FileHandlingFailure as exc:
+            logger.warning('exception caught: %s', exc)
     else:
         # reset cmd in case release_setup.sh does not exist in unpacked image (only for those containers)
         cmd = cmd.replace(';;', ';') if is_release_setup(release_setup_name, imagename) else ''
@@ -800,7 +792,7 @@ def remove_container_string(job_params):
 
     # extract the container path
     found = re.findall(compiled_pattern, job_params)
-    container_path = found[0] if len(found) > 0 else ""
+    container_path = found[0] if found else ""
 
     # Remove the pattern and update the job parameters
     job_params = re.sub(pattern, ' ', job_params)
@@ -830,7 +822,7 @@ def singularity_wrapper(cmd, workdir, job=None):
         queuedata = infoservice.queuedata
 
     container_name = queuedata.container_type.get("pilot")  # resolve container name for user=pilot
-    logger.debug("resolved container_name from queuedata.container_type: %s" % container_name)
+    logger.debug("resolved container_name from queuedata.container_type: %s", container_name)
 
     if container_name == 'singularity':
         logger.info("singularity has been requested")
@@ -842,7 +834,7 @@ def singularity_wrapper(cmd, workdir, job=None):
         else:
             singularity_options = "-B "
         singularity_options += "/cvmfs,${workdir},/home"
-        logger.debug("using singularity_options: %s" % singularity_options)
+        logger.debug("using singularity_options: %s", singularity_options)
 
         # Get the image path
         if job:
@@ -863,7 +855,7 @@ def singularity_wrapper(cmd, workdir, job=None):
         else:
             logger.warning("singularity options found but image does not exist")
 
-        logger.info("updated command: %s" % cmd)
+        logger.info("updated command: %s", cmd)
 
     return cmd
 
@@ -882,8 +874,8 @@ def create_root_container_command(workdir, cmd):
 
     try:
         status = write_file(os.path.join(workdir, script_name), content)
-    except PilotException as e:
-        raise e
+    except PilotException as exc:
+        raise exc
     else:
         if status:
             # generate the final container command
@@ -894,7 +886,7 @@ def create_root_container_command(workdir, cmd):
             command += get_asetup(alrb=True)  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
             command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c CentOS7'
 
-    logger.debug('container command: %s' % command)
+    logger.debug('container command: %s', command)
 
     return command
 
@@ -936,8 +928,8 @@ def create_middleware_container_command(workdir, cmd, container_options, label='
 
     try:
         status = write_file(os.path.join(workdir, script_name), content)
-    except PilotException as e:
-        raise e
+    except PilotException as exc:
+        raise exc
     else:
         if status:
             # generate the final container command
@@ -951,7 +943,7 @@ def create_middleware_container_command(workdir, cmd, container_options, label='
             command += ' ' + get_container_options(container_options)
             command = command.replace('  ', ' ')
 
-    logger.debug('container command: %s' % command)
+    logger.debug('container command: %s', command)
 
     return command
 
@@ -966,7 +958,7 @@ def get_root_container_script(cmd):
 
     # content = 'lsetup \'root 6.20.06-x86_64-centos7-gcc8-opt\'\npython %s\nexit $?' % cmd
     content = 'lsetup \'root pilot\'\npython %s\nexit $?' % cmd
-    logger.debug('root setup script content:\n\n%s\n\n' % content)
+    logger.debug('root setup script content:\n\n%s\n\n', content)
 
     return content
 
@@ -999,7 +991,7 @@ def get_middleware_container_script(middleware_container, cmd, asetup=False, lab
     if not asetup:
         content += '\nexit $?'
 
-    logger.debug('content:\n%s' % content)
+    logger.debug('middleware container content:\n%s', content)
 
     return content
 
@@ -1017,8 +1009,8 @@ def get_middleware_container(label=None):
 
     path = config.Container.middleware_container
     if path.startswith('/') and not os.path.exists(path):
-        logger.warning('requested middleware container path does not exist: %s (switching to default value)' % path)
+        logger.warning('requested middleware container path does not exist: %s (switching to default value)', path)
         path = 'CentOS7'
-    logger.info('using image: %s for middleware container' % path)
+    logger.info('using image: %s for middleware container', path)
 
     return path

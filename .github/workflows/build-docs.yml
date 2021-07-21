@@ -26,20 +26,9 @@ jobs:
             - name: Check sphinx version
               run: python -c "import sphinx;print(sphinx.__version__)"
 
-            - name: Create html docs
-              run: |
-                  cd ./doc
-                  make github 
-
-            - name: Add nojekyll file to repo root dir
-              run: |
-                  touch .nojekyll
-
-            - name: Push docs to repo
-              run: |
-                  git config user.name "brinick"
-                  git config user.email "brinick@users.noreply.github.com"
-                  git add docs .nojekyll
-                  git commit -m "Adding Pilot documentation"
-                  git push 
+            - name: Trigger panda-docs webhook
+              env:
+                READDOCS_TOKEN: ${{ secrets.READDOCS_TOKEN }}
+                READDOCS_HOOK: ${{ secrets.READDOCS_HOOK }}
+              run: curl -X POST -d "token=$READDOCS_TOKEN" $READDOCS_HOOK
 

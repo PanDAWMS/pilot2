@@ -5,14 +5,14 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2020-2021
 
 import os
+import logging
 
 # from .utilities import get_memory_values
 from pilot.util.container import execute
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -33,8 +33,8 @@ def get_core_count(job):
             if 'ATHENA_PROC_NUMBER' in os.environ:
                 try:
                     job.corecount = int(os.environ.get('ATHENA_PROC_NUMBER'))
-                except Exception as e:
-                    logger.warning("ATHENA_PROC_NUMBER is not properly set: %s (will use existing job.corecount value)" % e)
+                except (ValueError, TypeError) as exc:
+                    logger.warning("ATHENA_PROC_NUMBER is not properly set: %s (will use existing job.corecount value)", exc)
         else:
             try:
                 job.corecount = int(os.environ.get('ATHENA_PROC_NUMBER'))
@@ -76,13 +76,13 @@ def set_core_counts(job):
     #    if 'nprocs' in summary_dictionary["Other"]:
     #        try:
     #            job.actualcorecount = int(summary_dictionary["Other"]["nprocs"])
-    #        except Exception as e:
-    #            logger.warning('exception caught: %s' % e)
+    #        except Exception as exc:
+    #            logger.warning('exception caught: %s', exc)
     #        else:
     #            job.corecounts = add_core_count(job.actualcorecount)
-    #            logger.debug('current core counts list: %s' % str(job.corecounts))
+    #            logger.debug('current core counts list: %s', str(job.corecounts))
     #    else:
-    #        logger.debug('summary_dictionary[Other]=%s' % summary_dictionary["Other"])
+    #        logger.debug('summary_dictionary[Other]=%s', summary_dictionary["Other"])
     #else:
     #    logger.debug('no summary_dictionary')
 
@@ -90,26 +90,26 @@ def set_core_counts(job):
         # for debugging
         #cmd = "ps axo pgid,psr,comm,args | grep %d" % job.pgrp
         #exit_code, stdout, stderr = execute(cmd, mute=True)
-        #logger.debug('%s:\n%s\n' % (cmd, stdout))
+        #logger.debug('%s:\n%s\n', cmd, stdout)
 
         # ps axo pgid,psr -> 154628   8 \n 154628   9 \n 1546280 1 ..
         # sort is redundant; uniq removes any duplicate lines; wc -l gives the final count
         # awk is added to get the pgrp list only and then grep -x makes sure that false positives are removed, e.g. 1546280
         cmd = "ps axo pgid,psr | sort | grep %d | uniq | awk '{print $1}' | grep -x %d | wc -l" % (job.pgrp, job.pgrp)
-        exit_code, stdout, stderr = execute(cmd, mute=True)
-        logger.debug('%s: %s' % (cmd, stdout))
+        _, stdout, _ = execute(cmd, mute=True)
+        logger.debug('%s: %s', cmd, stdout)
         try:
             job.actualcorecount = int(stdout)
-        except Exception as e:
-            logger.warning('failed to convert number of actual cores to int: %s' % e)
+        except ValueError as exc:
+            logger.warning('failed to convert number of actual cores to int: %s', exc)
         else:
             job.corecounts = add_core_count(job.actualcorecount)  #, core_counts=job.corecounts)
-            #logger.debug('current core counts list: %s' % str(job.corecounts))
+            #logger.debug('current core counts list: %s', str(job.corecounts))
             # check suspicious values
             #if job.actualcorecount > 5:
-            #    logger.warning('detected large actualcorecount: %d' % job.actualcorecount)
+            #    logger.warning('detected large actualcorecount: %d', job.actualcorecount)
             #    cmd = "ps axo pgid,stat,euid,ruid,tty,tpgid,sess,pgrp,ppid,pid,pcpu,comm | sort | uniq | grep %d" % job.pgrp
             #    exit_code, stdout, stderr = execute(cmd, mute=True)
-            #    logger.debug('%s (pgrp=%d): %s' % (cmd, job.pgrp, stdout))
+            #    logger.debug('%s (pgrp=%d): %s', cmd, job.pgrp, stdout)
     else:
         logger.debug('payload process group not set - cannot check number of cores used by payload')
