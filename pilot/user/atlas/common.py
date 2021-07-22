@@ -71,7 +71,7 @@ from pilot.util.filehandling import (
     remove, remove_dir_tree, remove_core_dumps, read_file, read_json,
     update_extension,
     write_file,
-    # read_list
+    get_disk_usage
 )
 from pilot.util.processes import (
     convert_ps_to_dict,
@@ -1535,7 +1535,7 @@ def parse_jobreport_data(job_report):  # noqa: C901
 
         work_attributes.update(fin_report)
 
-    workdir_size = get_workdir_size()
+    workdir_size = get_disk_usage('.')
     work_attributes['jobMetrics'] = 'coreCount=%s nEvents=%s dbTime=%s dbData=%s workDirSize=%s' % \
                                     (core_count,
                                         work_attributes["nEvents"],
@@ -1546,18 +1546,6 @@ def parse_jobreport_data(job_report):  # noqa: C901
     del work_attributes["dbTime"]
 
     return work_attributes
-
-
-def get_workdir_size():
-    """
-    Tmp function - move later to file_handling
-
-    :return:
-    """
-    _, stdout, _ = execute('du -s', shell=True)
-    if stdout is not None:
-        return stdout.split()[0]
-    return None
 
 
 def get_executor_dictionary(jobreport_dictionary):

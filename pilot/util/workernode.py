@@ -11,7 +11,7 @@ import os
 import re
 
 from pilot.info import infosys
-from pilot.util.disk import disk_usage
+from pilot.util.filehandling import get_disk_usage
 
 import logging
 logger = logging.getLogger(__name__)
@@ -119,8 +119,8 @@ def get_disk_space(queuedata):
     logger.debug("resolved value: queuedata.maxwdir=%s B", _maxinputsize)
 
     try:
-        du = disk_usage(os.path.abspath("."))
-        _diskspace = int(du[2] / (1024 * 1024))  # need to convert from B to MB
+        du = get_disk_usage(os.path.abspath("."))
+        _diskspace = int(du / (1024 * 1024))  # need to convert from B to MB
     except ValueError as error:
         logger.warning("failed to extract disk space: %s (will use schedconfig default)", error)
         _diskspace = _maxinputsize

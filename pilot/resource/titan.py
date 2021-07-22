@@ -18,7 +18,6 @@ from .jobdescription import JobDescription  # Python 2/3
 from pilot.common.exception import FileHandlingFailure
 from pilot.util.config import config
 from pilot.util.constants import PILOT_PRE_STAGEIN, PILOT_POST_STAGEIN
-from pilot.util.disk import disk_usage
 from pilot.util.filehandling import read_json, write_json, remove
 #from pilot.util.mpi import get_ranks_info
 from pilot.util.timing import add_to_pilot_timing
@@ -118,8 +117,6 @@ def set_scratch_workdir(job, work_dir, args):
     """
 
     scratch_path = config.HPC.scratch
-    du = disk_usage(scratch_path)
-    logger.info("Scratch dir available space: {0} used: {1}".format(du.free, du.used))
     job_scratch_dir = os.path.join(scratch_path, str(job.jobid))
     for inp_file in job.input_files:
         job.input_files[inp_file]["scratch_path"] = job_scratch_dir
@@ -181,8 +178,6 @@ def set_scratch_workdir(job, work_dir, args):
     true_dir = '/ccs/proj/csc108/AtlasReleases/21.0.15/nfs_db_files'
     pseudo_dir = "./poolcond"
     os.symlink(true_dir, pseudo_dir)
-    du = disk_usage(scratch_path)
-    logger.info("Scratch dir available space for job: {0} used: {1}".format(du.free, du.used))
 
     return job_scratch_dir
 

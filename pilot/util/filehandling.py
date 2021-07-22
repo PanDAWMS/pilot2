@@ -584,27 +584,6 @@ def find_executable(name):
     return find_executable(name)
 
 
-def get_directory_size(directory="."):
-    """
-    Return the size of the given directory in B.
-
-    :param directory: directory name (string).
-    :return: size of directory (int).
-    """
-
-    size = 0
-
-    exit_code, stdout, stderr = execute('du -sk %s' % directory, shell=True)
-    if stdout is not None:
-        try:
-            # convert to int and B
-            size = int(stdout.split()[0]) * 1024
-        except Exception as exc:
-            logger.warning('exception caught while trying convert dirsize: %s', exc)
-
-    return size
-
-
 def add_to_total_size(path, total_size):
     """
     Add the size of file in the given path to the total size of all in/output files.
@@ -1145,3 +1124,22 @@ def find_last_line(filename):
         last_line = line
 
     return last_line
+
+
+def get_disk_usage(start_path='.'):
+    """
+    Calculate the disk usage of the given directory (including any sub-directories).
+
+    :param start_path: directory (string).
+    :return: disk usage in bytes (int).
+    """
+
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(start_path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            # skip if it is symbolic link
+            if not os.path.islink(fp):
+                total_size += os.path.getsize(fp)
+
+    return total_size
