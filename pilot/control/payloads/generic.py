@@ -235,7 +235,7 @@ class Executor(object):
             cmd = '%s %s' % (cmd_dictionary.get('command'), cmd_dictionary.get('args'))
             logger.info('utility command (\'%s\') to be executed after the payload has finished: %s', cmd_dictionary.get('label', 'utility'), cmd)
 
-        return cmd, cmd_dictionary.get('label')
+        return cmd, cmd_dictionary.get('label'), cmd_dictionary.get('ignore_failure')
 
     def execute_utility_command(self, cmd, job, label):
         """
@@ -695,9 +695,10 @@ class Executor(object):
 
         _exit_code = 0
         try:
-            cmd_after_payload, label = self.utility_after_payload_finished(self.__job, order)
+            cmd_after_payload, label, ignore_failure = self.utility_after_payload_finished(self.__job, order)
         except Exception as error:
             logger.error(error)
+            ignore_failure = False
         else:
             if cmd_after_payload and self.__job.postprocess and state != 'failed':
                 cmd_after_payload = self.__job.setup + cmd_after_payload
@@ -705,22 +706,11 @@ class Executor(object):
                 _exit_code = self.execute_utility_command(cmd_after_payload, self.__job, label)
             elif cmd_after_payload:
                 logger.info("\n\npostprocess execution command:\n\n%s\n", cmd_after_payload)
-
-                # xcache debug
-                #if 'xcache' in cmd_after_payload:
-                #    _exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
-                #    logger.debug('[before xcache kill] stdout=%s', _stdout)
-                #    logger.debug('[before xcache kill] stderr=%s', _stderr)
-
                 _exit_code = self.execute_utility_command(cmd_after_payload, self.__job, label)
 
-                # xcache debug
-                #if 'xcache' in cmd_after_payload:
-                #    _exit_code, _stdout, _stderr = execute('pgrep -x xrootd | awk \'{print \"ps -p \"$1\" -o args --no-headers --cols 300\"}\' | sh')
-                #    logger.debug('[after xcache kill] stdout=%s', _stdout)
-                #    logger.debug('[after xcache kill] stderr=%s', _stderr)
-
-        if _exit_code and not exit_code:
+        # only set a new non-zero exit code if exit_code was not already set and ignore_failure is False
+        # (e.g. any Xcache failure should be ignored to prevent job from failing since exit_code might get updated)
+        if _exit_code and not exit_code and not ignore_failure:
             exit_code = _exit_code
 
         return exit_code

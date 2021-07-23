@@ -2077,7 +2077,7 @@ def get_utility_commands(order=None, job=None):
     If order=UTILITY_WITH_STAGEIN, the commands that should be executed
     parallel with stage-in will be returned.
 
-    FORMAT: {'command': <command>, 'args': <args>, 'label': <some name>}
+    FORMAT: {'command': <command>, 'args': <args>, 'label': <some name>, 'ignore_failure': <Boolean>}
 
     :param order: optional sorting order (see pilot.util.constants).
     :param job: optional job object.
@@ -2088,7 +2088,7 @@ def get_utility_commands(order=None, job=None):
         return get_precopostprocess_command(job.preprocess, job.workdir, 'preprocess')
 
     if order == UTILITY_WITH_PAYLOAD:
-        return {'command': 'NetworkMonitor', 'args': '', 'label': 'networkmonitor'}
+        return {'command': 'NetworkMonitor', 'args': '', 'label': 'networkmonitor', 'ignore_failure': True}
 
     if order == UTILITY_AFTER_PAYLOAD_STARTED:
         return get_utility_after_payload_started()
@@ -2137,6 +2137,7 @@ def get_precopostprocess_command(process, workdir, label):
     if process.get('command', ''):
         com = download_command(process, workdir)
         com['label'] = label
+        com['ignore_failure'] = False
     return com
 
 
@@ -2156,7 +2157,7 @@ def get_utility_after_payload_started():
         pass
     else:
         if cmd:
-            com = {'command': cmd, 'args': '', 'label': cmd.lower()}
+            com = {'command': cmd, 'args': '', 'label': cmd.lower(), 'ignore_failure': True}
     return com
 
 
@@ -2178,6 +2179,7 @@ def get_xcache_command(catchall, workdir, jobid, label, xcache_function):
     if 'pilotXcache' in catchall:
         com = xcache_function(jobid=jobid, workdir=workdir)
         com['label'] = label
+        com['ignore_failure'] = True
     return com
 
 
