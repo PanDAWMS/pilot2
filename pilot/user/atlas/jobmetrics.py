@@ -7,6 +7,10 @@
 # Authors:
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018-2021
 
+import os
+import re
+import logging
+
 from pilot.api import analytics
 from pilot.util.jobmetrics import get_job_metrics_entry
 from pilot.util.filehandling import find_last_line
@@ -15,9 +19,6 @@ from .cpu import get_core_count
 from .common import get_db_info, get_resimevents
 from .utilities import get_memory_monitor_output_filename
 
-import os
-import re
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -65,7 +66,7 @@ def get_job_metrics_string(job):
 
         try:
             zero = long(0)  # Python 2 # noqa: F821
-        except Exception:
+        except NameError:
             zero = 0  # Python 3
 
         if max_space > zero:
@@ -185,7 +186,7 @@ def get_number_in_string(line, pattern=r'\ done\ processing\ event\ \#(\d+)\,'):
     if match:
         try:
             event_number = int(match.group(1))
-        except Exception:
+        except (TypeError, ValueError):
             pass
 
     return event_number

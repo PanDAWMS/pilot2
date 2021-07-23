@@ -5,7 +5,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2020
+# - Paul Nilsson, paul.nilsson@cern.ch, 2017-2021
 
 import os
 from signal import SIGTERM
@@ -116,6 +116,7 @@ def remove_redundant_files(workdir, outputfiles=[], islooping=False, debugmode=F
     :param workdir: working directory (string).
     :param outputfiles: list of output files.
     :param islooping: looping job variable to make sure workDir is not removed in case of looping (boolean).
+    :param debugmode: True if debug mode has been switched on (Boolean).
     :return:
     """
 
@@ -293,4 +294,9 @@ def allow_timefloor(submitmode):
     :param submitmode: submit mode (string).
     """
 
-    return True
+    allow = True
+    if submitmode.lower() == 'push':
+        logger.info('Since the submitmode=push, override timefloor with zero manually')
+        allow = False
+
+    return allow

@@ -10,11 +10,11 @@
 import os
 import re
 import tarfile
+import logging
 
 from pilot.common.exception import FileHandlingFailure, PilotException
 from pilot.util.filehandling import write_file, mkdirs, rmdirs
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -28,14 +28,14 @@ def extract_version(name):
     version = ""
 
     re_v = re.compile(r'DBRelease-(\d+\.\d+\.\d+)\.tar\.gz')  # Python 3 (added r)
-    v = re_v.search(name)
-    if v:
-        version = v.group(1)
+    ver = re_v.search(name)
+    if ver:
+        version = ver.group(1)
     else:
         re_v = re.compile(r'DBRelease-(\d+\.\d+\.\d+\.\d+)\.tar\.gz')  # Python 3 (added r)
-        v = re_v.search(name)
-        if v:
-            version = v.group(1)
+        ver = re_v.search(name)
+        if ver:
+            version = ver.group(1)
 
     return version
 
@@ -119,25 +119,25 @@ def create_setup_file(version, path):
     status = False
 
     # get the DBRelease directory
-    d = get_dbrelease_dir()
-    if d != "" and version != "":
+    _dir = get_dbrelease_dir()
+    if _dir != "" and version != "":
         # create the python code string to be written to file
         txt = "import os\n"
         txt += "os.environ['DBRELEASE'] = '%s'\n" % version
-        txt += "os.environ['DATAPATH'] = '%s/%s:' + os.environ['DATAPATH']\n" % (d, version)
+        txt += "os.environ['DATAPATH'] = '%s/%s:' + os.environ['DATAPATH']\n" % (dir, version)
         txt += "os.environ['DBRELEASE_REQUIRED'] = '%s'\n" % version
         txt += "os.environ['DBRELEASE_REQUESTED'] = '%s'\n" % version
-        txt += "os.environ['CORAL_DBLOOKUP_PATH'] = '%s/%s/XMLConfig'\n" % (d, version)
+        txt += "os.environ['CORAL_DBLOOKUP_PATH'] = '%s/%s/XMLConfig'\n" % (dir, version)
 
         try:
             status = write_file(path, txt)
-        except FileHandlingFailure as error:
-            logger.warning('failed to create DBRelease setup file: %s', error)
+        except FileHandlingFailure as exc:
+            logger.warning('failed to create DBRelease setup file: %s', exc)
         else:
             logger.info("Created setup file with the following content:.................................\n%s", txt)
             logger.info("...............................................................................")
     else:
-        logger.warning('failed to create %s for DBRelease version=%s and directory=%s', path, version, d)
+        logger.warning('failed to create %s for DBRelease version=%s and directory=%s', path, version, _dir)
 
     return status
 
@@ -158,8 +158,8 @@ def create_dbrelease(version, path):
     _path = os.path.join(dbrelease_path, version)
     try:
         mkdirs(_path, chmod=None)
-    except PilotException as error:
-        logger.warning('failed to create directories for DBRelease: %s', error)
+    except PilotException as exc:
+        logger.warning('failed to create directories for DBRelease: %s', exc)
     else:
         logger.debug('created directories: %s', _path)
 
@@ -175,8 +175,8 @@ def create_dbrelease(version, path):
             logger.info("creating file: %s", filename)
             try:
                 tar = tarfile.open(filename, "w:gz")
-            except Exception as error:
-                logger.warning("could not create DBRelease tar file: %s", error)
+            except (IOError, OSError) as exc:
+                logger.warning("could not create DBRelease tar file: %s", exc)
             else:
                 if tar:
                     # add the setup file to the tar file
@@ -186,8 +186,8 @@ def create_dbrelease(version, path):
                     try:
                         _link = os.path.join(path, "DBRelease/current")
                         os.symlink(version, _link)
-                    except Exception as error:
-                        logger.warning("failed to create symbolic link %s: %s", _link, error)
+                    except OSError as exc:
+                        logger.warning("failed to create symbolic link %s: %s", _link, exc)
                     else:
                         logger.warning("created symbolic link: %s", _link)
 

@@ -388,28 +388,24 @@ class ErrorCodes:
         :return: pilot error code (int)
         """
 
-        ec = 0
         if exit_code == 251 and "Not mounting requested bind point" in stderr:
-            ec = self.SINGULARITYBINDPOINTFAILURE
+            exit_code = self.SINGULARITYBINDPOINTFAILURE
         elif exit_code == 255 and "No more available loop devices" in stderr:
-            ec = self.SINGULARITYNOLOOPDEVICES
+            exit_code = self.SINGULARITYNOLOOPDEVICES
         elif exit_code == 255 and "Failed to mount image" in stderr:
-            ec = self.SINGULARITYIMAGEMOUNTFAILURE
+            exit_code = self.SINGULARITYIMAGEMOUNTFAILURE
         elif exit_code == 255 and "Operation not permitted" in stderr:
-            ec = self.SINGULARITYGENERALFAILURE
+            exit_code = self.SINGULARITYGENERALFAILURE
         elif "Singularity is not installed" in stderr:  # exit code should be 64 but not always?
-            ec = self.SINGULARITYNOTINSTALLED
+            exit_code = self.SINGULARITYNOTINSTALLED
         elif exit_code == 64 and "cannot create directory" in stderr:
-            ec = self.MKDIR
+            exit_code = self.MKDIR
         elif exit_code == -1:
-            ec = self.UNKNOWNTRFFAILURE
-        #else:
-            # do not assign a pilot error code for unidentified transform error, return 0
-            # ec = 0
+            exit_code = self.UNKNOWNTRFFAILURE
+        elif exit_code != 0:
+            exit_code = self.PAYLOADEXECUTIONFAILURE
 
-        if not ec:
-            ec = exit_code
-        return ec
+        return exit_code
 
     def extract_stderr_error(self, stderr):
         """

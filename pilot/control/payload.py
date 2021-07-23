@@ -340,14 +340,15 @@ def perform_initial_payload_error_analysis(job, exit_code):
     :return:
     """
 
+    if exit_code != 0:
+        logger.warning('main payload execution returned non-zero exit code: %d', exit_code)
+
     # look for singularity errors (the exit code can be zero in this case)
     stderr = read_file(os.path.join(job.workdir, config.Payload.payloadstderr))
-    if stderr:
-        exit_code = errors.resolve_transform_error(exit_code, stderr)
+    exit_code = errors.resolve_transform_error(exit_code, stderr)
 
     if exit_code != 0:
         msg = ""
-        logger.warning('main payload execution returned non-zero exit code: %d', exit_code)
         if stderr != "":
             msg = errors.extract_stderr_error(stderr)
             if msg == "":
@@ -362,6 +363,7 @@ def perform_initial_payload_error_analysis(job, exit_code):
 
         if msg:
             msg = errors.format_diagnostics(exit_code, msg)
+
         job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(exit_code, msg=msg)
 
         '''
@@ -383,8 +385,9 @@ def perform_initial_payload_error_analysis(job, exit_code):
         logger.info('main payload execution returned zero exit code')
 
     # check if core dumps exist, if so remove them and return True
-    if remove_core_dumps(job.workdir) and not job.debug:
-        job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.COREDUMP)
+    if not job.debug:  # do not shorten these if-statements
+        if remove_core_dumps(job.workdir):
+            job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.COREDUMP)
 
 
 def set_error_code_from_stderr(msg, fatal):

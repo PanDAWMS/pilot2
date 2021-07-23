@@ -574,12 +574,12 @@ def add_athena_proc_number(cmd):
     # get the values if they exist
     try:
         value1 = int(os.environ['ATHENA_PROC_NUMBER_JOB'])
-    except (TypeError, ValueError) as exc:
+    except (TypeError, KeyError, ValueError) as exc:
         logger.warning('failed to convert ATHENA_PROC_NUMBER_JOB to int: %s', exc)
         value1 = None
     try:
         value2 = int(os.environ['ATHENA_CORE_NUMBER'])
-    except (TypeError, ValueError) as exc:
+    except (TypeError, KeyError, ValueError) as exc:
         logger.warning('failed to convert ATHENA_CORE_NUMBER to int: %s', exc)
         value2 = None
 
@@ -645,7 +645,7 @@ def add_makeflags(job_core_count, cmd):
     # ATHENA_PROC_NUMBER is set in Node.py using the schedconfig value
     try:
         core_count = int(os.environ.get('ATHENA_PROC_NUMBER'))
-    except (TypeError, ValueError):
+    except (TypeError, KeyError, ValueError):
         core_count = -1
 
     if core_count == -1:
@@ -1454,6 +1454,10 @@ def get_outfiles_records(subfiles):
 
 
 class DictQuery(dict):
+    """
+    Helper class for parsing job report.
+    """
+
     def get(self, path, dst_dict, dst_key):
         keys = path.split("/")
         if len(keys) == 0:
@@ -1920,6 +1924,12 @@ def cleanup_broken_links(workdir):
 
 
 def list_work_dir(workdir):
+    """
+    Execute ls -lF for the given directory and dump to log.
+
+    :param workdir: directory name (string).
+    """
+
     cmd = 'ls -lF %s' % workdir
     _, stdout, stderr = execute(cmd)
     logger.debug('%s:\n' % stdout + stderr)
@@ -1974,8 +1984,7 @@ def remove_redundant_files(workdir, outputfiles=None, islooping=False, debugmode
 
     :param workdir: working directory (string).
     :param outputfiles: list of protected output files (list).
-    :param islooping: looping job variable to make sure workDir
-    is not removed in case of looping (boolean).
+    :param islooping: looping job variable to make sure workDir is not removed in case of looping (Boolean).
     :param debugmode: True if debug mode has been switched on (Boolean).
     :return:
     """
@@ -2638,7 +2647,10 @@ def update_server(job):
 
 def preprocess_debug_command(job):
     """
+    Pre-process the debug command in debug mode.
 
+    :param job: Job object.
+    :return:
     """
 
     # Should the pilot do the setup or does jobPars already contain the information?
@@ -2725,3 +2737,13 @@ def process_debug_command(debug_command, pandaid):
             debug_command = ''
 
     return debug_command
+
+
+def allow_timefloor(submitmode):
+    """
+    Should the timefloor mechanism (multi-jobs) be allowed for the given submit mode?
+
+    :param submitmode: submit mode (string).
+    """
+
+    return True

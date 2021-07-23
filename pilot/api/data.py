@@ -19,6 +19,7 @@ import time
 
 try:
     from functools import reduce  # Python 3
+#except ModuleNotFoundError:  # Python 3
 except Exception:
     pass
 

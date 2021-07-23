@@ -58,8 +58,8 @@ def mkdirs(workdir, chmod=0o770):  # Python 2/3
         os.makedirs(workdir)
         if chmod:
             os.chmod(workdir, chmod)
-    except Exception as error:
-        raise MKDirFailure(error)
+    except Exception as exc:
+        raise MKDirFailure(exc)
 
 
 def rmdirs(path):
@@ -74,8 +74,8 @@ def rmdirs(path):
 
     try:
         rmtree(path)
-    except OSError as error:
-        logger.warning("failed to remove directories %s: %s", path, error)
+    except OSError as exc:
+        logger.warning("failed to remove directories %s: %s", path, exc)
     else:
         status = True
 
@@ -122,8 +122,8 @@ def write_file(path, contents, mute=True, mode='w', unique=False):
     if f:
         try:
             f.write(contents)
-        except IOError as error:
-            raise FileHandlingFailure(error)
+        except IOError as exc:
+            raise FileHandlingFailure(exc)
         else:
             status = True
         f.close()
@@ -151,8 +151,8 @@ def open_file(filename, mode):
     f = None
     try:
         f = open(filename, mode)
-    except IOError as error:
-        raise FileHandlingFailure(error)
+    except IOError as exc:
+        raise FileHandlingFailure(exc)
 
     return f
 
@@ -329,8 +329,8 @@ def read_list(filename):
     try:
         with open(filename, 'r') as filehandle:
             _list = load(filehandle)
-    except IOError as error:
-        logger.warning('failed to read %s: %s', filename, error)
+    except IOError as exc:
+        logger.warning('failed to read %s: %s', filename, exc)
 
     return convert(_list)
 
@@ -349,8 +349,8 @@ def read_json(filename):
     if f:
         try:
             dictionary = load(f)
-        except Exception as error:
-            logger.warning('exception caught: %s', error)
+        except Exception as exc:
+            logger.warning('exception caught: %s', exc)
             #raise FileHandlingFailure(str(error))
         else:
             f.close()
@@ -359,8 +359,8 @@ def read_json(filename):
             if dictionary != {}:
                 try:
                     dictionary = convert(dictionary)
-                except Exception as error:
-                    raise ConversionFailure(error)
+                except Exception as exc:
+                    raise ConversionFailure(exc)
 
     return dictionary
 
@@ -383,8 +383,8 @@ def write_json(filename, data, sort_keys=True, indent=4, separators=(',', ': '))
     try:
         with open(filename, 'w') as fh:
             dumpjson(data, fh, sort_keys=sort_keys, indent=indent, separators=separators)
-    except IOError as error:
-        raise FileHandlingFailure(error)
+    except IOError as exc:
+        raise FileHandlingFailure(exc)
     else:
         status = True
 
@@ -434,9 +434,12 @@ def remove(path):
 
     try:
         os.remove(path)
-    except OSError as error:
-        logger.warning("failed to remove file: %s (%s, %s)", path, error.errno, error.strerror)
+    except OSError as exc:
+        logger.warning("failed to remove file: %s (%s, %s)", path, exc.errno, exc.strerror)
         return -1
+    else:
+        logger.debug('removed %s', path)
+
     return 0
 
 
@@ -449,8 +452,8 @@ def remove_dir_tree(path):
 
     try:
         rmtree(path)
-    except OSError as error:
-        logger.warning("failed to remove directory: %s (%s, %s)", path, error.errno, error.strerror)
+    except OSError as exc:
+        logger.warning("failed to remove directory: %s (%s, %s)", path, exc.errno, exc.strerror)
         return -1
     return 0
 
@@ -539,9 +542,9 @@ def move(path1, path2):
     try:
         import shutil
         shutil.move(path1, path2)
-    except IOError as error:
-        logger.warning("exception caught during file move: %s", error)
-        raise FileHandlingFailure(error)
+    except IOError as exc:
+        logger.warning("exception caught during file move: %s", exc)
+        raise FileHandlingFailure(exc)
     else:
         logger.info("moved %s to %s", path1, path2)
 
@@ -562,9 +565,9 @@ def copy(path1, path2):
 
     try:
         copy2(path1, path2)
-    except IOError as error:
-        logger.warning("exception caught during file copy: %s", error)
-        raise FileHandlingFailure(error)
+    except IOError as exc:
+        logger.warning("exception caught during file copy: %s", exc)
+        raise FileHandlingFailure(exc)
     else:
         logger.info("copied %s to %s", path1, path2)
 
@@ -596,8 +599,8 @@ def get_directory_size(directory="."):
         try:
             # convert to int and B
             size = int(stdout.split()[0]) * 1024
-        except Exception as error:
-            logger.warning('exception caught while trying convert dirsize: %s', error)
+        except Exception as exc:
+            logger.warning('exception caught while trying convert dirsize: %s', exc)
 
     return size
 
@@ -639,8 +642,8 @@ def get_local_file_size(filename):
     if os.path.exists(filename):
         try:
             file_size = os.path.getsize(filename)
-        except Exception as error:
-            logger.warning("failed to get file size: %s", error)
+        except Exception as exc:
+            logger.warning("failed to get file size: %s", exc)
     else:
         logger.warning("local file does not exist: %s", filename)
 
@@ -683,8 +686,8 @@ def get_table_from_file(filename, header=None, separator="\t", convert_to_float=
 
     try:
         f = open_file(filename, 'r')
-    except Exception as error:
-        logger.warning("failed to open file: %s, %s", filename, error)
+    except Exception as exc:
+        logger.warning("failed to open file: %s, %s", filename, exc)
     else:
         firstline = True
         for line in f:
@@ -704,8 +707,8 @@ def get_table_from_file(filename, header=None, separator="\t", convert_to_float=
                 if convert_to_float:
                     try:
                         field = float(field)
-                    except Exception as error:
-                        logger.warning("failed to convert %s to float: %s (aborting)", field, error)
+                    except Exception as exc:
+                        logger.warning("failed to convert %s to float: %s (aborting)", field, exc)
                         return None
                 tabledict[key].append(field)
                 i += 1
@@ -927,8 +930,8 @@ def find_latest_modified_file(list_of_files):
     try:
         latest_file = max(list_of_files, key=os.path.getmtime)
         mtime = int(os.path.getmtime(latest_file))
-    except Exception as error:
-        logger.warning("int conversion failed for mod time: %s", error)
+    except OSError as exc:
+        logger.warning("int conversion failed for mod time: %s", exc)
         latest_file = ""
         mtime = None
 
@@ -1084,8 +1087,8 @@ def copy_pilot_source(workdir):
         if exit_code != 0:
             diagnostics = 'file copy failed: %d, %s' % (exit_code, stdout)
             logger.warning(diagnostics)
-    except Exception as error:
-        diagnostics = 'exception caught when copying pilot2 source: %s' % error
+    except Exception as exc:
+        diagnostics = 'exception caught when copying pilot2 source: %s' % exc
         logger.warning(diagnostics)
 
     return diagnostics
@@ -1101,8 +1104,8 @@ def create_symlink(from_path='', to_path=''):
 
     try:
         os.symlink(from_path, to_path)
-    except Exception as error:
-        logger.warning('failed to create symlink from %s to %s: %s', from_path, to_path, error)
+    except Exception as exc:
+        logger.warning('failed to create symlink from %s to %s: %s', from_path, to_path, exc)
     else:
         logger.debug('created symlink from %s to %s', from_path, to_path)
 
