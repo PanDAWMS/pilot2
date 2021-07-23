@@ -467,7 +467,7 @@ class Executor(object):
                     os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
                     break
                 exit_code = proc.poll()
-                if exit_code:
+                if exit_code is not None:
                     break
                 time.sleep(1)
             if breaker:
