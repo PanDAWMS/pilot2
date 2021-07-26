@@ -13,7 +13,6 @@ import logging
 
 from pilot.info import infosys
 from pilot.util.disk import disk_usage
-from pilot.util.filehandling import get_disk_usage
 
 logger = logging.getLogger(__name__)
 

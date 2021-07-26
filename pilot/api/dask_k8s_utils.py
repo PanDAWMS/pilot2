@@ -12,7 +12,7 @@
 import os
 
 from kubernetes import client, config
-from kubernetes.client.rest import ApiException
+# from kubernetes.client.rest import ApiException
 
 
 class k8s_Client(object):
@@ -35,12 +35,13 @@ class k8s_Client(object):
     def create_ssh_keys_secret(work_spec):
         return True
 
-    def create_dask_head(self, work_spec, panda_queue, evaluation_image,
-                            pilot_image, cert, dfs_claim_name,
-                            cpu_adjust_ratio=100, memory_adjust_ratio=100, max_time=None):
+    def create_dask_head(self, work_spec, panda_queue, evaluation_image, pilot_image, cert, dfs_claim_name,
+                         cpu_adjust_ratio=100, memory_adjust_ratio=100, max_time=None):
+        """
 
-        worker_id = str(work_spec.workerID)
+        """
 
+        #worker_id = str(work_spec.workerID)
         #tmp_log = core_utils.make_logger(base_logger, 'workerID={0}'.format(worker_id),
         #                                 method_name='create_dask_head')
 
@@ -50,11 +51,9 @@ class k8s_Client(object):
         if not self.create_host_discovery_configmap(work_spec):
             return False
 
-    def create_dask_formation(self, work_spec, prod_source_label, panda_queue,
-                                 evaluation_image, pilot_image,
-                                 worker_command, cert, dfs_claim_name,
-                                 cpu_adjust_ratio=100, memory_adjust_ratio=100,
-                                 max_time=None):
+    def create_dask_formation(self, work_spec, prod_source_label, panda_queue, evaluation_image, pilot_image,
+                              worker_command, cert, dfs_claim_name, cpu_adjust_ratio=100, memory_adjust_ratio=100,
+                              max_time=None):
 
         rsp = self.create_ssh_keys_secret(work_spec)
         if not rsp:
@@ -72,4 +71,3 @@ class k8s_Client(object):
             return rsp
 
         return True
-
