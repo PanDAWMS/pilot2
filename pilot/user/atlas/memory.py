@@ -9,10 +9,10 @@
 
 import logging
 
-from .utilities import get_memory_values
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import set_pilot_state
 from pilot.util.processes import kill_processes
+from .utilities import get_memory_values
 
 logger = logging.getLogger(__name__)
 errors = ErrorCodes()
@@ -51,7 +51,7 @@ def get_ucore_scale_factor(job):
     if job_corecount and schedconfig_corecount:
         try:
             scale = job_corecount / schedconfig_corecount
-            logger.debug('scale=%f' % scale)
+            logger.debug('scale: job_corecount / schedconfig_corecount=%f', scale)
         except (ZeroDivisionError, TypeError) as exc:
             logger.warning('exception caught: %s (using scale factor 1)', exc)
             scale = 1
