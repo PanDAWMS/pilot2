@@ -265,8 +265,8 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
                 logger.debug("try to get validity_end from the line: \"%s\"", validity_end_str)
                 validity_end = int(validity_end_str)  # may raise ValueError if not string
                 logger.info("validity_end = %d", validity_end)
-            except (IndexError, ValueError) as err:
-                logger.info("validity_end not found in stdout (%s)", err)
+            except (IndexError, ValueError) as exc:
+                logger.info("validity_end not found in stdout (%s)", exc)
                 pass
             stdout = stdout_split[-1]  # remove everything except last line
 
@@ -288,8 +288,8 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
                     diagnostics = "voms proxy certificate does not exist or is too short (lifetime %d s)" % (validity)
                     logger.warning(diagnostics)
                     exitcode = errors.NOVOMSPROXY
-            except ValueError as e:
-                diagnostics = "failed to evalute command stdout: %s, stderr: %s, exc=%s" % (stdout, stderr, e)
+            except ValueError as exc:
+                diagnostics = "failed to evalute command stdout: %s, stderr: %s, exc=%s" % (stdout, stderr, exc)
                 logger.warning(diagnostics)
                 exitcode = errors.GENERALERROR
 
