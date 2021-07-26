@@ -53,23 +53,23 @@ def verify_proxy(limit=None, x509=None, proxy_id="pilot", test=False):
     # first try to use arcproxy since voms-proxy-info is not working properly on SL6
     #  (memory issues on queues with limited memory)
 
-    ec, diagnostics = verify_arcproxy(envsetup, limit, proxy_id, test=test)
-    if ec != 0 and ec != -1:
-        return ec, diagnostics
-    elif ec == -1:
+    exit_code, diagnostics = verify_arcproxy(envsetup, limit, proxy_id, test=test)
+    if exit_code != 0 and exit_code != -1:
+        return exit_code, diagnostics
+    elif exit_code == -1:
         pass  # go to next test
     else:
         return 0, diagnostics
 
     ec, diagnostics = verify_vomsproxy(envsetup, limit)
-    if ec != 0:
-        return ec, diagnostics
+    if exit_code != 0:
+        return exit_code, diagnostics
     else:
         return 0, diagnostics
 
     ec, diagnostics = verify_gridproxy(envsetup, limit)
-    if ec != 0:
-        return ec, diagnostics
+    if exit_code != 0:
+        return exit_code, diagnostics
 
     return 0, diagnostics
 
@@ -83,7 +83,7 @@ def verify_arcproxy(envsetup, limit, proxy_id="pilot", test=False):
     :param  proxy_id: proxy unique id name. The verification result will be cached for this id. If None the result will not be cached (string)
     :return: exit code (int), error diagnostics (string).
     """
-    ec = 0
+    exit_code = 0
     diagnostics = ""
 
     if test:
@@ -96,7 +96,7 @@ def verify_arcproxy(envsetup, limit, proxy_id="pilot", test=False):
         if proxy_id in verify_arcproxy.cache:  # if exist, then calculate result from current cache
             validity_end = verify_arcproxy.cache[proxy_id]
             if validity_end < 0:  # previous validity check failed, do not try to re-check
-                ec = -1
+                exit_code = -1
                 diagnostics = "arcproxy verification failed (cached result)"
             else:
                 tnow = int(time() + 0.5)  # round to seconds
@@ -106,42 +106,42 @@ def verify_arcproxy(envsetup, limit, proxy_id="pilot", test=False):
                 if seconds_left < limit * 3600:
                     diagnostics = "%s proxy validity time is too short: %.2fh" % (proxy_id, float(seconds_left) / 3600)
                     logger.warning(diagnostics)
-                    ec = errors.NOVOMSPROXY
+                    exit_code = errors.NOVOMSPROXY
                 else:
                     logger.info("%s proxy validity time is verified", proxy_id)
-            return ec, diagnostics
+            return exit_code, diagnostics
 
     # options and options' sequence are important for parsing, do not change it
     cmd = "%sarcproxy -i vomsACvalidityEnd -i vomsACvalidityLeft" % envsetup
 
-    exit_code, stdout, stderr = execute(cmd, shell=True)  # , usecontainer=True, copytool=True)
+    _exit_code, stdout, stderr = execute(cmd, shell=True)  # , usecontainer=True, copytool=True)
     if stdout is not None:
         if 'command not found' in stdout:
             logger.warning("arcproxy is not available on this queue,"
                            "this can lead to memory issues with voms-proxy-info on SL6: %s", stdout)
-            ec = -1
+            exit_code = -1
         else:
-            ec, diagnostics, validity_end = interpret_proxy_info(exit_code, stdout, stderr, limit)
+            exit_code, diagnostics, validity_end = interpret_proxy_info(_exit_code, stdout, stderr, limit)
             if proxy_id and validity_end:  # setup cache if requested
-                if ec == 0:
+                if exit_code == 0:
                     logger.info("cache the validity_end: cache['%s'] = %d", proxy_id, validity_end)
                     verify_arcproxy.cache[proxy_id] = validity_end
                 else:
                     verify_arcproxy.cache[proxy_id] = -1  # -1 in cache means any error in prev validation
-            if ec == 0:
+            if exit_code == 0:
                 logger.info("voms proxy verified using arcproxy")
                 return 0, diagnostics
-            elif ec == -1:  # skip to next proxy test
-                return ec, diagnostics
-            elif ec == errors.NOVOMSPROXY:
-                return ec, diagnostics
+            elif exit_code == -1:  # skip to next proxy test
+                return exit_code, diagnostics
+            elif exit_code == errors.NOVOMSPROXY:
+                return exit_code, diagnostics
             else:
                 logger.info("will try voms-proxy-info instead")
-                ec = -1
+                exit_code = -1
     else:
         logger.warning('command execution failed')
 
-    return ec, diagnostics
+    return exit_code, diagnostics
 
 
 def verify_vomsproxy(envsetup, limit):
@@ -153,19 +153,19 @@ def verify_vomsproxy(envsetup, limit):
     :return: exit code (int), error diagnostics (string).
     """
 
-    ec = 0
+    exit_code = 0
     diagnostics = ""
 
     if os.environ.get('X509_USER_PROXY', '') != '':
         cmd = "%svoms-proxy-info -actimeleft --file $X509_USER_PROXY" % envsetup
         logger.info('executing command: %s', cmd)
-        exit_code, stdout, stderr = execute(cmd, shell=True)
+        _exit_code, stdout, stderr = execute(cmd, shell=True)
         if stdout is not None:
             if "command not found" in stdout:
                 logger.info("skipping voms proxy check since command is not available")
             else:
-                ec, diagnostics, validity_end = interpret_proxy_info(exit_code, stdout, stderr, limit)
-                if ec == 0:
+                exit_code, diagnostics, validity_end = interpret_proxy_info(_exit_code, stdout, stderr, limit)
+                if exit_code == 0:
                     logger.info("voms proxy verified using voms-proxy-info")
                     return 0, diagnostics
         else:
@@ -173,7 +173,7 @@ def verify_vomsproxy(envsetup, limit):
     else:
         logger.warning('X509_USER_PROXY is not set')
 
-    return ec, diagnostics
+    return exit_code, diagnostics
 
 
 def verify_gridproxy(envsetup, limit):
