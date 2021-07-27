@@ -214,6 +214,13 @@ def get_args():
                             type=int,
                             help='Number of getjob requests')
 
+    arg_parser.add_argument('-x',
+                            dest='getjob_failures',
+                            default=5,
+                            required=False,
+                            type=int,
+                            help='Maximum number of getjob request failures in Harvester mode')
+
     # SSL certificates
     arg_parser.add_argument('--cacert',
                             dest='cacert',

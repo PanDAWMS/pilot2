@@ -1818,6 +1818,7 @@ def retrieve(queues, traces, args):  # noqa: C901
 
     jobnumber = 0  # number of downloaded jobs
     getjob_requests = 0
+    getjob_failures = 0
     print_node_info()
 
     while not args.graceful_stop.is_set():
@@ -1849,6 +1850,11 @@ def retrieve(queues, traces, args):  # noqa: C901
             break
 
         if not res:
+            getjob_failures += 1
+            if getjob_failures >= args.getjob_failures:
+                logger.warning('did not get a job -- max number of job request failures reached: %d', getjob_failures)
+                break
+
             delay = get_job_retrieval_delay(args.harvester)
             if not args.harvester:
                 logger.warning('did not get a job -- sleep %d s and repeat', delay)
@@ -1860,6 +1866,12 @@ def retrieve(queues, traces, args):  # noqa: C901
             # it seems the PanDA server returns StatusCode as an int, but the aCT returns it as a string
             # note: StatusCode keyword is not available in job definition files from Harvester (not needed)
             if 'StatusCode' in res and res['StatusCode'] != '0' and res['StatusCode'] != 0:
+                getjob_failures += 1
+                if getjob_failures >= args.getjob_failures:
+                    logger.warning('did not get a job -- max number of job request failures reached: %d',
+                                   getjob_failures)
+                    break
+
                 logger.warning('did not get a job -- sleep 60s and repeat -- status: %s', res['StatusCode'])
                 for i in range(60):
                     if args.graceful_stop.is_set():
