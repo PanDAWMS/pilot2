@@ -1557,9 +1557,12 @@ def locate_job_definition(args):
     :return: path (string).
     """
 
-    paths = [os.path.join("%s/.." % args.sourcedir, config.Pilot.pandajobdata),
-             os.path.join(args.sourcedir, config.Pilot.pandajobdata),
-             os.path.join(os.environ['PILOT_WORK_DIR'], config.Pilot.pandajobdata)]
+    if args.harvester_datadir:
+        paths = [os.path.join(args.harvester_datadir, config.Pilot.pandajobdata)]
+    else:
+        paths = [os.path.join("%s/.." % args.sourcedir, config.Pilot.pandajobdata),
+                 os.path.join(args.sourcedir, config.Pilot.pandajobdata),
+                 os.path.join(os.environ['PILOT_WORK_DIR'], config.Pilot.pandajobdata)]
 
     if args.harvester_workdir:
         paths.append(os.path.join(args.harvester_workdir, config.Harvester.pandajob_file))
