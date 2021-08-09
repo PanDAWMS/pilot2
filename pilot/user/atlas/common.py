@@ -16,6 +16,7 @@ import os
 import re
 from random import randint
 from signal import SIGTERM, SIGUSR1
+
 # from tarfile import ExFileObject
 
 try:
@@ -53,7 +54,7 @@ from pilot.util.auxiliary import (
 )
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import TrfDownloadFailure, PilotException
+from pilot.common.exception import TrfDownloadFailure, PilotException, TimeoutException
 from pilot.util.config import config
 from pilot.util.constants import (
     UTILITY_BEFORE_PAYLOAD,
@@ -79,6 +80,7 @@ from pilot.util.processes import (
     get_trimmed_dictionary,
     is_child
 )
+
 from pilot.util.tracereport import TraceReport
 
 logger = logging.getLogger(__name__)
@@ -382,9 +384,12 @@ def get_payload_command(job):
         diagnostics = ""
         not_opened_turls = ""
         try:
+            logger.debug('executing open_remote_files()')
             exitcode, diagnostics, not_opened_turls = open_remote_files(job.indata, job.workdir, get_nthreads(catchall))
-        except PilotException as exc:
+        except TimeoutException as exc:
             logger.warning('caught exception: %s', exc)
+        except Exception as exc:
+            logger.warning('caught std exception: %s', exc)
         else:
             # read back the base trace report
             path = os.path.join(job.workdir, config.Pilot.base_trace_report)
