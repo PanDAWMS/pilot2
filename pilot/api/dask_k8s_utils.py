@@ -15,7 +15,7 @@ from kubernetes import client, config
 # from kubernetes.client.rest import ApiException
 
 
-class k8s_Client(object):
+class k8s_client(object):
 
     def __init__(self, namespace, config_file=None):
         """
@@ -32,7 +32,7 @@ class k8s_Client(object):
         self.apps_v1 = client.AppsV1Api()
         self.delete_v1 = client.V1DeleteOptions(propagation_policy='Background')
 
-    def create_ssh_keys_secret(work_spec):
+    def create_ssh_keys_secret(self, work_spec):
         return True
 
     def create_dask_head(self, work_spec, panda_queue, evaluation_image, pilot_image, cert, dfs_claim_name,
