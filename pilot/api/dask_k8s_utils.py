@@ -45,7 +45,7 @@ class K8sClient(object):
         #tmp_log = core_utils.make_logger(base_logger, 'workerID={0}'.format(worker_id),
         #                                 method_name='create_dask_head')
 
-        if not self.create_configmap_horovod(work_spec, panda_queue):
+        if not self.create_configmap_dask(work_spec, panda_queue):
             return False
 
         if not self.create_host_discovery_configmap(work_spec):
