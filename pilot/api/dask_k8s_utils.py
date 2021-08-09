@@ -15,7 +15,7 @@ from kubernetes import client, config
 # from kubernetes.client.rest import ApiException
 
 
-class K8s_Client(object):
+class K8sClient(object):
 
     def __init__(self, namespace, config_file=None):
         """
