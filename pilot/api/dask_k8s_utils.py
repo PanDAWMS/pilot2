@@ -51,7 +51,7 @@ class K8sClient(object):
         if not self.create_host_discovery_configmap(work_spec):
             return False
 
-    def create_dask_formation(self, work_spec, prod_source_label, panda_queue, evaluation_image, pilot_image,
+    def create_dask_formation(self, work_spec, panda_queue, evaluation_image, pilot_image,
                               worker_command, cert, dfs_claim_name, cpu_adjust_ratio=100, memory_adjust_ratio=100,
                               max_time=None):
 
