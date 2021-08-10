@@ -170,17 +170,17 @@ def copy_out(files, **kwargs):
             path = os.path.join(workdir, logfile)
             if os.path.exists(path):
                 if logfile == config.Pilot.pilotlog or logfile == config.Payload.payloadstdout or logfile == config.Payload.payloadstderr:
-                    content_type="text/plain"
+                    content_type = "text/plain"
                     logger.info('Change the file=%s content-type to text/plain', logfile)
                 else:
                     content_type = None
                     try:
                         result = subprocess.check_output(["/bin/file", "-i", "-b", "-L", path])
-                        if not isinstance(result,str):
+                        if not isinstance(result, str):
                             result = result.decode('utf-8')
                         if result.find(';') > 0:
                             content_type = result.split(';')[0]
-                            logger.info('Change the file=%s content-type to %s', logfile, content-type)
+                            logger.info('Change the file=%s content-type to %s', logfile, content_type)
                     except Exception:
                         pass
 
