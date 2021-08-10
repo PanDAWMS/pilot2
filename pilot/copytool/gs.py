@@ -11,6 +11,8 @@
 import os
 import logging
 from pilot.info import infosys
+import subprocess
+import re
 
 try:
     from google.cloud import storage
@@ -148,7 +150,6 @@ def copy_out(files, **kwargs):
 
     if len(files) > 0:
         fspec = files[0]
-        import re
         # bucket = re.sub(r'gs://(.*?)/.*', r'\1', fspec.turl)
         reobj = re.match(r'gs://([^/]*)/(.*)', fspec.turl)
         (bucket, remote_path) = reobj.groups()
@@ -168,9 +169,24 @@ def copy_out(files, **kwargs):
         for logfile in logfiles:
             path = os.path.join(workdir, logfile)
             if os.path.exists(path):
+                if logfile == config.Pilot.pilotlog or logfile == config.Payload.payloadstdout or logfile == config.Payload.payloadstderr:
+                    content_type="text/plain"
+                    logger.info('Change the file=%s content-type to text/plain', logfile)
+                else:
+                    content_type = None
+                    try:
+                        result = subprocess.check_output(["/bin/file", "-i", "-b", "-L", path])
+                        if not isinstance(result,str):
+                            result = result.decode('utf-8')
+                        if result.find(';') > 0:
+                            content_type = result.split(';')[0]
+                            logger.info('Change the file=%s content-type to %s', logfile, content-type)
+                    except Exception:
+                        pass
+
                 object_name = os.path.join(remote_path, logfile)
                 logger.info('uploading %s to bucket=%s using object name=%s', path, bucket, object_name)
-                status, diagnostics = upload_file(path, bucket, object_name=object_name)
+                status, diagnostics = upload_file(path, bucket, object_name=object_name, content_type=content_type)
 
                 if not status:  ## an error occurred
                     # create new error code(s) in ErrorCodes.py and set it/them in resolve_common_transfer_errors()
@@ -191,7 +207,7 @@ def copy_out(files, **kwargs):
     return files
 
 
-def upload_file(file_name, bucket, object_name=None):
+def upload_file(file_name, bucket, object_name=None, content_type=None):
     """
     Upload a file to a GCS bucket.
 
@@ -209,9 +225,11 @@ def upload_file(file_name, bucket, object_name=None):
     try:
         client = storage.Client()
         gs_bucket = client.get_bucket(bucket)
-        logger.info('uploading a file to bucket=%s in full path=%s', bucket, object_name)
+        # remove any leading slash(es) in object_name
+        object_name = object_name.lstrip('/')
+        logger.info('uploading a file to bucket=%s in full path=%s in content_type=%s', bucket, object_name, content_type)
         blob = gs_bucket.blob(object_name)
-        blob.upload_from_filename(filename=file_name)
+        blob.upload_from_filename(filename=file_name, content_type=content_type)
         if file_name.endswith(config.Pilot.pilotlog):
             url_pilotlog = blob.public_url
             os.environ['GTAG'] = url_pilotlog

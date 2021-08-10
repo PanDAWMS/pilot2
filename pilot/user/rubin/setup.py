@@ -107,8 +107,8 @@ def get_valid_base_urls(order=None):
     """
 
     valid_base_urls = []
-    _valid_base_urls = ["https://atlpan.web.cern.ch/atlpan",
-                        "http://pandaserver.cern.ch"]
+    _valid_base_urls = ["https://storage.googleapis.com/drp-us-central1-containers",
+                        "http://pandaserver-doma.cern.ch:25080/trf/user"]
 
     if order:
         valid_base_urls.append(order)
