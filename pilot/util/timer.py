@@ -6,7 +6,7 @@
 #
 # Authors:
 # - Alexey Anisenkov, anisyonk@cern.ch, 2018
-# - Paul Nilsson, paul.nilsson@cern.ch, 2019
+# - Paul Nilsson, paul.nilsson@cern.ch, 2019-2021
 
 """
 Standalone implementation of time-out check on function call.
@@ -34,7 +34,6 @@ except Exception:
 from functools import wraps
 
 
-# move this class to exception.py
 class TimeoutException(Exception):
 
     def __init__(self, message, timeout=None, *args):
@@ -121,7 +120,7 @@ class TimedProcess(object):
 
     def run(self, func, args, kwargs, timeout=None):
 
-        def _execute(func, args, kwargs, queue):  ## will fail on Windows
+        def _execute(func, args, kwargs, queue):
             try:
                 ret = func(*args, **kwargs)
                 queue.put((True, ret))
@@ -160,10 +159,7 @@ class TimedProcess(object):
             raise ret[1]
 
 
-if getattr(os, 'fork', None):
-    Timer = TimedProcess
-else:  ## Windows
-    Timer = TimedThread
+Timer = TimedProcess
 
 
 def timeout(seconds, timer=None):
