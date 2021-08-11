@@ -54,7 +54,8 @@ from pilot.util.auxiliary import (
 )
 
 from pilot.common.errorcodes import ErrorCodes
-from pilot.common.exception import TrfDownloadFailure, PilotException, TimeoutException
+from pilot.common.exception import TrfDownloadFailure, PilotException
+from pilot.util.timer import TimeoutException
 from pilot.util.config import config
 from pilot.util.constants import (
     UTILITY_BEFORE_PAYLOAD,
