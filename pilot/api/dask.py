@@ -132,7 +132,10 @@ class Dask(object):
 
     def _is_valid_ip(self, ip):
         """
+        Verify that the given IP number is valid.
 
+        :param ip: IP number (string).
+        :return: Boolean.
         """
 
         regex = r"^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$"

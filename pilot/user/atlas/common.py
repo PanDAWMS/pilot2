@@ -55,7 +55,6 @@ from pilot.util.auxiliary import (
 
 from pilot.common.errorcodes import ErrorCodes
 from pilot.common.exception import TrfDownloadFailure, PilotException
-from pilot.util.timer import TimeoutException
 from pilot.util.config import config
 from pilot.util.constants import (
     UTILITY_BEFORE_PAYLOAD,
@@ -387,8 +386,6 @@ def get_payload_command(job):
         try:
             logger.debug('executing open_remote_files()')
             exitcode, diagnostics, not_opened_turls = open_remote_files(job.indata, job.workdir, get_nthreads(catchall))
-        except TimeoutException as exc:
-            logger.warning('caught exception: %s', exc)
         except Exception as exc:
             logger.warning('caught std exception: %s', exc)
         else:
