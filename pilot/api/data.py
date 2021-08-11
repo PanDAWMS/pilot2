@@ -34,7 +34,6 @@ from pilot.util.workernode import get_local_disk_space
 from pilot.util.timer import TimeoutException
 from pilot.util.tracereport import TraceReport
 
-
 class StagingClient(object):
     """
         Base Staging Client
@@ -273,8 +272,8 @@ class StagingClient(object):
 
         try:
             replicas = c.list_replicas(**query)
-        except Exception as error:
-            raise PilotException("Failed to get replicas from Rucio: %s" % error, code=ErrorCodes.RUCIOLISTREPLICASFAILED)
+        except Exception as exc:
+            raise PilotException("Failed to get replicas from Rucio: %s" % exc, code=ErrorCodes.RUCIOLISTREPLICASFAILED)
 
         show_memory_usage()
 
@@ -494,12 +493,12 @@ class StagingClient(object):
                 copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], 0)  # Python 2/3
                 #self.trace_report.update(protocol=name)
 
-            except PilotException as error:
-                caught_errors.append(error)
-                self.logger.debug('error: %s', error)
+            except PilotException as exc:
+                caught_errors.append(exc)
+                self.logger.debug('error: %s', exc)
                 continue
-            except Exception as error:
-                self.logger.warning('failed to import copytool module=%s, error=%s', module, error)
+            except Exception as exc:
+                self.logger.warning('failed to import copytool module=%s, error=%s', module, exc)
                 continue
 
             try:
@@ -507,15 +506,15 @@ class StagingClient(object):
                 self.logger.debug('transfer_files() using copytool=%s completed with result=%s', copytool, str(result))
                 show_memory_usage()
                 break
-            except PilotException as error:
-                self.logger.warning('failed to transfer_files() using copytool=%s .. skipped; error=%s', copytool, error)
-                caught_errors.append(error)
-            except TimeoutException as error:
-                self.logger.warning('function timed out: %s', error)
-                caught_errors.append(error)
-            except Exception as error:
-                self.logger.warning('failed to transfer files using copytool=%s .. skipped; error=%s', copytool, error)
-                caught_errors.append(error)
+            except PilotException as exc:
+                self.logger.warning('failed to transfer_files() using copytool=%s .. skipped; error=%s', copytool, exc)
+                caught_errors.append(exc)
+            except TimeoutException as exc:
+                self.logger.warning('function timed out: %s', exc)
+                caught_errors.append(exc)
+            except Exception as exc:
+                self.logger.warning('failed to transfer files using copytool=%s .. skipped; error=%s', copytool, exc)
+                caught_errors.append(exc)
                 import traceback
                 self.logger.error(traceback.format_exc())
 
