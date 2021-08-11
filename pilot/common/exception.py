@@ -397,7 +397,6 @@ class JobAlreadyRunning(PilotException):
         self._errorCode = errors.JOBALREADYRUNNING
         self._message = errors.get_error_message(self._errorCode)
 
-
     def __str__(self):
         return "%s: %s, timeout=%s seconds%s" % (self.__class__.__name__, self._message, self._timeout, ' : %s' % repr(self.args) if self.args else '')
 
