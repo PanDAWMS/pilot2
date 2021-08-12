@@ -34,6 +34,7 @@ from pilot.util.workernode import get_local_disk_space
 from pilot.util.timer import TimeoutException
 from pilot.util.tracereport import TraceReport
 
+
 class StagingClient(object):
     """
         Base Staging Client
