@@ -1853,6 +1853,7 @@ def retrieve(queues, traces, args):  # noqa: C901
             getjob_failures += 1
             if getjob_failures >= args.getjob_failures:
                 logger.warning('did not get a job -- max number of job request failures reached: %d', getjob_failures)
+                args.graceful_stop.set()
                 break
 
             delay = get_job_retrieval_delay(args.harvester)
