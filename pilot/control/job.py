@@ -73,7 +73,7 @@ def control(queues, traces, args):
     """
 
     targets = {'validate': validate, 'retrieve': retrieve, 'create_data_payload': create_data_payload,
-               'queue_monitor': queue_monitor, 'job_monitor': job_monitor}
+               'queue_monitor': queue_monitor, 'job_monitor': job_monitor, 'fast_job_monitor': fast_job_monitor}
     threads = [ExcThread(bucket=queue.Queue(), target=target, kwargs={'queues': queues, 'traces': traces, 'args': args},
                          name=name) for name, target in list(targets.items())]  # Python 2/3
 
@@ -2412,6 +2412,85 @@ def interceptor(queues, traces, args):
         logger.debug('will not set job_aborted yet')
 
     logger.debug('[job] interceptor thread has finished')
+
+
+def fast_monitor_tasks(job):
+    """
+    Perform user specific fast monitoring tasks.
+
+    :param job: job object.
+    :return: exit code (int).
+    """
+
+    exit_code = 0
+
+    pilot_user = os.environ.get('PILOT_USER', 'generic').lower()
+    user = __import__('pilot.user.%s.monitoring' % pilot_user, globals(), locals(), [pilot_user], 0)  # Python 2/3
+    try:
+        exit_code = user.fast_monitor_tasks(job)
+    except Exception as exc:
+        logger.warning('caught exception: %s', exc)
+
+    return exit_code
+
+
+def fast_job_monitor(queues, traces, args):
+    """
+    Fast monitoring of job parameters.
+
+    This function can be used for monitoring processes below the one minute threshold of the normal job_monitor thread.
+
+    :param queues: internal queues for job handling.
+    :param traces: tuple containing internal pilot states.
+    :param args: Pilot arguments (e.g. containing queue name, queuedata dictionary, etc).
+    :return:
+    """
+
+    # peeking and current time; peeking_time gets updated if and when jobs are being monitored, update_time is only
+    # used for sending the heartbeat and is updated after a server update
+    #peeking_time = int(time.time())
+    #update_time = peeking_time
+
+    while not args.graceful_stop.is_set():
+        time.sleep(10)
+
+        # abort in case graceful_stop has been set, and less than 30 s has passed since MAXTIME was reached (if set)
+        # (abort at the end of the loop)
+        abort = should_abort(args, label='job:fast_job_monitor')
+        if abort:
+            break
+
+        if traces.pilot.get('command') == 'abort':
+            logger.warning('fast job monitor received an abort command')
+            break
+
+        # check for any abort_job requests
+        abort_job = check_for_abort_job(args, caller='fast job monitor')
+        if abort_job:
+            break
+        else:
+            # peek at the jobs in the validated_jobs queue and send the running ones to the heartbeat function
+            jobs = queues.monitored_payloads.queue
+            if jobs:
+                for i in range(len(jobs)):
+                    #current_id = jobs[i].jobid
+                    if jobs[i].state == 'finished' or jobs[i].state == 'failed':
+                        logger.info('will abort job monitoring soon since job state=%s (job is still in queue)', jobs[i].state)
+                        break
+
+                # perform the monitoring tasks
+                exit_code = fast_monitor_tasks(jobs[i])
+                if exit_code:
+                    logger.debug('fast monitoring reported an error: %d', exit_code)
+
+    # proceed to set the job_aborted flag?
+    if threads_aborted():
+        logger.debug('will proceed to set job_aborted')
+        args.job_aborted.set()
+    else:
+        logger.debug('will not set job_aborted yet')
+
+    logger.debug('[job] fast job monitor thread has finished')
 
 
 def job_monitor(queues, traces, args):  # noqa: C901
