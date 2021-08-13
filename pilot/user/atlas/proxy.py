@@ -252,27 +252,15 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
             logger.warning(diagnostics)
             exitcode = errors.NOVOMSPROXY
     else:
-        # remove any additional print-outs if present, assume that the last line is the time left
         if "\n" in stdout:
-            # also remove the last \n in case there is one
-            if stdout[-1] == '\n':
-                stdout = stdout[:-1]
-            stdout_split = stdout.split('\n')
-            logger.debug("splitted stdout = %s", stdout_split)
-            # try to get validity_end in penult line, it may fail, throw exception
-            try:
-                validity_end_str = stdout_split[-2]  # imay raise exception IndexError if stdout is too short
-                logger.debug("try to get validity_end from the line: \"%s\"", validity_end_str)
-                validity_end = int(validity_end_str)  # may raise ValueError if not string
-                logger.info("validity_end = %d", validity_end)
-            except (IndexError, ValueError) as exc:
-                logger.info("validity_end not found in stdout (%s)", exc)
-                pass
-            stdout = stdout_split[-1]  # remove everything except last line
+            # try to extract the time left from the command output
+            validity_end, stdout = extract_time_left(stdout)
+            if validity_end:
+                return exitcode, diagnostics, validity_end
 
         # test for command errors
         if "arcproxy:" in stdout:
-            diagnostics = "arcproxy failed: %s" % (stdout)
+            diagnostics = "arcproxy failed: %s" % stdout
             logger.warning(diagnostics)
             exitcode = errors.GENERALERROR
         else:
@@ -285,12 +273,44 @@ def interpret_proxy_info(ec, stdout, stderr, limit):
                 if validity >= limit * 3600:
                     logger.info("voms proxy verified (%d s)", validity)
                 else:
-                    diagnostics = "voms proxy certificate does not exist or is too short (lifetime %d s)" % (validity)
+                    diagnostics = "voms proxy certificate does not exist or is too short (lifetime %d s)" % validity
                     logger.warning(diagnostics)
                     exitcode = errors.NOVOMSPROXY
             except ValueError as exc:
-                diagnostics = "failed to evalute command stdout: %s, stderr: %s, exc=%s" % (stdout, stderr, exc)
+                diagnostics = "failed to evaluate command stdout: %s, stderr: %s, exc=%s" % (stdout, stderr, exc)
                 logger.warning(diagnostics)
                 exitcode = errors.GENERALERROR
 
     return exitcode, diagnostics, validity_end
+
+
+def extract_time_left(stdout):
+    """
+    Extract the time left from the proxy command.
+    Some processing on the stdout is done.
+
+    :param stdout: stdout (string).
+    :return: validity_end, stdout (int, string))
+    """
+
+    # remove the last \n in case there is one
+    if stdout[-1] == '\n':
+        stdout = stdout[:-1]
+    stdout_split = stdout.split('\n')
+    logger.debug("splitted stdout = %s", stdout_split)
+
+    try:
+        validity_end = int(stdout_split[-1])
+    except (ValueError, TypeError):
+        # try to get validity_end in penultimate line
+        try:
+            validity_end_str = stdout_split[-2]  # may raise exception IndexError if stdout is too short
+            logger.debug("try to get validity_end from the line: \"%s\"", validity_end_str)
+            validity_end = int(validity_end_str)  # may raise ValueError if not string
+        except (IndexError, ValueError) as exc:
+            logger.info("validity_end not found in stdout (%s)", exc)
+
+    if validity_end:
+        logger.info("validity_end = %d", validity_end)
+
+    return validity_end, stdout
