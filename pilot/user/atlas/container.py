@@ -938,6 +938,8 @@ def create_middleware_container_command(workdir, cmd, container_options, label='
                 if x509:
                     command += 'export X509_USER_PROXY=%s;' % x509
             command += 'export ALRB_CONT_RUNPAYLOAD=\"source /srv/%s\";' % script_name
+            if 'ALRB_CONT_UNPACKEDDIR' in os.environ:
+                command += 'export ALRB_CONT_UNPACKEDDIR=%s;' % os.environ.get('ALRB_CONT_UNPACKEDDIR')
             command += get_asetup(alrb=True)  # export ATLAS_LOCAL_ROOT_BASE=/cvmfs/atlas.cern.ch/repo/ATLASLocalRootBase;
             command += 'source ${ATLAS_LOCAL_ROOT_BASE}/user/atlasLocalSetup.sh -c %s' % middleware_container
             command += ' ' + get_container_options(container_options)
@@ -957,7 +959,7 @@ def get_root_container_script(cmd):
     """
 
     # content = 'lsetup \'root 6.20.06-x86_64-centos7-gcc8-opt\'\npython %s\nexit $?' % cmd
-    content = 'lsetup \'root pilot\'\npython %s\nexit $?' % cmd
+    content = 'date\nlsetup \'root pilot\'\ndate\npython %s\nexit $?' % cmd
     logger.debug('root setup script content:\n\n%s\n\n', content)
 
     return content
@@ -1007,10 +1009,13 @@ def get_middleware_container(label=None):
     if label and label == 'general':
         return 'CentOS7'
 
-    path = config.Container.middleware_container
-    if path.startswith('/') and not os.path.exists(path):
-        logger.warning('requested middleware container path does not exist: %s (switching to default value)', path)
-        path = 'CentOS7'
+    if 'ALRB_CONT_UNPACKEDDIR' in os.environ:
+        path = config.Container.middleware_container_no_path
+    else:
+        path = config.Container.middleware_container
+        if path.startswith('/') and not os.path.exists(path):
+            logger.warning('requested middleware container path does not exist: %s (switching to default value)', path)
+            path = 'CentOS7'
     logger.info('using image: %s for middleware container', path)
 
     return path
