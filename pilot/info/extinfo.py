@@ -69,7 +69,7 @@ class ExtInfoProvider(DataLoader):
                             'nretry': 3,
                             'sleep_time': lambda: 15 + random.randint(0, 30),  ## max sleep time 45 seconds between retries
                             'cache_time': 3 * 60 * 60,  # 3 hours
-                            'fname': os.path.join(cache_dir, 'agis_schedconf.agis.%s.json' % ('_'.join(pandaqueues) or 'allqueues'))},
+                            'fname': os.path.join(cache_dir, 'agis_schedconf.agis.%s.json' % (pandaqueues[0] if len(pandaqueues) == 1 else 'pandaqueues'))},
                    'LOCAL': {'url': os.environ.get('LOCAL_AGIS_SCHEDCONF'),
                              'nretry': 1,
                              'cache_time': 3 * 60 * 60,  # 3 hours
@@ -121,7 +121,7 @@ class ExtInfoProvider(DataLoader):
                             'nretry': 3,
                             'sleep_time': lambda: 15 + random.randint(0, 30),  # max sleep time 45 seconds between retries
                             'cache_time': 3 * 60 * 60,  # 3 hours
-                            'fname': os.path.join(cache_dir, 'agis_schedconf.agis.%s.json' % ('_'.join(pandaqueues) or 'allqueues'))},
+                            'fname': os.path.join(cache_dir, 'agis_schedconf.agis.%s.json' % (pandaqueues[0] if len(pandaqueues) == 1 else 'pandaqueues'))},
                    'LOCAL': {'url': None,
                              'nretry': 1,
                              'cache_time': 3 * 60 * 60,  # 3 hours
