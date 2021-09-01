@@ -4,7 +4,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Authors:
-# - Alexey Anisenkov, anisyonk@cern.ch, 2018
+# - Alexey Anisenkov, anisyonk@cern.ch, 2018-2021
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
 """
@@ -59,15 +59,13 @@ class ExtInfoProvider(DataLoader):
         if not cache_dir:
             cache_dir = os.environ.get('PILOT_HOME', '.')
 
-        if len(pandaqueues) == 1:
-            cric_url = 'https://atlas-cric.cern.ch/cache/schedconfig/%s.json' % pandaqueues[0]
-        else:
-            cric_url = 'https://atlas-cric.cern.ch/cache/schedconfig/pandaqueues.json'
+        cric_url = getattr(config.Information, 'queues_url', None) or 'https://atlas-cric.cern.ch/cache/schedconfig/{pandaqueue}.json'
+        cric_url = cric_url.format(pandaqueue=pandaqueues[0] if len(pandaqueues) == 1 else 'pandaqueues')
 
         sources = {'CVMFS': {'url': getattr(config.Information, 'queues_cvmfs', None) or '/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_pandaqueues.json',
                              'nretry': 1,
                              'fname': os.path.join(cache_dir, 'agis_schedconf.cvmfs.json')},
-                   'CRIC': {'url': (getattr(config.Information, 'queues_url', None) or cric_url),
+                   'CRIC': {'url': cric_url,
                             'nretry': 3,
                             'sleep_time': lambda: 15 + random.randint(0, 30),  ## max sleep time 45 seconds between retries
                             'cache_time': 3 * 60 * 60,  # 3 hours
@@ -113,15 +111,13 @@ class ExtInfoProvider(DataLoader):
 
         queuedata_url = (os.environ.get('QUEUEDATA_SERVER_URL') or getattr(config.Information, 'queuedata_url', '')).format(**{'pandaqueue': pandaqueues[0]})
 
-        if len(pandaqueues) == 1:
-            cric_url = 'https://atlas-cric.cern.ch/cache/schedconfig/%s.json' % pandaqueues[0]
-        else:
-            cric_url = 'https://atlas-cric.cern.ch/cache/schedconfig/pandaqueues.json'
+        cric_url = getattr(config.Information, 'queues_url', None) or 'https://atlas-cric.cern.ch/cache/schedconfig/{pandaqueue}.json'
+        cric_url = cric_url.format(pandaqueue=pandaqueues[0] if len(pandaqueues) == 1 else 'pandaqueues')
 
         sources = {'CVMFS': {'url': getattr(config.Information, 'queuedata_cvmfs', None) or '/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_pandaqueues.json',
                              'nretry': 1,
                              'fname': os.path.join(cache_dir, 'agis_schedconf.cvmfs.json')},
-                   'CRIC': {'url': (getattr(config.Information, 'queues_url', None) or cric_url),
+                   'CRIC': {'url': cric_url,
                             'nretry': 3,
                             'sleep_time': lambda: 15 + random.randint(0, 30),  # max sleep time 45 seconds between retries
                             'cache_time': 3 * 60 * 60,  # 3 hours
