@@ -257,6 +257,7 @@ class Executor(object):
                 err = errors.POSTPROCESSFAILURE
             else:
                 err = 0  # ie ignore
+                exit_code = 0
             if err and exit_code not in ignored_exit_codes:  # ignore no-more-data-points exit codes
                 job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(err)
             if exit_code in ignored_exit_codes:
