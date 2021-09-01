@@ -300,15 +300,16 @@ def extract_time_left(stdout):
     logger.debug("splitted stdout = %s", stdout_split)
 
     try:
-        validity_end = int(stdout_split[-1])
+        validity_end = int(stdout_split[-2])
     except (ValueError, TypeError):
         # try to get validity_end in penultimate line
         try:
-            validity_end_str = stdout_split[-2]  # may raise exception IndexError if stdout is too short
+            validity_end_str = stdout_split[-1]  # may raise exception IndexError if stdout is too short
             logger.debug("try to get validity_end from the line: \"%s\"", validity_end_str)
             validity_end = int(validity_end_str)  # may raise ValueError if not string
         except (IndexError, ValueError) as exc:
             logger.info("validity_end not found in stdout (%s)", exc)
+        #validity_end = None
 
     if validity_end:
         logger.info("validity_end = %d", validity_end)
