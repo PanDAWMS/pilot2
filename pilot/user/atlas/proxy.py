@@ -61,15 +61,11 @@ def verify_proxy(limit=None, x509=None, proxy_id="pilot", test=False):
     else:
         return 0, diagnostics
 
-    ec, diagnostics = verify_vomsproxy(envsetup, limit)
+    exit_code, diagnostics = verify_vomsproxy(envsetup, limit)
     if exit_code != 0:
         return exit_code, diagnostics
     else:
         return 0, diagnostics
-
-    ec, diagnostics = verify_gridproxy(envsetup, limit)
-    if exit_code != 0:
-        return exit_code, diagnostics
 
     return 0, diagnostics
 
