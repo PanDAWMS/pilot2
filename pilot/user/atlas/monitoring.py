@@ -21,4 +21,6 @@ def fast_monitor_tasks(job):
 
     exit_code = 0
 
+    logger.debug('fast monitor called')
+
     return exit_code

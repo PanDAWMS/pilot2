@@ -317,6 +317,15 @@ def get_args():
                             type=str2bool,
                             default=True,
                             help='Cleanup work directory after pilot has finished')
+    arg_parser.add_argument('--use-realtime-logging',
+                            dest='use_realtime_logging',
+                            type=str2bool,
+                            default=False,
+                            help='Use near real-time logging')
+    arg_parser.add_argument('--realtime-logging-server',
+                            dest='realtime_logging_server',
+                            default='',
+                            help='Near real-time logging server')
 
     # Harvester and Nordugrid specific options
     arg_parser.add_argument('--input-dir',
