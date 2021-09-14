@@ -44,7 +44,7 @@ def interpret(job):
         if len(job.piloterrorcodes) == 1 and errors.NOPAYLOADMETADATA in job.piloterrorcodes and job.transexitcode != 0:
             logger.warning('ignore metadata error for now')
         else:
-            logger.warning('aborting payload error diagnosis since an error has already been set')
+            logger.warning('aborting payload error diagnosis since an error has already been set: %s', str(job.piloterrorcodes))
             return -1
 
     if job.exitcode != 0:

@@ -975,23 +975,27 @@ def establish_logging(debug=True, nopilotlog=False, filename=config.Pilot.pilotl
     _logger.addHandler(console)
 
 
-def remove_core_dumps(workdir):
+def remove_core_dumps(workdir, pid=None):
     """
     Remove any remaining core dumps so they do not end up in the log tarball
 
-    :param workdir:
-    :return: Boolean (True if a core dump is found)
+    A core dump from the payload process should not be deleted if in debug mode (checked by the called). Also,
+    a found core dump from a non-payload process, should be removed but should result in function returning False.
+
+    :param workdir: working directory for payload (string).
+    :param pid: payload pid (integer).
+    :return: Boolean (True if a payload core dump is found)
     """
 
     found = False
-    coredumps1 = glob("%s/core.*" % workdir)
-    coredumps2 = glob("%s/core" % workdir)
-    coredumps = coredumps1 + coredumps2
+
+    coredumps = glob("%s/core.*" % workdir) + glob("%s/core" % workdir)
     if coredumps:
         for coredump in coredumps:
+            if pid and os.path.basename(coredump) == "core.%d" % pid:
+                found = True
             logger.info("removing core dump: %s", str(coredump))
             remove(coredump)
-        found = True
 
     return found
 
