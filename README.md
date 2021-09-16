@@ -6,15 +6,15 @@
 
 2. Fork the ``PanDAWMS/pilot2`` repository into your private account as ``origin``. Clone it and set the ``PanDAWMS/pilot2`` repository as ``upstream``.
 
-3. Make new code contributions only to a new branch in your repository, push to ``origin`` and make a pull request into ``upstream``. Depending on the type of contribution this should go against either ``upstream/master``, ``upstream/next`` or ``upstream/hotfix``.
-
+3. Make new code contributions only to a new branch in your repository, push to ``origin`` and make a pull request into ``upstream``. Depending on the type of contribution this should go yo either ``upstream/next`` or ``upstream/hotfix``. 
+   Any pull requests directly to the master branch will be rejected since that would trigger the automatic pilot tarball creation.
 ## Verifying code correctness
 
-Do not submit code that does not conform to the project standards. We use PEP8 and Flake verification, with everything enabled at a maximum line length of 160 characters and McCabe complexity 12:
+Do not submit code that does not conform to the project standards. We use PEP8 and Flake verification, with everything
+enabled at a maximum line length of 160 characters and McCabe complexity 12, as well Pylint:
 
     flake8 pilot.py pilot/
-
-For Python 2.6 you need to install ``flake8<3.0.0``, which can miss a few things. Check the output of TravisCI to verify if you have to use this old version.
+    pylint <path to pilot module>
 
 ## Running the pilot
 
@@ -40,12 +40,12 @@ The test cases are implemented as standard Python unittests under directory ``pi
 
 ### Automate documentation to your module
 
-Add the following lines somewhere in the documentation:
+For automatic code documentation of any new pilot module, add the following lines to the corresponding rst file in the doc area:
 
     .. automodule:: your.module
         :members:
 
-For more info, visit http://sphinx-doc.org
+See existing rst files. For more info, visit http://sphinx-doc.org
 
 ### Syncing your GitHub repository
 

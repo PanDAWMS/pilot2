@@ -106,9 +106,12 @@ def try_open_file(turl, queues):
     turl_opened = False
     try:
         message('opening %s' % turl)
+        _timeout = 120 * 1000  # 120 s
+        _ = ROOT.TFile.SetOpenTimeout(_timeout)
+        message("time-out set to %d ms)" % _timeout)
         in_file = ROOT.TFile.Open(turl)
-    except Exception as error:
-        message('caught exception: %s' % error)
+    except Exception as exc:
+        message('caught exception: %s' % exc)
     else:
         if in_file and in_file.IsOpen():
             in_file.Close()
@@ -135,6 +138,7 @@ def spawn_file_open_thread(queues, file_list):
     else:
         # create and start thread for the current turl
         thread = threading.Thread(target=try_open_file, args=(turl, queues))
+        thread.daemon = True
         thread.start()
 
     return thread
@@ -150,7 +154,6 @@ if __name__ == '__main__':
     args.debug = True
     args.nopilotlog = False
 
-    logname = 'default.log'
     try:
         logname = config.Pilot.remotefileverification_log
     except Exception as error:
@@ -184,10 +187,15 @@ if __name__ == '__main__':
             if thread:
                 threads.append(thread)
 
+        timedout = False
         while turls:
 
             try:
-                _ = queues.result.get(block=True)
+                _ = queues.result.get(block=True, timeout=60)
+            except queue.Empty:
+                message("reached time-out")
+                timedout = True
+                break
             except Exception as error:
                 message("caught exception: %s" % error)
 

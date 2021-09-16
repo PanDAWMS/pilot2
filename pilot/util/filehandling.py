@@ -584,27 +584,6 @@ def find_executable(name):
     return find_executable(name)
 
 
-def get_directory_size(directory="."):
-    """
-    Return the size of the given directory in B.
-
-    :param directory: directory name (string).
-    :return: size of directory (int).
-    """
-
-    size = 0
-
-    exit_code, stdout, stderr = execute('du -sk %s' % directory, shell=True)
-    if stdout is not None:
-        try:
-            # convert to int and B
-            size = int(stdout.split()[0]) * 1024
-        except Exception as exc:
-            logger.warning('exception caught while trying convert dirsize: %s', exc)
-
-    return size
-
-
 def add_to_total_size(path, total_size):
     """
     Add the size of file in the given path to the total size of all in/output files.
@@ -996,23 +975,27 @@ def establish_logging(debug=True, nopilotlog=False, filename=config.Pilot.pilotl
     _logger.addHandler(console)
 
 
-def remove_core_dumps(workdir):
+def remove_core_dumps(workdir, pid=None):
     """
     Remove any remaining core dumps so they do not end up in the log tarball
 
-    :param workdir:
-    :return: Boolean (True if a core dump is found)
+    A core dump from the payload process should not be deleted if in debug mode (checked by the called). Also,
+    a found core dump from a non-payload process, should be removed but should result in function returning False.
+
+    :param workdir: working directory for payload (string).
+    :param pid: payload pid (integer).
+    :return: Boolean (True if a payload core dump is found)
     """
 
     found = False
-    coredumps1 = glob("%s/core.*" % workdir)
-    coredumps2 = glob("%s/core" % workdir)
-    coredumps = coredumps1 + coredumps2
+
+    coredumps = glob("%s/core.*" % workdir) + glob("%s/core" % workdir)
     if coredumps:
         for coredump in coredumps:
+            if pid and os.path.basename(coredump) == "core.%d" % pid:
+                found = True
             logger.info("removing core dump: %s", str(coredump))
             remove(coredump)
-        found = True
 
     return found
 
@@ -1145,3 +1128,22 @@ def find_last_line(filename):
         last_line = line
 
     return last_line
+
+
+def get_disk_usage(start_path='.'):
+    """
+    Calculate the disk usage of the given directory (including any sub-directories).
+
+    :param start_path: directory (string).
+    :return: disk usage in bytes (int).
+    """
+
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(start_path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            # skip if it is symbolic link
+            if not os.path.islink(fp):
+                total_size += os.path.getsize(fp)
+
+    return total_size
