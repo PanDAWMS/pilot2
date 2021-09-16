@@ -117,6 +117,8 @@ def containerise_middleware(job, xdata, queue, eventtype, localsite, remotesite,
             logger.info('*** %s has finished ***', label)
         else:
             logger.info('*** %s has failed ***', label)
+            logger.warning('stderr:\n%s', stderr)
+            logger.warning('stdout:\n%s', stdout)
         logger.debug('%s script returned exit_code=%d', label, exit_code)
 
         # write stdout+stderr to files

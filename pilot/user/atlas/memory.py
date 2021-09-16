@@ -9,10 +9,10 @@
 
 import logging
 
-from .utilities import get_memory_values
 from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import set_pilot_state
 from pilot.util.processes import kill_processes
+from .utilities import get_memory_values
 
 logger = logging.getLogger(__name__)
 errors = ErrorCodes()
@@ -38,22 +38,22 @@ def get_ucore_scale_factor(job):
 
     try:
         job_corecount = float(job.corecount)
-    except Exception as e:
-        logger.warning('exception caught: %s (job.corecount=%s)' % (e, str(job.corecount)))
+    except (ValueError, TypeError) as exc:
+        logger.warning('exception caught: %s (job.corecount=%s)', exc, str(job.corecount))
         job_corecount = None
 
     try:
         schedconfig_corecount = float(job.infosys.queuedata.corecount)
-    except Exception as e:
-        logger.warning('exception caught: %s (job.infosys.queuedata.corecount=%s)' % (e, str(job.infosys.queuedata.corecount)))
+    except (ValueError, TypeError) as exc:
+        logger.warning('exception caught: %s (job.infosys.queuedata.corecount=%s)', exc, str(job.infosys.queuedata.corecount))
         schedconfig_corecount = None
 
     if job_corecount and schedconfig_corecount:
         try:
             scale = job_corecount / schedconfig_corecount
-            logger.debug('scale=%f' % scale)
-        except Exception as e:
-            logger.warning('exception caught: %s (using scale factor 1)' % e)
+            logger.debug('scale: job_corecount / schedconfig_corecount=%f', scale)
+        except (ZeroDivisionError, TypeError) as exc:
+            logger.warning('exception caught: %s (using scale factor 1)', exc)
             scale = 1
     else:
         logger.debug('will use scale factor 1')
@@ -93,8 +93,8 @@ def memory_usage(job):
             scale = get_ucore_scale_factor(job)
             try:
                 maxrss_int = 2 * int(maxrss * scale) * 1024  # Convert to int and kB
-            except Exception as e:
-                logger.warning("unexpected value for maxRSS: %s" % e)
+            except (ValueError, TypeError) as exc:
+                logger.warning("unexpected value for maxRSS: %s", exc)
             else:
                 # Compare the maxRSS with the maxPSS from memory monitor
                 if maxrss_int > 0 and maxpss_int > 0:
@@ -112,7 +112,7 @@ def memory_usage(job):
                         kill_processes(job.pid)
                     else:
                         logger.info("max memory (maxPSS) used by the payload is within the allowed limit: "
-                                    "%d B (2 * maxRSS = %d B)" % (maxpss_int, maxrss_int))
+                                    "%d B (2 * maxRSS = %d B)", maxpss_int, maxrss_int)
         else:
             if maxrss == 0 or maxrss == "0":
                 logger.info("queuedata.maxrss set to 0 (no memory checks will be done)")

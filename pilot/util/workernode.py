@@ -9,11 +9,11 @@
 
 import os
 import re
+import logging
 
 from pilot.info import infosys
 from pilot.util.disk import disk_usage
 
-import logging
 logger = logging.getLogger(__name__)
 
 

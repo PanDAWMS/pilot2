@@ -386,7 +386,10 @@ def perform_initial_payload_error_analysis(job, exit_code):
 
     # check if core dumps exist, if so remove them and return True
     if not job.debug:  # do not shorten these if-statements
-        if remove_core_dumps(job.workdir):
+        # only return True if found core dump belongs to payload
+        if remove_core_dumps(job.workdir, pid=job.pid):
+            # COREDUMP error will only be set if the core dump belongs to the payload (ie 'core.<payload pid>')
+            logger.warning('setting COREDUMP error')
             job.piloterrorcodes, job.piloterrordiags = errors.add_error_code(errors.COREDUMP)
 
 

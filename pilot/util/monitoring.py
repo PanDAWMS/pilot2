@@ -18,7 +18,7 @@ from pilot.common.errorcodes import ErrorCodes
 from pilot.util.auxiliary import set_pilot_state, show_memory_usage
 from pilot.util.config import config
 from pilot.util.container import execute
-from pilot.util.filehandling import get_directory_size, remove_files, get_local_file_size, read_file
+from pilot.util.filehandling import get_disk_usage, remove_files, get_local_file_size, read_file
 from pilot.util.loopingjob import looping_job
 from pilot.util.math import convert_mb_to_b, human2bytes
 from pilot.util.parameters import convert_to_int, get_maximum_input_sizes
@@ -575,7 +575,7 @@ def check_work_dir(job):
         maxwdirsize = get_max_allowed_work_dir_size(job.infosys.queuedata)
 
         if os.path.exists(job.workdir):
-            workdirsize = get_directory_size(directory=job.workdir)
+            workdirsize = get_disk_usage(job.workdir)
 
             # is user dir within allowed size limit?
             if workdirsize > maxwdirsize:
@@ -600,7 +600,7 @@ def check_work_dir(job):
                     remove_files(job.workdir, lfns)
 
                     # remeasure the size of the workdir at this point since the value is stored below
-                    workdirsize = get_directory_size(directory=job.workdir)
+                    workdirsize = get_disk_usage(job.workdir)
             else:
                 logger.info("size of work directory %s: %d B (within %d B limit)", job.workdir, workdirsize, maxwdirsize)
 

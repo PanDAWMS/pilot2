@@ -16,6 +16,7 @@ import os
 import re
 from random import randint
 from signal import SIGTERM, SIGUSR1
+
 # from tarfile import ExFileObject
 
 try:
@@ -71,7 +72,7 @@ from pilot.util.filehandling import (
     remove, remove_dir_tree, remove_core_dumps, read_file, read_json,
     update_extension,
     write_file,
-    # read_list
+    get_disk_usage
 )
 from pilot.util.processes import (
     convert_ps_to_dict,
@@ -79,6 +80,7 @@ from pilot.util.processes import (
     get_trimmed_dictionary,
     is_child
 )
+
 from pilot.util.tracereport import TraceReport
 
 logger = logging.getLogger(__name__)
@@ -382,9 +384,10 @@ def get_payload_command(job):
         diagnostics = ""
         not_opened_turls = ""
         try:
+            logger.debug('executing open_remote_files()')
             exitcode, diagnostics, not_opened_turls = open_remote_files(job.indata, job.workdir, get_nthreads(catchall))
-        except PilotException as exc:
-            logger.warning('caught exception: %s', exc)
+        except Exception as exc:
+            logger.warning('caught std exception: %s', exc)
         else:
             # read back the base trace report
             path = os.path.join(job.workdir, config.Pilot.base_trace_report)
@@ -1535,7 +1538,7 @@ def parse_jobreport_data(job_report):  # noqa: C901
 
         work_attributes.update(fin_report)
 
-    workdir_size = get_workdir_size()
+    workdir_size = get_disk_usage('.')
     work_attributes['jobMetrics'] = 'coreCount=%s nEvents=%s dbTime=%s dbData=%s workDirSize=%s' % \
                                     (core_count,
                                         work_attributes["nEvents"],
@@ -1546,18 +1549,6 @@ def parse_jobreport_data(job_report):  # noqa: C901
     del work_attributes["dbTime"]
 
     return work_attributes
-
-
-def get_workdir_size():
-    """
-    Tmp function - move later to file_handling
-
-    :return:
-    """
-    _, stdout, _ = execute('du -s', shell=True)
-    if stdout is not None:
-        return stdout.split()[0]
-    return None
 
 
 def get_executor_dictionary(jobreport_dictionary):
@@ -2089,7 +2080,7 @@ def get_utility_commands(order=None, job=None):
     If order=UTILITY_WITH_STAGEIN, the commands that should be executed
     parallel with stage-in will be returned.
 
-    FORMAT: {'command': <command>, 'args': <args>, 'label': <some name>}
+    FORMAT: {'command': <command>, 'args': <args>, 'label': <some name>, 'ignore_failure': <Boolean>}
 
     :param order: optional sorting order (see pilot.util.constants).
     :param job: optional job object.
@@ -2100,7 +2091,7 @@ def get_utility_commands(order=None, job=None):
         return get_precopostprocess_command(job.preprocess, job.workdir, 'preprocess')
 
     if order == UTILITY_WITH_PAYLOAD:
-        return {'command': 'NetworkMonitor', 'args': '', 'label': 'networkmonitor'}
+        return {'command': 'NetworkMonitor', 'args': '', 'label': 'networkmonitor', 'ignore_failure': True}
 
     if order == UTILITY_AFTER_PAYLOAD_STARTED:
         return get_utility_after_payload_started()
@@ -2149,6 +2140,7 @@ def get_precopostprocess_command(process, workdir, label):
     if process.get('command', ''):
         com = download_command(process, workdir)
         com['label'] = label
+        com['ignore_failure'] = False
     return com
 
 
@@ -2168,7 +2160,7 @@ def get_utility_after_payload_started():
         pass
     else:
         if cmd:
-            com = {'command': cmd, 'args': '', 'label': cmd.lower()}
+            com = {'command': cmd, 'args': '', 'label': cmd.lower(), 'ignore_failure': True}
     return com
 
 
@@ -2190,6 +2182,7 @@ def get_xcache_command(catchall, workdir, jobid, label, xcache_function):
     if 'pilotXcache' in catchall:
         com = xcache_function(jobid=jobid, workdir=workdir)
         com['label'] = label
+        com['ignore_failure'] = True
     return com
 
 

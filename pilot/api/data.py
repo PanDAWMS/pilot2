@@ -273,8 +273,8 @@ class StagingClient(object):
 
         try:
             replicas = c.list_replicas(**query)
-        except Exception as error:
-            raise PilotException("Failed to get replicas from Rucio: %s" % error, code=ErrorCodes.RUCIOLISTREPLICASFAILED)
+        except Exception as exc:
+            raise PilotException("Failed to get replicas from Rucio: %s" % exc, code=ErrorCodes.RUCIOLISTREPLICASFAILED)
 
         show_memory_usage()
 
@@ -494,12 +494,12 @@ class StagingClient(object):
                 copytool = __import__('pilot.copytool.%s' % module, globals(), locals(), [module], 0)  # Python 2/3
                 #self.trace_report.update(protocol=name)
 
-            except PilotException as error:
-                caught_errors.append(error)
-                self.logger.debug('error: %s', error)
+            except PilotException as exc:
+                caught_errors.append(exc)
+                self.logger.debug('error: %s', exc)
                 continue
-            except Exception as error:
-                self.logger.warning('failed to import copytool module=%s, error=%s', module, error)
+            except Exception as exc:
+                self.logger.warning('failed to import copytool module=%s, error=%s', module, exc)
                 continue
 
             try:
@@ -507,15 +507,15 @@ class StagingClient(object):
                 self.logger.debug('transfer_files() using copytool=%s completed with result=%s', copytool, str(result))
                 show_memory_usage()
                 break
-            except PilotException as error:
-                self.logger.warning('failed to transfer_files() using copytool=%s .. skipped; error=%s', copytool, error)
-                caught_errors.append(error)
-            except TimeoutException as error:
-                self.logger.warning('function timed out: %s', error)
-                caught_errors.append(error)
-            except Exception as error:
-                self.logger.warning('failed to transfer files using copytool=%s .. skipped; error=%s', copytool, error)
-                caught_errors.append(error)
+            except PilotException as exc:
+                self.logger.warning('failed to transfer_files() using copytool=%s .. skipped; error=%s', copytool, exc)
+                caught_errors.append(exc)
+            except TimeoutException as exc:
+                self.logger.warning('function timed out: %s', exc)
+                caught_errors.append(exc)
+            except Exception as exc:
+                self.logger.warning('failed to transfer files using copytool=%s .. skipped; error=%s', copytool, exc)
+                caught_errors.append(exc)
                 import traceback
                 self.logger.error(traceback.format_exc())
 
@@ -1071,8 +1071,8 @@ class StageOutClient(StagingClient):
                     raise PilotException(msg, code=ErrorCodes.NOSTORAGE, state='NO_OUTPUTSTORAGE_DEFINED')
 
             pfn = fspec.surl or getattr(fspec, 'pfn', None) or os.path.join(kwargs.get('workdir', ''), fspec.lfn)
-            if not os.path.isfile(pfn) or not os.access(pfn, os.R_OK):
-                msg = "output pfn file does not exist: %s" % pfn
+            if not os.path.exists(pfn) or not os.access(pfn, os.R_OK):
+                msg = "output pfn file/directory does not exist: %s" % pfn
                 self.logger.error(msg)
                 self.trace_report.update(clientState='MISSINGOUTPUTFILE', stateReason=msg)
                 self.trace_report.send()
@@ -1087,7 +1087,7 @@ class StageOutClient(StagingClient):
 
             fspec.surl = pfn
             fspec.activity = activity
-            if not fspec.checksum.get('adler32'):
+            if os.path.isfile(pfn) and not fspec.checksum.get('adler32'):
                 fspec.checksum['adler32'] = calculate_checksum(pfn)
 
         # prepare files (resolve protocol/transfer url)
@@ -1099,7 +1099,7 @@ class StageOutClient(StagingClient):
             self.require_protocols(files, copytool, activity, local_dir=output_dir)
 
         if not copytool.is_valid_for_copy_out(files):
-            self.logger.warning('Input is not valid for transfers using copytool=%s' % copytool)
+            self.logger.warning('Input is not valid for transfers using copytool=%s', copytool)
             self.logger.debug('Input: %s', files)
             raise PilotException('Invalid input for transfer operation')
 

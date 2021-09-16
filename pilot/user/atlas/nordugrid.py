@@ -8,10 +8,10 @@
 # - Paul Nilsson, paul.nilsson@cern.ch, 2018-2019
 
 import re
+import logging
 from xml.dom import minidom
 from xml.etree import ElementTree
 
-import logging
 logger = logging.getLogger(__name__)
 
 
@@ -52,14 +52,14 @@ class XMLDictionary(object):
         :param itemname: name of the item key. In the Nordugrid XML it should be called 'file'.
         :return:
         """
-        if type(self._dictionary) == dict:
-            if type(self._dictionary[rootname]) == list:
+        if isinstance(self._dictionary, dict):
+            if isinstance(self._dictionary[rootname], list):
                 _dic = {itemname: dictionary}
                 self._dictionary[rootname].append(_dic)
             else:
                 pass
         else:
-            logger.info("not a dictionary: %s" % str(self._dictionary))
+            logger.info("not a dictionary: %s", str(self._dictionary))
 
     def get_dictionary(self):
         """
@@ -98,17 +98,17 @@ def convert_to_xml(dictionary):
 
     single_file_tag = list(dictionary.keys())  # Python 2/3
     if len(single_file_tag) != 1:
-        logger.warning("unexpected format - expected single entry, got %d entries" % len(single_file_tag))
-        logger.warning('dictionary = %s' % str(dictionary))
+        logger.warning("unexpected format - expected single entry, got %d entries", len(single_file_tag))
+        logger.warning('dictionary = %s', str(dictionary))
         return None
 
     file_tag = single_file_tag[0]
     root = ElementTree.Element(file_tag)
 
     file_list = dictionary[file_tag]
-    if type(file_list) == list:
+    if isinstance(file_list, list):
         for file_entry in file_list:
-            if type(file_entry) == dict and len(file_entry) == 1:
+            if isinstance(file_entry, dict) and len(file_entry) == 1:
                 single_entry = list(file_entry.keys())[0]  # Python 2/3
 
                 # add the 'file' element
@@ -116,19 +116,19 @@ def convert_to_xml(dictionary):
                 root.append(file_element)
 
                 file_dictionary = file_entry[single_entry]
-                if type(file_dictionary) == dict:
+                if isinstance(file_dictionary, dict):
                     for dictionary_entry in list(file_dictionary.keys()):  # Python 2/3
                         # convert all entries to xml elements
                         entry = ElementTree.SubElement(file_element, dictionary_entry)
                         entry.text = file_dictionary[dictionary_entry]
                 else:
-                    logger.warning("unexpected format - expected a dictionary, got %s" % file_dictionary)
+                    logger.warning("unexpected format - expected a dictionary, got %s", str(file_dictionary))
                     failed = True
             else:
-                logger.warning("unexpected format - expected a length 1 dictionary, got %s" % file_entry)
+                logger.warning("unexpected format - expected a length 1 dictionary, got %s", str(file_entry))
                 failed = True
     else:
-        logger.warning("unexpected format - expected a list, got %s" % file_list)
+        logger.warning("unexpected format - expected a list, got %s", str(file_list))
         failed = True
 
     if failed:
