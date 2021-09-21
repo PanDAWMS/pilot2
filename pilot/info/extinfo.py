@@ -61,8 +61,9 @@ class ExtInfoProvider(DataLoader):
 
         cric_url = getattr(config.Information, 'queues_url', None) or 'https://atlas-cric.cern.ch/cache/schedconfig/{pandaqueue}.json'
         cric_url = cric_url.format(pandaqueue=pandaqueues[0] if len(pandaqueues) == 1 else 'pandaqueues')
+        cvmfs_path = self.get_cvmfs_path(config.Information.queues_cvmfs, 'cric_pandaqueues.json')
 
-        sources = {'CVMFS': {'url': getattr(config.Information, 'queues_cvmfs', None) or '/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_pandaqueues.json',
+        sources = {'CVMFS': {'url': cvmfs_path,
                              'nretry': 1,
                              'fname': os.path.join(cache_dir, 'agis_schedconf.cvmfs.json')},
                    'CRIC': {'url': cric_url,
@@ -80,6 +81,23 @@ class ExtInfoProvider(DataLoader):
         priority = priority or ['LOCAL', 'CVMFS', 'CRIC', 'PANDA']
 
         return self.load_data(sources, priority, cache_time)
+
+    @staticmethod
+    def get_cvmfs_path(url, fname):
+        """
+        Return a proper path for cvmfs.
+
+        :param url: URL (string).
+        :param fname: file name for CRIC JSON (string).
+        :return: cvmfs path (string).
+        """
+
+        if url:
+            cvmfs_path = url.replace('CVMFS_PATH', os.environ.get('ATLAS_SW_BASE', '/cvmfs'))
+        else:
+            cvmfs_path = '%s/atlas.cern.ch/repo/sw/local/etc/%s' % (os.environ.get('ATLAS_SW_BASE', '/cvmfs'), fname)
+
+        return cvmfs_path
 
     @classmethod
     def load_queuedata(self, pandaqueue, priority=[], cache_time=60):
@@ -113,8 +131,9 @@ class ExtInfoProvider(DataLoader):
 
         cric_url = getattr(config.Information, 'queues_url', None) or 'https://atlas-cric.cern.ch/cache/schedconfig/{pandaqueue}.json'
         cric_url = cric_url.format(pandaqueue=pandaqueues[0] if len(pandaqueues) == 1 else 'pandaqueues')
+        cvmfs_path = self.get_cvmfs_path(getattr(config.Information, 'queuedata_cvmfs', None), 'cric_pandaqueues.json')
 
-        sources = {'CVMFS': {'url': getattr(config.Information, 'queuedata_cvmfs', None) or '/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_pandaqueues.json',
+        sources = {'CVMFS': {'url': cvmfs_path,
                              'nretry': 1,
                              'fname': os.path.join(cache_dir, 'agis_schedconf.cvmfs.json')},
                    'CRIC': {'url': cric_url,
@@ -159,7 +178,8 @@ class ExtInfoProvider(DataLoader):
             cache_dir = os.environ.get('PILOT_HOME', '.')
 
         # list of sources to fetch ddmconf data from
-        sources = {'CVMFS': {'url': config.Information.storages_cvmfs or '/cvmfs/atlas.cern.ch/repo/sw/local/etc/cric_ddmendpoints.json',
+        cvmfs_path = self.get_cvmfs_path(config.Information.storages_cvmfs, 'cric_ddmendpoints.json')
+        sources = {'CVMFS': {'url': cvmfs_path,
                              'nretry': 1,
                              'fname': os.path.join(cache_dir, getattr(config.Information, 'storages_cache', None) or 'agis_ddmendpoints.json')},
                    'CRIC': {'url': (getattr(config.Information, 'storages_url', None) or 'https://atlas-cric.cern.ch/cache/ddmendpoints.json'),
