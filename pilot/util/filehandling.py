@@ -1143,7 +1143,7 @@ def get_disk_usage(start_path='.'):
         for f in filenames:
             fp = os.path.join(dirpath, f)
             # skip if it is symbolic link
-            if not os.path.islink(fp):
+            if os.path.exists(fp) and not os.path.islink(fp):
                 total_size += os.path.getsize(fp)
 
     return total_size
