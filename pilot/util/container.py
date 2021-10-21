@@ -32,7 +32,6 @@ def execute(executable, **kwargs):
     """
     Execute the command and its options in the provided executable list.
     The function also determines whether the command should be executed within a container.
-    TODO: add time-out functionality.
 
     :param executable: command to be executed (string or list).
     :param kwargs (timeout, usecontainer, returnproc):
@@ -46,6 +45,7 @@ def execute(executable, **kwargs):
     stderr_name = kwargs.get('stderr', subprocess.PIPE)
     usecontainer = kwargs.get('usecontainer', False)
     returnproc = kwargs.get('returnproc', False)
+    # timeout = kwargs.get('timeout', None)  # Python 3
     job = kwargs.get('job')
 
     # convert executable to string if it is a list
