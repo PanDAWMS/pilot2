@@ -124,10 +124,10 @@ def create_setup_file(version, path):
         # create the python code string to be written to file
         txt = "import os\n"
         txt += "os.environ['DBRELEASE'] = '%s'\n" % version
-        txt += "os.environ['DATAPATH'] = '%s/%s:' + os.environ['DATAPATH']\n" % (dir, version)
+        txt += "os.environ['DATAPATH'] = '%s/%s:' + os.environ['DATAPATH']\n" % (_dir, version)
         txt += "os.environ['DBRELEASE_REQUIRED'] = '%s'\n" % version
         txt += "os.environ['DBRELEASE_REQUESTED'] = '%s'\n" % version
-        txt += "os.environ['CORAL_DBLOOKUP_PATH'] = '%s/%s/XMLConfig'\n" % (dir, version)
+        txt += "os.environ['CORAL_DBLOOKUP_PATH'] = '%s/%s/XMLConfig'\n" % (_dir, version)
 
         try:
             status = write_file(path, txt)
