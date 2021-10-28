@@ -82,7 +82,7 @@ def chi2(observed, expected):
     if 0 in expected:
         return 0.0
 
-    return sum((_o - _e) ** 2 / _e for _o, _e in zip(observed, expected))
+    return sum((_o - _e) ** 2 / _e ** 2 for _o, _e in zip(observed, expected))
 
 
 def float_to_rounded_string(num, precision=3):
