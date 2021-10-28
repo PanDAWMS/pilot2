@@ -430,27 +430,8 @@ if __name__ == '__main__':
         _xfiles = [FileSpec(type='input', **f) for f in files]
         xfiles += _xfiles
 
-#    for lfn, scope, filesize, checksum, allowlan, allowwan, dalan, dawan, istar, accessmode, sttoken, guid in list(zip(lfns,
-#                                                                                                                       scopes,
-#                                                                                                                       filesizes,
-#                                                                                                                       checksums,
-#                                                                                                                       allowlans,
-#                                                                                                                       allowwans,
-#                                                                                                                       directaccesslans,
-#                                                                                                                       directaccesswans,
-#                                                                                                                       istars,
-#                                                                                                                       accessmodes,
-#                                                                                                                       storagetokens,
-#                                                                                                                       guids)):
-#        files = [{'scope': scope, 'lfn': lfn, 'workdir': args.workdir, 'filesize': filesize, 'checksum': checksum,
-#                  'allow_lan': allowlan, 'allow_wan': allowwan, 'direct_access_lan': dalan, 'guid': guid,
-#                  'direct_access_wan': dawan, 'is_tar': istar, 'accessmode': accessmode, 'storage_token': sttoken}]
-#
-#        # do not abbreviate the following two lines as otherwise the content of xfiles will be a list of generator objects
-#        _xfiles = [FileSpec(type='input', **f) for f in files]
-#        xfiles += _xfiles
-
     try:
+        client.prepare_sources(xfiles)
         r = client.transfer(xfiles, activity=activity, **kwargs)
     except Exception as e:
         err = str(e)

@@ -118,7 +118,7 @@ def get_time_for_last_touch(job, mt, looping_limit):
                                         globals(), locals(), [pilot_user], 0)  # Python 2/3
 
     # locate all files that were modified the last N minutes
-    cmd = "find %s -mmin -%d" % (job.workdir, int(looping_limit / 60))
+    cmd = "find %s -type f -mmin -%d" % (job.workdir, int(looping_limit / 60))
     exit_code, stdout, stderr = execute(cmd)
     if exit_code == 0:
         if stdout != "":
