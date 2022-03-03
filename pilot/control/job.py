@@ -451,16 +451,30 @@ def get_panda_server(url, port):
     :return: full URL (either from pilot options or from config file)
     """
 
-    if url.startswith('https://'):
-        url = url.replace('https://', '')
+    if url != '':
+        parsedurl = url.split('://')
+        scheme = None
+        loc = None
+        if len (parsedurl) == 2:
+            scheme = parsedurl[0]
+            loc = parsedurl[1]
+        else:
+            loc = parsedurl[0]
 
-    if url != '' and port != 0:
-        pandaserver = '%s:%s' % (url, port) if ":" not in url else url
+        parsedloc = loc.split(':')
+        loc = parsedloc[0]
+
+        # use port in url only if port argument is not provided
+        if port == 0 and len(parsedloc) == 2:
+            port = parsedloc[1]
+        # default scheme to https
+        if not scheme:
+            scheme = "https"
+        pandaserver = '%s://%s%s' % (scheme, loc, ':%s' % port if port else '')
     else:
         pandaserver = config.Pilot.pandaserver
-
-    if not pandaserver.startswith('http'):
-        pandaserver = 'https://' + pandaserver
+        if not pandaserver.startswith('http'):
+            pandaserver = 'https://' + pandaserver
 
     # add randomization for PanDA server
     default = 'pandaserver.cern.ch'
