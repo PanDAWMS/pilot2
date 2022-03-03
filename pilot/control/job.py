@@ -455,7 +455,7 @@ def get_panda_server(url, port):
         parsedurl = url.split('://')
         scheme = None
         loc = None
-        if len (parsedurl) == 2:
+        if len(parsedurl) == 2:
             scheme = parsedurl[0]
             loc = parsedurl[1]
         else:
