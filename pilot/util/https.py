@@ -37,7 +37,12 @@ from .constants import get_pilot_version
 import logging
 logger = logging.getLogger(__name__)
 
+# _ctx is used even with --use-https=False which skips https_setup() so we need to set initial values to avoid exceptions in get_curl_command.
 _ctx = collections.namedtuple('_ctx', 'ssl_context user_agent capath cacert')
+_ctx.ssl_context = None
+_ctx.user_agent = None
+_ctx.capath = None
+_ctx.cacert = None
 
 # anisyonk: public copy of `_ctx` to avoid logic break since ssl_context is reset inside the request() -- FIXME
 # anisyonk: public instance, should be properly initialized by `https_setup()`
